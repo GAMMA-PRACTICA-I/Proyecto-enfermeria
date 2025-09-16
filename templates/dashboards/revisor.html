@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Revisor</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .dashboard-container {
+            background-color: white;
+            padding: 30px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        .role {
+            font-weight: bold;
+            color: #333;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: black;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        a:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Bienvenido, {{ user.email }}</h1>
+        <p>Has ingresado como <span class="role">Revisor</span>.</p>
+        <p>Aquí puedes revisar fichas médicas y emitir tus decisiones.</p>
+
+        <a href="{% url 'logout' %}">Cerrar sesión</a>
+    </div>
+</body>
+</html>
