@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: ficha_mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --innodb_file_per_table=1
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${DB_NAME:-ficha_medica}
+      MYSQL_USER: ${DB_USER:-appuser}
+      MYSQL_PASSWORD: ${DB_PASS:-apppass}
+    ports:
+      - "3306:3306"   # opcional, solo si quieres conectar desde DBeaver/host
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ficha_web
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # valores por defecto si faltan en .env
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-ficha_medica}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASS: ${DB_PASS:-apppass}
+      DJANGO_SUPERUSER_EMAIL: admin@demo.local
+      DJANGO_SUPERUSER_PASSWORD: admin12345
+      DEBUG: "true"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:cached         # hot-reload de código en dev
+      - media:/app/media      # persistir media
+      - static:/app/staticfiles
+
+volumes:
+  dbdata:
+  media:
+  static:
