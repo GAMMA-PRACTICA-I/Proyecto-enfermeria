@@ -1,7 +1,9 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv   # 👈 importa dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-inseguro")
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
@@ -89,3 +91,20 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "465"))  # SSL inicia cifrado desde el comienzo
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False  # Desactiva STARTTLS; usamos SSL puro
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")         # tu correo o usuario SMTP
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "") # tu contraseña o App Password
+
+# Usa SIEMPRE la cuenta autenticada como remitente
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+
+# Opcional: timeout de conexión (segundos)
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "30"))

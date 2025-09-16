@@ -1,6 +1,5 @@
 #!/bin/sh
 set -e
-
 DATADIR="/var/lib/mysql"
 SOCK="/var/run/mysqld/mysqld.sock"
 
@@ -59,17 +58,15 @@ def ensure_user(email, password, rol, is_staff=False, is_superuser=False):
     print(f"Usuario {'creado' if created else 'actualizado'}: {email} ({rol})")
 
 # admin
-ensure_user("admin@demo.local", "admin123", rol="ADMIN", is_staff=True, is_superuser=True)
+ensure_user("c.urdanetafernandez@uandresbello.edu", "admin123", rol="ADMIN", is_staff=True, is_superuser=True)
 
 # revisor
-ensure_user("revisor@demo.local", "revisor123", rol="REVIEWER", is_staff=True)
+ensure_user("sectec.cd@gmail.com", "revisor123", rol="REVIEWER", is_staff=True)
 
 # estudiante
-ensure_user("estudiante@demo.local", "estudiante123", rol="STUDENT")
+ensure_user("curdanet@gmail.com", "estudiante123", rol="STUDENT")
 PYCODE
 
-# collectstatic (opcional)
-gosu app python manage.py collectstatic --noinput || true
 
 # arrancar servidor
 exec gosu app python manage.py runserver 0.0.0.0:8000
