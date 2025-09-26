@@ -1,0 +1,252 @@
+<section class="card">
+  <h2 style="margin-top:0">Ficha Estudiantil</h2>
+
+  <form id="fichaForm" novalidate>
+    <!-- I. DATOS PERSONALES -->
+    <h3>Datos personales</h3>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))">
+      <label>RUT
+        <input name="rut" required placeholder="12.345.678-9"
+               pattern="^\\d{1,2}\\.\\d{3}\\.\\d{3}-[0-9Kk]$"
+               title="Formato: 12.345.678-9"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Nombre social
+        <input name="nombre_social" placeholder="Opcional"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Nombres
+        <input name="nombres" required
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Apellidos
+        <input name="apellidos" required
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Fecha de nacimiento
+        <input type="date" name="fecha_nac" required
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Teléfono
+        <input name="telefono" required placeholder="+56 9 1234 5678" pattern="^[0-9+\\s-]{8,}$"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Correo institucional
+        <input type="email" name="mail_inst" placeholder="usuario@uandresbello.edu"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Correo personal
+        <input type="email" name="mail_pers" placeholder="tucorreo@gmail.com"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Dirección
+        <input name="direccion"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Comuna
+        <input name="comuna"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Región
+        <input name="region"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+    </div>
+
+    <!-- II. ANTECEDENTES ACADÉMICOS -->
+    <h3 style="margin-top:18px">Antecedentes académicos</h3>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))">
+      <label>Carrera
+        <input name="carrera" required placeholder="Enfermería"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Año que cursa
+        <select name="anio" required style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option value="">Selecciona…</option>
+          <option>1°</option><option>2°</option><option>3°</option><option>4°</option><option>5°</option>
+        </select>
+      </label>
+      <label>Estado
+        <select name="estado" required style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option value="">Selecciona…</option>
+          <option>Curricular</option>
+          <option>Interno</option>
+        </select>
+      </label>
+      <label>Sede
+        <input name="sede" placeholder="Santiago / Viña / Concepción…"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Jornada
+        <select name="jornada" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option value="">Selecciona…</option>
+          <option>Diurna</option><option>Vespertina</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- III. ANTECEDENTES MÓRBIDOS -->
+    <h3 style="margin-top:18px">Antecedentes mórbidos</h3>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))">
+      <label>¿Alergias?
+        <select name="alergias" id="alergias" required style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option>No</option><option>Sí</option>
+        </select>
+      </label>
+      <label id="alergias_det_wrap" style="display:none">Detalle alergias
+        <input name="alergias_det" placeholder="Penicilina, otros…"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Grupo sanguíneo
+        <select name="grupo" required style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option value="">Selecciona…</option>
+          <option>O-</option><option>O+</option><option>A-</option><option>A+</option>
+          <option>B-</option><option>B+</option><option>AB-</option><option>AB+</option>
+        </select>
+      </label>
+      <label>¿Enfermedad crónica?
+        <select name="enf_cronica" id="enf_cronica" required style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option>No</option><option>Sí</option>
+        </select>
+      </label>
+      <label id="enf_cronica_det_wrap" style="display:none">Detalle enfermedad
+        <input name="enf_cronica_det" placeholder="Cuál(es)…"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>¿Medicamento diario?
+        <select name="medicamento" id="medicamento" required style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+          <option>No</option><option>Sí</option>
+        </select>
+      </label>
+      <label id="medicamento_det_wrap" style="display:none">Detalle medicamento
+        <input name="medicamento_det" placeholder="Cuál(es)…"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label style="grid-column:1/-1">Otros antecedentes relevantes
+        <textarea name="otros" rows="3"
+                  style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1"></textarea>
+      </label>
+    </div>
+
+    <!-- IV. CONTACTO DE EMERGENCIA -->
+    <h3 style="margin-top:18px">Contacto de emergencia</h3>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))">
+      <label>Nombre
+        <input name="emerg_nombre" required
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Relación
+        <input name="emerg_relacion" required placeholder="Madre/Padre/Hermano(a)…"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Teléfono contacto
+        <input name="emerg_telefono" required placeholder="+56 9 ..."
+               pattern="^[0-9+\\s-]{8,}$"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+      <label>Correo contacto
+        <input type="email" name="emerg_mail" placeholder="opcional"
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+      </label>
+    </div>
+
+    <!-- V. ADJUNTOS -->
+    <h3 style="margin-top:18px">Adjuntos</h3>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))">
+      <label>Certificado médico (si corresponde)
+        <input type="file" name="cert_medico" accept=".pdf,.jpg,.png"
+               style="width:100%;padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.03);color:#e8ecf1">
+      </label>
+      <label>Otros documentos
+        <input type="file" name="otros_docs" multiple
+               style="width:100%;padding:8px;border-radius:10px;border:1px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.03);color:#e8ecf1">
+      </label>
+    </div>
+
+    <!-- VI. DECLARACIÓN -->
+    <div style="margin-top:16px">
+      <label style="display:flex;gap:10px;align-items:center">
+        <input type="checkbox" required name="declaro" style="transform:scale(1.2)">
+        Declaro que la información entregada es verídica y autorizo su uso para fines académicos.
+      </label>
+    </div>
+
+    <!-- ACCIONES -->
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button type="submit"
+              style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#1f2937;color:#e8ecf1">
+        Guardar
+      </button>
+      <button type="button" id="btnPdf"
+              style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#e8ecf1">
+        Crear PDF (mock)
+      </button>
+      <span id="msg" style="align-self:center;color:#34d399"></span>
+    </div>
+  </form>
+</section>
+
+<script>
+  const form = document.getElementById('fichaForm');
+  const msg  = document.getElementById('msg');
+  const KEY  = 'ficha_estudiantil_v1';
+
+  // Mostrar/ocultar detalles según Sí/No
+  const showIfYes = (selectId, wrapId) => {
+    const sel = document.getElementById(selectId);
+    const wrap = document.getElementById(wrapId);
+    const toggle = () => wrap.style.display = (sel.value === 'Sí') ? '' : 'none';
+    sel.addEventListener('change', toggle); toggle();
+  };
+  showIfYes('alergias','alergias_det_wrap');
+  showIfYes('enf_cronica','enf_cronica_det_wrap');
+  showIfYes('medicamento','medicamento_det_wrap');
+
+  // Cargar datos guardados
+  (function loadFromStorage(){
+    const saved = localStorage.getItem(KEY);
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    Object.entries(data).forEach(([k,v]) => { if(form.elements[k]) form.elements[k].value = v; });
+    updateProgress();
+  })();
+
+  form.addEventListener('input', updateProgress);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      msg.style.color = '#fbbf24';
+      msg.textContent = 'Revisa los campos obligatorios.';
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    // Guardado local (demo)
+    localStorage.setItem(KEY, JSON.stringify(data));
+    msg.style.color = '#34d399';
+    msg.textContent = 'Guardado local ✅';
+
+    // (Luego) Persistencia real a tu API:
+    // await fetch('/api/estudiante_save.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  });
+
+  document.getElementById('btnPdf').addEventListener('click', () => {
+    alert('PDF de ejemplo. Luego lo conectamos (dompdf/jsPDF).');
+  });
+
+  function updateProgress(){
+    const req = ['rut','nombres','apellidos','fecha_nac','telefono','carrera','anio','estado','emerg_nombre','emerg_telefono','declaro'];
+    const filled = req.filter(k => {
+      const el = form.elements[k];
+      if (!el) return false;
+      if (el.type === 'checkbox') return el.checked;
+      return (el.value || '').trim().length > 0;
+    }).length;
+    const pct = Math.max(0, Math.min(100, Math.round((filled/req.length)*100)));
+    const badge = parent.document.querySelector('a[href="#ficha"] .badge');
+    if (badge) badge.textContent = pct + '%';
+  }
+</script>
+
+
