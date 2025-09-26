@@ -1,158 +1,128 @@
 <!DOCTYPE html>
 <html lang="es" style="height: 100%;">
 <head>
-    <meta charset="utf-8"/>
-    <title>Panel de Estudiante - Campo Clínico UNAB</title>
-    <style>
-        body {
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            display: flex;
-        }
+  <meta charset="utf-8"/>
+  <title>Panel de Estudiante - Campo Clínico UNAB</title>
+  <style>
+    body{height:100vh;margin:0;font-family:Arial, sans-serif;display:flex}
+    .sidebar{width:250px;background:#f8f8f8;border-right:1px solid #ccc;display:flex;flex-direction:column;align-items:center;padding:20px 12px 80px;position:relative}
+    .sidebar .logo{width:60px;height:60px;background:#000;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:30px}
+    .nav-btn{display:block;width:100%;padding:10px;margin:10px 0;text-align:center;background:#e60000;color:#fff;border:2px solid #000;border-radius:6px;font-weight:bold;cursor:pointer;transition:all .2s}
+    .nav-btn:hover{background:#b80000;transform:translateX(6px);box-shadow:2px 2px 5px rgba(0,0,0,.25)}
+    .nav-btn.active{outline:2px solid #222;box-shadow:0 0 0 3px rgba(0,0,0,.08) inset}
+    .logout-btn{background:#000;margin-top:auto}
+    .logout-btn:hover{background:#333;transform:none;box-shadow:none}
 
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background-color: #f8f8f8;
-            border-right: 1px solid #ccc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
-            position: relative;
-        }
+    .main-content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+    .logo-ring{width:120px;height:120px;border:3px solid #000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+    .logo-bars{display:flex;gap:5px}
+    .logo-bars span{display:block;width:20px;height:40px;background:#e60000}
 
-        .sidebar .logo {
-            width: 60px;
-            height: 60px;
-            background-color: #000;
-            color: #fff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-bottom: 30px;
-        }
-
-        .sidebar a {
-            display: block;
-            width: 80%;
-            padding: 10px;
-            margin: 10px 0;
-            text-align: center;
-            background-color: red;
-            color: white;
-            text-decoration: none;
-            border: 2px solid black;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar a:hover {
-            background-color: darkred;
-            transform: translateX(10px);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-        }
-
-        /* Botón logout esquina inferior izquierda */
-        .logout {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: black;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .logout:hover {
-            background-color: #333;
-        }
-
-        /* Main content */
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            text-align: center;
-        }
-
-        .main-content .logo {
-            width: 120px;
-            height: 120px;
-            border: 3px solid black;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            transform: rotate(180deg); /* Logo volteado */
-        }
-
-        .main-content .logo div {
-            display: flex;
-            gap: 5px;
-        }
-
-        .main-content .logo div span {
-            display: block;
-            width: 20px;
-            height: 40px;
-            background-color: red;
-        }
-
-        .main-content h1 {
-            font-size: 24px;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .main-content p {
-            margin: 10px 0;
-        }
-
-        .main-content .role {
-            font-weight: bold;
-            color: #333;
-        }
-    </style>
+    .sections{width:min(900px,95%);margin:0 auto}
+    .section{display:none;animation:fade .15s ease-out}
+    .section.active{display:block}
+    @keyframes fade{from{opacity:.3;transform:translateY(4px)} to{opacity:1;transform:none}}
+    .section h2{margin:0 0 12px}
+    .muted{color:#555}
+  </style>
 </head>
-<body style="height: 100%; margin: 0; display: flex;">
+<body>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">F</div>
-        <a href="ficha_estudiante.html">Ficha estudiante</a>
-        <a href="antecedentes.html">Antecedentes mórbidos y vacunas</a>
-        <a href="certificados.html">Certificados</a>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">F</div>
 
-        <!-- Logout abajo -->
-        <a href="{% url 'logout' %}" class="logout">Cerrar sesión</a>
-    </div>
+    <button class="nav-btn active" data-target="home">Inicio</button>
+    <button class="nav-btn" data-target="ficha">Ficha estudiante</button>
+    <button class="nav-btn" data-target="antecedentes">Antecedentes mórbidos y vacunas</button>
+    <button class="nav-btn" data-target="certificados">Certificados</button>
+    <button class="nav-btn" data-target="soporte">Soporte</button>
 
-    <!-- Main content -->
-    <div class="main-content">
-        <div class="logo">
-            <div>
-                <span></span>
-                <span style="height: 60px;"></span>
-                <span></span>
-            </div>
+    <form method="post" action="{% url 'logout' %}" style="width:100%;">
+      {% csrf_token %}
+      <button type="submit" class="nav-btn logout-btn">Cerrar sesión</button>
+    </form>
+  </aside>
+
+  <!-- Contenido principal -->
+  <!-- Inline styles para forzar layout de alto completo y evitar centrado vertical -->
+  <main class="main-content" style="width:100%; height:100%; align-items:stretch; justify-content:flex-start; padding:40px;">
+    <div class="sections" style="height:100%;">
+      <!-- HOME -->
+      <section id="home" class="section active" style="width:100%; height:100%;">
+        <!-- Logo volteado 180° -->
+        <div class="logo-ring" style="transform: rotate(180deg);">
+          <div class="logo-bars">
+            <span></span><span style="height:60px;"></span><span></span>
+          </div>
         </div>
         <h1>Bienvenido, {{ user.email }}</h1>
-        <p>Has ingresado como <span class="role">Estudiante</span>.</p>
-        <p>Puedes completar tu ficha médica, subir documentos y revisar tus resultados.</p>
-    </div>
+        <p class="muted">Has ingresado como <strong>Estudiante</strong>.</p>
+        <p class="muted">Puedes completar tu ficha médica, subir documentos y revisar tus resultados.</p>
+      </section>
 
+      <!-- FICHA -->
+      <section id="ficha" class="section" style="width:100%; height:100%;">
+        <!-- Wrapper inline que obliga a ocupar todo el espacio y agrega scroll si es necesario -->
+        <div style="display:flex; flex-direction:column; width:100%; height:100%;">
+          <div style="flex:1; width:100%; height:100%; overflow:auto; box-sizing:border-box;">
+            {% include "dashboards/ficha.html" %}
+          </div>
+        </div>
+      </section>
+
+      <!-- ANTECEDENTES -->
+      <section id="antecedentes" class="section" style="width:100%; height:100%;">
+        <div style="display:flex; flex-direction:column; width:100%; height:100%;">
+          <div style="flex:1; width:100%; height:100%; overflow:auto; box-sizing:border-box;">
+            {% include "dashboards/antecedentes.html" %}
+          </div>
+        </div>
+      </section>
+
+      <!-- CERTIFICADOS -->
+      <section id="certificados" class="section" style="width:100%; height:100%;">
+        <div style="display:flex; flex-direction:column; width:100%; height:100%;">
+          <div style="flex:1; width:100%; height:100%; overflow:auto; box-sizing:border-box;">
+            {% include "dashboards/certificados.html" %}
+          </div>
+        </div>
+      </section>
+
+      <!-- SOPORTE -->
+      <section id="soporte" class="section" style="width:100%; height:100%;">
+        <div style="display:flex; flex-direction:column; width:100%; height:100%;">
+          <div style="flex:1; width:100%; height:100%; overflow:auto; box-sizing:border-box;">
+            {% include "dashboards/soporte.html" %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll('.nav-btn[data-target]');
+    const sections = document.querySelectorAll('.section');
+
+    function activate(targetId){
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.target === targetId));
+      sections.forEach(s => s.classList.toggle('active', s.id === targetId));
+    }
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = btn.dataset.target;
+        activate(id);
+        history.replaceState(null, '', '#' + id);
+      });
+    });
+
+    const fromHash = location.hash.replace('#','');
+    if (fromHash) {
+      const valid = ['home','ficha','antecedentes','certificados','soporte'];
+      if (valid.includes(fromHash)) activate(fromHash);
+    }
+  </script>
 </body>
 </html>
-
