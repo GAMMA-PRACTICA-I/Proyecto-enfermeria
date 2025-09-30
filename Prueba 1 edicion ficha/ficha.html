@@ -9,7 +9,7 @@
         <input name="rut" required placeholder="12.345.678-9"
                pattern="^\\d{1,2}\\.\\d{3}\\.\\d{3}-[0-9Kk]$"
                title="Formato: 12.345.678-9"
-               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255, 255, 255, 0.12);background:rgba(0,0,0,.15);color:#e8ecf1">
+               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15);color:#e8ecf1">
       </label>
       <label>Nombre social
         <input name="nombre_social" placeholder="Opcional"
@@ -177,6 +177,7 @@
               style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#1f2937;color:#e8ecf1">
         Guardar
       </button>
+      <button type="button" id="btnEdit" style="display:none;">Editar</button>
       <button type="button" id="btnPdf"
               style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#e8ecf1">
         Crear PDF (mock)
@@ -247,6 +248,27 @@
     const badge = parent.document.querySelector('a[href="#ficha"] .badge');
     if (badge) badge.textContent = pct + '%';
   }
+  const btnEdit = document.getElementById('btnEdit');
+
+// Bloquea el formulario si ya hay datos guardados
+(function lockIfSaved(){
+  const saved = localStorage.getItem(KEY);
+  if (saved) {
+    toggleForm(false); // bloquear
+    btnEdit.style.display = 'inline-block';
+  }
+})();
+
+btnEdit.addEventListener('click', () => {
+  toggleForm(true); // desbloquear
+  msg.style.color = '#60a5fa';
+  msg.textContent = "Modo edición habilitado ✏️";
+});
+
+function toggleForm(enabled){
+  [...form.elements].forEach(el => {
+    if (el.name !== "declaro") el.disabled = !enabled;
+  });
+}
+
 </script>
-
-
