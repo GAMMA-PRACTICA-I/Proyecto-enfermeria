@@ -184,6 +184,11 @@
       </button>
       <span id="msg" style="align-self:center;color:#34d399"></span>
     </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="btnEdit" type="button" class="btn">Editar</button>
+      <button type="submit" class="btn" id="btnSave" style="display:none">Guardar</button>
+      <span id="msg" style="align-self:center;color:#34d399"></span>
+    </div>
   </form>
 </section>
 
@@ -223,10 +228,11 @@
     }
     const data = Object.fromEntries(new FormData(form).entries());
 
-    // Guardado local (demo)
     localStorage.setItem(KEY, JSON.stringify(data));
-    msg.style.color = '#34d399';
-    msg.textContent = 'Guardado local ✅';
+    const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    msg.style.color = darkMode ? '#ffffff' : '#000000';
+    msg.textContent = "Su ficha se edito correctamente";
+
 
     // (Luego) Persistencia real a tu API:
     // await fetch('/api/estudiante_save.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
@@ -272,3 +278,4 @@ function toggleForm(enabled){
 }
 
 </script>
+guardar
