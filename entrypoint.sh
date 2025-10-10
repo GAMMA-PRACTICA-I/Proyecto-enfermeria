@@ -5,6 +5,8 @@ SOCK="/var/run/mysqld/mysqld.sock"
 
 chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
 chown -R app:app /app
+mkdir -p /app/media
+chown -R app:app /app/media
 
 if [ ! -d "$DATADIR/mysql" ]; then
   gosu mysql mysqld --initialize-insecure --datadir="$DATADIR"
@@ -61,10 +63,10 @@ def ensure_user(email, password, rol, is_staff=False, is_superuser=False):
 ensure_user("c.urdanetafernandez@uandresbello.edu", "admin123", rol="ADMIN", is_staff=True, is_superuser=True)
 
 # revisor
-ensure_user("sectec.cd@gmail.com", "revisor123", rol="REVIEWER", is_staff=True)
+ensure_user("n.guerrajara@uandresbello.edu", "revisor123", rol="REVIEWER", is_staff=True)
 
 # estudiante
-ensure_user("curdanet@gmail.com", "estudiante123", rol="STUDENT")
+ensure_user("m.montoyamendoza1@uandresbello.edu", "estudiante123", rol="STUDENT")
 PYCODE
 
 

@@ -1,0 +1,98 @@
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib.auth import logout
+from django.core.files.storage import default_storage
+from django.utils import timezone
+
+from .forms import GeneralForm, AcademicForm
+from .models import StudentGeneral, StudentAcademic, StudentDocuments
+
+
+@login_required
+def home(request):
+    rol = getattr(request.user, "rol", "")
+    if rol == "STUDENT":
+        tpl = "dashboards/estudiante.html"
+    elif rol == "REVIEWER":
+        tpl = "dashboards/revisor.html"
+    elif rol == "ADMIN":
+        tpl = "dashboards/admin.html"
+    else:
+        tpl = "dashboards/generico.html"
+    return render(request, tpl)
+
+
+def logout_to_login(request):
+    logout(request)
+    return redirect("login")
+
+
+def _ensure(user):
+    gen, _ = StudentGeneral.objects.get_or_create(user=user)
+    aca, _ = StudentAcademic.objects.get_or_create(user=user)
+    return gen, aca
+
+
+@login_required
+def dashboard_antecedentes(request):
+    if getattr(request.user, "rol", None) != "STUDENT":
+        return redirect("dashboard_estudiante")
+
+    gen, aca = _ensure(request.user)
+
+    if request.method == "POST":
+        gform = GeneralForm(request.POST, instance=gen)
+        aform = AcademicForm(request.POST, instance=aca)
+        if gform.is_valid() and aform.is_valid():
+            gform.save()
+            aform.save()
+            return redirect("dashboard_antecedentes")
+    else:
+        gform = GeneralForm(instance=gen)
+        aform = AcademicForm(instance=aca)
+
+    return render(
+        request,
+        "dashboards/antecedentes.html",
+        {"gform": gform, "aform": aform},
+    )
+
+
+@login_required
+def dashboard_estudiante(request):
+    return render(request, "dashboards/estudiante.html")
+
+
+@login_required
+def dashboard_certificados(request):
+    if getattr(request.user, "rol", None) != "STUDENT":
+        return redirect("dashboard_estudiante")
+
+    if request.method == "POST":
+        descripcion = (request.POST.get("descripcion") or "").strip()
+        for f in request.FILES.getlist("files"):
+            rel_path = f"student/{request.user.id}/{timezone.now().strftime('%Y%m%d%H%M%S')}_{f.name}"
+            saved = default_storage.save(rel_path, f)
+            StudentDocuments.objects.create(
+                user=request.user,
+                file_name=f.name,
+                file_type=(getattr(f, "content_type", "") or ""),
+                file_path=saved,
+                descripcion=descripcion,
+            )
+        return redirect("dashboard_certificados")
+
+    docs = StudentDocuments.objects.filter(user=request.user).order_by("-uploaded_at")
+    return render(request, "dashboards/certificados.html", {"docs": docs})
+
+
+@login_required
+def dashboard_ficha(request):
+    gen = StudentGeneral.objects.filter(user=request.user).first()
+    aca = StudentAcademic.objects.filter(user=request.user).first()
+    docs = StudentDocuments.objects.filter(user=request.user).order_by("-uploaded_at")
+    return render(
+        request,
+        "dashboards/ficha.html",
+        {"gen": gen, "aca": aca, "docs": docs},
+    )

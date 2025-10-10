@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Ficha Estudiantil</title>
+  <style>
+    body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; color: #111; }
+    h1, h2 { margin: 0 0 8px; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; margin-top: 18px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .muted { color: #555; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
+    .kv td { border: none; padding: 2px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Ficha Estudiantil – Campos Clínicos</h1>
+  <p class="muted">ID Ficha: {{ ficha.id }} · Email: {{ data.user_email }}</p>
+  <p class="muted">Estado: {{ ficha.get_estado_global_display }}</p>
+
+  {% if data.generales %}
+  <h2>I. Antecedentes Generales</h2>
+  <table class="kv">
+    <tr><td><b>Nombre legal:</b> {{ data.generales.nombre_legal|default:"—" }}</td></tr>
+    <tr><td><b>RUT/ID:</b> {{ data.generales.rut|default:"—" }}</td></tr>
+    <tr><td><b>Género:</b> {{ data.generales.genero|default:"—" }}</td></tr>
+    <tr><td><b>Fecha nacimiento:</b> {{ data.generales.fecha_nacimiento|default:"—" }}</td></tr>
+    <tr><td><b>Teléfono:</b> {{ data.generales.telefono_celular|default:"—" }}</td></tr>
+    <tr><td><b>Dirección actual:</b> {{ data.generales.direccion_actual|default:"—" }}</td></tr>
+    <tr><td><b>Dirección origen:</b> {{ data.generales.direccion_origen|default:"—" }}</td></tr>
+    <tr><td><b>Contacto emergencia:</b> {{ data.generales.contacto_emergencia_nombre|default:"—" }} ({{ data.generales.contacto_emergencia_parentesco|default:"—" }}) – {{ data.generales.contacto_emergencia_telefono|default:"—" }}</td></tr>
+    <tr><td><b>Centro de salud:</b> {{ data.generales.centro_salud|default:"—" }}</td></tr>
+    <tr><td><b>Previsión/Seguro:</b> {{ data.generales.seguro|default:"—" }} {{ data.generales.seguro_detalle|default:"" }}</td></tr>
+  </table>
+  {% endif %}
+
+  {% if data.academicos %}
+  <h2>II. Antecedentes Académicos</h2>
+  <table class="kv">
+    <tr><td><b>Nombre social:</b> {{ data.academicos.nombre_social|default:"—" }}</td></tr>
+    <tr><td><b>Carrera:</b> {{ data.academicos.carrera|default:"—" }}</td></tr>
+    <tr><td><b>Año que cursa:</b> {{ data.academicos.anio_cursa|default:"—" }}</td></tr>
+    <tr><td><b>Estado:</b> {{ data.academicos.estado|default:"—" }}</td></tr>
+    <tr><td><b>Asignatura:</b> {{ data.academicos.asignatura|default:"—" }}</td></tr>
+    <tr><td><b>Correo institucional:</b> {{ data.academicos.correo_institucional|default:"—" }}</td></tr>
+    <tr><td><b>Correo personal:</b> {{ data.academicos.correo_personal|default:"—" }}</td></tr>
+  </table>
+  {% endif %}
+
+  {% if data.medicos %}
+  <h2>III. Antecedentes Mórbidos</h2>
+  <table class="kv">
+    <tr><td><b>Alergias:</b> {{ data.medicos.alergias_detalle|default:"—" }}</td></tr>
+    <tr><td><b>Grupo sanguíneo:</b> {{ data.medicos.grupo_sanguineo|default:"—" }}</td></tr>
+    <tr><td><b>Enfermedades crónicas:</b> {{ data.medicos.cronicas_detalle|default:"—" }}</td></tr>
+    <tr><td><b>Medicamentos diarios:</b> {{ data.medicos.medicamentos_detalle|default:"—" }}</td></tr>
+    <tr><td><b>Otros antecedentes:</b> {{ data.medicos.otros_antecedentes|default:"—" }}</td></tr>
+  </table>
+  {% endif %}
+
+  {% if data.vaccines %}
+  <h2>IV. Vacunas</h2>
+  <table>
+    <thead><tr><th>Vacuna</th><th>Dosis</th><th>Fecha</th></tr></thead>
+    <tbody>
+      {% for v in data.vaccines %}
+      <tr>
+        <td>{{ v.vaccine_type }}</td>
+        <td>{{ v.dose_label }}</td>
+        <td>{{ v.date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if data.serologies %}
+  <h2>V. Serologías</h2>
+  <table>
+    <thead><tr><th>Patógeno</th><th>Resultado</th><th>Fecha</th></tr></thead>
+    <tbody>
+      {% for s in data.serologies %}
+      <tr>
+        <td>{{ s.pathogen }}</td>
+        <td>{{ s.result }}</td>
+        <td>{{ s.date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if data.declaracion %}
+  <h2>VI. Declaración</h2>
+  <table class="kv">
+    <tr><td><b>Nombre estudiante:</b> {{ data.declaracion.nombre_estudiante|default:"—" }}</td></tr>
+    <tr><td><b>RUT:</b> {{ data.declaracion.rut|default:"—" }}</td></tr>
+    <tr><td><b>Fecha:</b> {{ data.declaracion.fecha|default:"—" }}</td></tr>
+    <tr><td><b>Firma (texto):</b> {{ data.declaracion.firma|default:"—" }}</td></tr>
+  </table>
+  {% endif %}
+
+  <p class="muted" style="margin-top: 20px;">— Fin de la ficha. A continuación se adjuntan los anexos (PDFs e imágenes) —</p>
+</body>
+</html>

@@ -1,65 +1,379 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel de Revisor</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f2f2f2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
-
-        .dashboard-container {
-            background-color: white;
-            padding: 30px;
-            border: 2px solid #000;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 400px;
-            text-align: center;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-        }
-
-        p {
-            margin: 10px 0;
-        }
-
-        .role {
-            font-weight: bold;
-            color: #333;
-        }
-
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: black;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-
-        a:hover {
-            background-color: #333;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Revisión de Fichas</title>
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#fff; --line:#e6eaf0; --txt:#1f2937;
+      --muted:#6b7280; --primary:#2563eb; --chip:#e9eef8;
+      --ok:#059669; --warn:#b45309; --bad:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,Segoe UI,Arial;background:var(--bg);color:var(--txt)}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    h1{margin:0 0 14px;font-size:22px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .tab{border:1px solid var(--line);background:var(--chip);padding:8px 12px;border-radius:999px;cursor:pointer}
+    .tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .search{flex:1;min-width:260px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;font-size:14px;vertical-align:top}
+    .table th{background:#fafbfe}
+    .status{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block;border:1px solid var(--line)}
+    .pending{background:#fff7ed;color:var(--warn);border-color:#fed7aa}
+    .approved{background:#ecfdf5;color:var(--ok);border-color:#a7f3d0}
+    .rejected{background:#fef2f2;color:var(--bad);border-color:#fecaca}
+    .btn{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#111827;color:#fff;cursor:pointer;margin:2px 0}
+    .btn.light{background:#fff;color:var(--txt)}
+    .btn.ok{background:var(--ok);border-color:transparent}
+    .btn.bad{background:var(--bad);border-color:transparent}
+    .btn-group{display:flex;gap:6px;flex-wrap:wrap}
+    .empty{padding:16px;color:var(--muted)}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px}
+    .modal.open{display:flex}
+    .sheet{background:#fff;max-width:780px;width:100%;border-radius:14px;border:1px solid var(--line);padding:16px}
+    .sheet h3{margin:0 0 8px}
+    .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    @media (max-width:820px){.grid2{grid-template-columns:1fr}}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field input,.field textarea,.field select{padding:10px;border:1px solid var(--line);border-radius:10px;width:100%}
+    .sheet-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+    .badge{margin-left:6px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:12px}
+  </style>
+  <!-- Librerías para PDF y ZIP -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <h1>Bienvenido, {{ user.email }}</h1>
-        <p>Has ingresado como <span class="role">Revisor</span>.</p>
-        <p>Aquí puedes revisar fichas médicas y emitir tus decisiones.</p>
+  <div class="wrap">
+    <h1>Revisión de Fichas</h1>
 
-        <a href="{% url 'logout' %}">Cerrar sesión</a>
+    <div class="row">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-filter="pending">Sin revisar <span class="badge" id="c-pending">0</span></button>
+        <button class="tab" data-filter="approved">Aprobados <span class="badge" id="c-approved">0</span></button>
+        <button class="tab" data-filter="rejected">Rechazados <span class="badge" id="c-rejected">0</span></button>
+      </div>
+      <input id="q" class="search" placeholder="Buscar por nombre o RUT…">
     </div>
+
+    <section class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>RUT / ID</th>
+            <th>Correo</th>
+            <th>Estado</th>
+            <th style="width:1%;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="5" class="empty">No hay registros.</td></tr></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Modal: Ficha -->
+  <div class="modal" id="mFicha">
+    <div class="sheet">
+      <h3>Ficha del estudiante</h3>
+      <div id="fichaBody" class="grid2"></div>
+      <div class="sheet-actions">
+        <button class="btn ok" id="btnApprove">Aprobar</button>
+        <button class="btn bad" id="btnRejectFromFicha">Rechazar</button>
+        <button class="btn light" id="closeFicha">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Rechazo -->
+  <div class="modal" id="mRechazo">
+    <div class="sheet">
+      <h3>Motivo de rechazo</h3>
+      <div class="field">
+        <textarea id="txtMotivo" rows="5" placeholder="Explica brevemente la razón del rechazo…"></textarea>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn bad" id="btnSendMotivo">Enviar</button>
+        <button class="btn light" id="closeRechazo">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DATA = []; // inicia vacío
+
+    function addUser(u){
+      DATA.push({
+        id: crypto.randomUUID(),
+        name: u.name || "",
+        rut: u.rut || "",
+        email: u.email || "",
+        status: u.status || "pending",     // "pending" | "approved" | "rejected"
+        ficha: u.ficha || {},               // objeto con campos de ficha
+        // certificates: [{title, mime, dataUrl}], ej: data:image/png;base64,...
+        certificates: u.certificates || [],
+        rechazo_msg: u.rechazo_msg || ""
+      });
+      paint();
+    }
+    // Ejemplo (desde consola) — usa tus propios dataURL reales:
+    // addUser({
+    //   name:"Estudiante Uno", rut:"11.111.111-1", email:"uno@dominio.cl", status:"pending",
+    //   ficha:{telefono:"+56 9 ...", direccion_actual:"...", seguro:"FONASA"},
+    //   certificates:[{title:"IAAS", mime:"image/png", dataUrl:"data:image/png;base64,..." }]
+    // })
+
+    const tbody = document.getElementById("tbody");
+    const q = document.getElementById("q");
+    const tabs = document.getElementById("tabs");
+    const counts = {
+      pending: document.getElementById("c-pending"),
+      approved: document.getElementById("c-approved"),
+      rejected: document.getElementById("c-rejected"),
+    };
+
+    let currentFilter = "pending";
+    let currentId = null;
+
+    function paintCounts(){
+      counts.pending.textContent  = DATA.filter(x=>x.status==="pending").length;
+      counts.approved.textContent = DATA.filter(x=>x.status==="approved").length;
+      counts.rejected.textContent = DATA.filter(x=>x.status==="rejected").length;
+    }
+
+    function badge(status){
+      if(status==="approved") return '<span class="status approved">Aprobado</span>';
+      if(status==="rejected") return '<span class="status rejected">Rechazado</span>';
+      return '<span class="status pending">Sin revisar</span>';
+    }
+
+    function actionsHTML(u){
+      if(currentFilter==="approved"){
+        return `
+          <div class="btn-group">
+            <button class="btn light" data-dl-pdf="${u.id}">Descargar ficha (PDF)</button>
+          </div>`;
+      }
+      if(currentFilter==="rejected"){
+        return `
+          <div class="btn-group">
+            <button class="btn light" data-msg="${u.id}">Enviar mensaje</button>
+          </div>`;
+      }
+      return `
+        <div class="btn-group">
+          <button class="btn light" data-view="${u.id}">Ver ficha</button>
+          <button class="btn light" data-dl-pdf="${u.id}">Descargar ficha (PDF)</button>
+          <button class="btn light" data-dl-zip-certs="${u.id}">Descargar certificados (ZIP)</button>
+          <button class="btn light" data-dl-zip-all="${u.id}">Descargar todo (ZIP)</button>
+        </div>`;
+    }
+
+    async function makeFichaPDFBlob(u){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:"pt", format:"a4"});
+      const margin = 48;
+      let y = margin;
+
+      doc.setFont("helvetica","bold"); doc.setFontSize(16);
+      doc.text("Ficha Estudiantil", margin, y); y += 18;
+
+      doc.setFont("helvetica","normal"); doc.setFontSize(11);
+      const head = [
+        `Nombre: ${u.name || "-"}`,
+        `RUT: ${u.rut || "-"}`,
+        `Correo: ${u.email || "-"}`,
+        `Estado: ${u.status || "-"}`
+      ];
+      head.forEach(line=>{ y += 16; doc.text(line, margin, y); });
+
+      y += 24;
+      doc.setFont("helvetica","bold"); doc.text("Datos", margin, y); y += 14;
+      doc.setFont("helvetica","normal");
+      const ficha = u.ficha || {};
+      const lines = Object.entries(ficha).map(([k,v]) => `${k.replace(/_/g,' ').toUpperCase()}: ${String(v||"-")}`);
+      y = writeMultiline(doc, lines, margin, y, 488);
+
+      return doc.output("blob");
+    }
+
+    function writeMultiline(doc, items, x, y, width){
+      const lh = 15;
+      items.forEach(item=>{
+        const wrapped = doc.splitTextToSize(item, width);
+        wrapped.forEach(line=>{
+          if(y > 800){ doc.addPage(); y = 48; }
+          y += lh; doc.text(line, x, y);
+        });
+      });
+      return y;
+    }
+
+    function dataUrlToUint8(dataUrl){
+      const base64 = dataUrl.split(",")[1] || "";
+      const bin = atob(base64);
+      const len = bin.length;
+      const bytes = new Uint8Array(len);
+      for(let i=0;i<len;i++) bytes[i] = bin.charCodeAt(i);
+      return bytes;
+    }
+
+    async function downloadCertificatesZip(u){
+      const certs = Array.isArray(u.certificates) ? u.certificates : [];
+      if(!certs.length){ alert("Este usuario no tiene certificados."); return; }
+
+      const zip = new JSZip();
+      certs.forEach((c,idx)=>{
+        const name = (c?.title || `certificado_${idx+1}`).replace(/\W+/g,'_');
+        const ext  = (c?.mime||"").includes("png") ? "png" : ( (c?.mime||"").includes("jpeg") ? "jpg" : "bin");
+        const bytes = dataUrlToUint8(c?.dataUrl||"");
+        zip.file(`certificados/${name}.${ext}`, bytes);
+      });
+
+      const blob = await zip.generateAsync({type:"blob"});
+      triggerBlobDownload(blob, `certificados_${(u.rut||u.id).replace(/\W+/g,'_')}.zip`);
+    }
+
+    async function downloadAllZip(u){
+      const zip = new JSZip();
+
+      const pdfBlob = await makeFichaPDFBlob(u);
+      zip.file("ficha.pdf", pdfBlob);
+
+      const certs = Array.isArray(u.certificates) ? u.certificates : [];
+      certs.forEach((c,idx)=>{
+        const name = (c?.title || `certificado_${idx+1}`).replace(/\W+/g,'_');
+        const ext  = (c?.mime||"").includes("png") ? "png" : ( (c?.mime||"").includes("jpeg") ? "jpg" : "bin");
+        const bytes = dataUrlToUint8(c?.dataUrl||"");
+        zip.file(`certificados/${name}.${ext}`, bytes);
+      });
+
+      const blob = await zip.generateAsync({type:"blob"});
+      triggerBlobDownload(blob, `ficha_y_certificados_${(u.rut||u.id).replace(/\W+/g,'_')}.zip`);
+    }
+
+    function triggerBlobDownload(blob, filename){
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    }
+
+    function render(){
+      const term = q.value.trim().toLowerCase();
+      const rows = DATA
+        .filter(u => u.status===currentFilter)
+        .filter(u => !term || u.name.toLowerCase().includes(term) || u.rut.toLowerCase().includes(term));
+
+      if(!rows.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="empty">No hay registros.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(u=>`
+        <tr>
+          <td>${u.name||"—"}</td>
+          <td>${u.rut||"—"}</td>
+          <td>${u.email||"—"}</td>
+          <td>${badge(u.status)}</td>
+          <td>${actionsHTML(u)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function paint(){ paintCounts(); render(); }
+
+    tabs.addEventListener("click", (e)=>{
+      const b = e.target.closest(".tab"); if(!b) return;
+      tabs.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      currentFilter = b.dataset.filter;
+      render();
+    });
+
+    q.addEventListener("input", render);
+
+    tbody.addEventListener("click", async (e)=>{
+      const target = e.target;
+      const idView   = target.getAttribute("data-view");
+      const idMsg    = target.getAttribute("data-msg");
+      const idPdf    = target.getAttribute("data-dl-pdf");
+      const idZipC   = target.getAttribute("data-dl-zip-certs");
+      const idZipAll = target.getAttribute("data-dl-zip-all");
+
+      if(idView)  openFicha(idView);
+      if(idMsg)   openMotivo(idMsg);
+      if(idPdf){  const u = DATA.find(x=>x.id===idPdf); if(u){ const b=await makeFichaPDFBlob(u); triggerBlobDownload(b, `ficha_${(u.rut||u.id).replace(/\W+/g,'_')}.pdf`); } }
+      if(idZipC){ const u = DATA.find(x=>x.id===idZipC); if(u){ await downloadCertificatesZip(u); } }
+      if(idZipAll){const u = DATA.find(x=>x.id===idZipAll); if(u){ await downloadAllZip(u); } }
+    });
+
+    // Modal Ficha
+    const mFicha = document.getElementById("mFicha");
+    const fichaBody = document.getElementById("fichaBody");
+    const btnApprove = document.getElementById("btnApprove");
+    const btnRejectFromFicha = document.getElementById("btnRejectFromFicha");
+    document.getElementById("closeFicha").onclick = ()=>{ mFicha.classList.remove("open"); currentId=null; }
+
+    function openFicha(id){
+      const u = DATA.find(x=>x.id===id); if(!u) return;
+      currentId = id;
+      const ficha = u.ficha||{};
+      const fields = Object.keys(ficha).length ? ficha : {
+        "telefono": "", "direccion_actual":"", "direccion_origen":"",
+        "contacto_emergencia":"", "seguro":"", "otros":""
+      };
+      fichaBody.innerHTML = Object.entries(fields).map(([k,v])=>`
+        <div class="field">
+          <label style="font-weight:600;text-transform:capitalize">${k.replace(/_/g,' ')}</label>
+          <input value="${String(v||'')}" readonly>
+        </div>
+      `).join("");
+      mFicha.classList.add("open");
+    }
+
+    btnApprove.onclick = ()=>{
+      const u = DATA.find(x=>x.id===currentId); if(!u) return;
+      u.status = "approved";
+      mFicha.classList.remove("open");
+      currentId = null;
+      paint();
+    };
+
+    btnRejectFromFicha.onclick = ()=>{
+      const u = DATA.find(x=>x.id===currentId); if(!u) return;
+      mFicha.classList.remove("open");
+      openMotivo(u.id);
+    };
+
+    // Modal Rechazo
+    const mRechazo = document.getElementById("mRechazo");
+    const txtMotivo = document.getElementById("txtMotivo");
+    document.getElementById("closeRechazo").onclick = ()=>{ mRechazo.classList.remove("open"); txtMotivo.value=""; currentId=null; }
+    document.getElementById("btnSendMotivo").onclick = ()=>{
+      const u = DATA.find(x=>x.id===currentId); if(!u) return;
+      u.rechazo_msg = txtMotivo.value.trim();
+      u.status = "rejected";
+      mRechazo.classList.remove("open"); txtMotivo.value=""; currentId=null;
+      alert("Mensaje enviado.");
+      paint();
+    };
+
+    function openMotivo(id){
+      currentId = id;
+      const u = DATA.find(x=>x.id===id);
+      txtMotivo.value = u?.rechazo_msg || "";
+      mRechazo.classList.add("open");
+    }
+
+    paint();
+  </script>
 </body>
 </html>

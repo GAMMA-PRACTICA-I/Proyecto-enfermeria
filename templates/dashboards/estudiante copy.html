@@ -14,9 +14,6 @@
     .logo-ring{width:120px;height:120px;border:3px solid #000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:20px 0}
     .logo-bars{display:flex;gap:5px}
     .logo-bars span{display:block;width:20px;height:40px;background:#e60000}
-    .nav-link{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none; padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer}
-    .nav-link.active{background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.25)}
-
   </style>
 </head>
 <body>
@@ -37,8 +34,10 @@
     <nav aria-label="principal" style="flex:1">
       <h6 style="margin:14px 8px 6px; font:700 11px/1 system-ui; letter-spacing:.12em; opacity:.85">NAVEGACIÓN</h6>
       <ul style="list-style:none;margin:0;padding:6px">
-        <li><a class="nav-link active" data-target="home" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer">Inicio</a></li>
+        <li><a class="nav-link active" data-target="home" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer;background:rgba(255,255,255,.18)">Inicio</a></li>
         <li><a class="nav-link" data-target="ficha" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer">Ficha estudiante</a></li>
+        <li><a class="nav-link" data-target="antecedentes" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer">Antecedentes mórbidos y vacunas</a></li>
+        <li><a class="nav-link" data-target="certificados" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer">Certificados</a></li>
         <li><a class="nav-link" data-target="soporte" style="display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer">Soporte</a></li>
       </ul>
     </nav>
