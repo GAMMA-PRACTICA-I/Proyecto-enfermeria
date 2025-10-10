@@ -1,0 +1,156 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Antecedentes del Estudiante</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,Arial;margin:24px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+    .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--chip);cursor:pointer}
+    .tab.active{background:#e8eefb;border-color:#c6d7ff}
+    .pane[hidden]{display:none}
+    label{display:block;font-weight:600;margin:4px 0}
+    .hint{font-weight:400;color:var(--muted)}
+    .grid2{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+    input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.18)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#0f172a;color:#fff;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 10px">Ficha Estudiantil</h2>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="generales">Antecedentes Generales</button>
+      <button class="tab" data-tab="academicos">Antecedentes Académicos</button>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- GENERALES -->
+      <div class="pane" data-pane="generales">
+        <div class="grid2">
+          <label>Nombre completo legal
+            {{ gform.nombre_legal }}
+          </label>
+
+          <label>Género
+            {{ gform.genero }}
+          </label>
+
+          <label>RUT / ID
+            {{ gform.rut }}
+          </label>
+
+          <label>Fecha de nacimiento
+            {{ gform.fecha_nacimiento }}  {# SelectDateWidget: día / mes / año #}
+          </label>
+
+          <label>Teléfono celular
+            {{ gform.telefono_celular }}
+          </label>
+
+          <label>Dirección residencial actual / Comuna
+            {{ gform.direccion_actual }}
+          </label>
+
+          <label>Dirección residencial de origen / Comuna
+            {{ gform.direccion_origen }}
+          </label>
+
+          <label>Correo institucional (si quieres mantenerlo aquí, usa el form académico)</label>
+
+          <label>Contacto de emergencia (nombre)
+            {{ gform.contacto_emergencia_nombre }}
+          </label>
+
+          <label>Teléfono contacto de emergencia
+            {{ gform.contacto_emergencia_telefono }}
+          </label>
+
+          <label>Parentesco contacto de emergencia
+            {{ gform.contacto_emergencia_parentesco }}
+          </label>
+
+          <label>Centro de Salud donde se atiende
+            {{ gform.centro_salud }}
+          </label>
+
+          <label>Previsión
+            {{ gform.seguro }}
+          </label>
+
+          <label>Detalle previsión (opcional)
+            {{ gform.seguro_detalle }}
+          </label>
+        </div>
+      </div>
+
+      <!-- ACADÉMICOS -->
+      <div class="pane" data-pane="academicos" hidden>
+        <div class="grid2">
+          <label>Nombre Social
+            {{ aform.nombre_social }}
+          </label>
+
+          <label>Carrera
+            {{ aform.carrera }}
+          </label>
+
+          <label>Año que cursa
+            {{ aform.anio_cursa }}
+          </label>
+
+          <label>Estado (Curricular / Interno)
+            {{ aform.estado }}
+          </label>
+
+          <label>Asignatura (correspondiente al nivel)
+            {{ aform.asignatura }}
+          </label>
+
+          <label>Correo electrónico institucional
+            {{ aform.correo_institucional }}
+          </label>
+
+          <label>Correo electrónico personal
+            {{ aform.correo_personal }}
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">Guardar</button>
+        <span style="align-self:center;color:#0ea35a">
+          {% if gform.errors or aform.errors %}Revisa los campos marcados.{% endif %}
+        </span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Tabs
+    (function(){
+      const section = document.currentScript.closest('body');
+      section.querySelectorAll('.tab').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          section.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+          btn.classList.add('active');
+          const id = btn.dataset.tab;
+          section.querySelectorAll('.pane').forEach(p=>p.hidden = (p.getAttribute('data-pane')!==id));
+          window.scrollTo({top:0,behavior:'smooth'});
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,9 +1,8 @@
-from django.contrib import admin
-from django.urls import path
+from django.contrib import admin 
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from accounts.views import home, logout_to_login
 from django.conf import settings
-
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -62,5 +61,6 @@ urlpatterns = [
         name="password_change_done",
     ),
 
-    path("", home, name="home"),
+    # ====== NUEVO: include de las urls de la app accounts ======
+    path("accounts/", include("accounts.urls")),
 ]

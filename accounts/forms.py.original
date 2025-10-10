@@ -1,0 +1,26 @@
+from django import forms
+from django.forms.widgets import SelectDateWidget
+from .models import StudentGeneral, StudentAcademic
+
+YEARS = list(range(1950, 2030))
+
+class GeneralForm(forms.ModelForm):
+    class Meta:
+        model = StudentGeneral
+        fields = (
+            "nombre_legal","rut","genero","fecha_nacimiento","telefono_celular",
+            "direccion_actual","direccion_origen",
+            "contacto_emergencia_nombre","contacto_emergencia_parentesco","contacto_emergencia_telefono",
+            "centro_salud","seguro","seguro_detalle"
+        )
+        widgets = {
+            "fecha_nacimiento": SelectDateWidget(years=YEARS),
+        }
+
+class AcademicForm(forms.ModelForm):
+    class Meta:
+        model = StudentAcademic
+        fields = (
+            "nombre_social","carrera","anio_cursa","estado","asignatura",
+            "correo_institucional","correo_personal"
+        )
