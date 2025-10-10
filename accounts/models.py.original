@@ -1,0 +1,179 @@
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.db import models
+
+class UserManager(BaseUserManager):
+    use_in_migrations = True
+
+    def _create(self, email, password, **extra):
+        if not email:
+            raise ValueError("Email requerido")
+        email = self.normalize_email(email)
+        u = self.model(email=email, **extra)
+        u.set_password(password)
+        u.save(using=self._db)
+        return u
+
+    def create_user(self, email, password=None, **extra):
+        extra.setdefault("is_staff", False)
+        extra.setdefault("is_superuser", False)
+        return self._create(email, password, **extra)
+
+    def create_superuser(self, email, password, **extra):
+        extra.setdefault("is_staff", True)
+        extra.setdefault("is_superuser", True)
+        return self._create(email, password, **extra)
+
+class User(AbstractUser):
+    username = None
+    email = models.EmailField(unique=True, db_index=True)
+    ROL_CHOICES = [("STUDENT","Estudiante"),("REVIEWER","Revisor"),("ADMIN","Admin")]
+    rol = models.CharField(max_length=10, choices=ROL_CHOICES, db_index=True, default="STUDENT")
+    rut = models.CharField(max_length=20, blank=True, null=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["rol"]
+
+    objects = UserManager()
+
+    def __str__(self):
+        return f"{self.email} ({self.rol})"
+
+
+from django.conf import settings
+from django.db import models
+
+class StudentGeneral(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="general_data")
+    nombre_legal = models.CharField(max_length=120, null=True, blank=True)
+    rut = models.CharField(max_length=20, null=True, blank=True, db_index=True)
+    genero = models.CharField(max_length=20, null=True, blank=True)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    telefono_celular = models.CharField(max_length=30, null=True, blank=True)
+    direccion_actual = models.TextField(null=True, blank=True)
+    direccion_origen = models.TextField(null=True, blank=True)
+    contacto_emergencia_nombre = models.CharField(max_length=120, null=True, blank=True)
+    contacto_emergencia_parentesco = models.CharField(max_length=80, null=True, blank=True)
+    contacto_emergencia_telefono = models.CharField(max_length=30, null=True, blank=True)
+    centro_salud = models.CharField(max_length=120, null=True, blank=True)
+    seguro = models.CharField(
+        max_length=30,
+        choices=[
+            ("FONASA", "FONASA"),
+            ("ISAPRE", "ISAPRE"),
+            ("FUERZAS_ARMADAS", "Fuerzas Armadas"),
+            ("OTRO", "Otro"),
+        ],
+        null=True,
+        blank=True,
+    )
+    seguro_detalle = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        db_table = "student_general"
+
+    def __str__(self):
+        return f"{self.user.email} - Generales"
+
+
+class StudentAcademic(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="academic_data")
+    nombre_social = models.CharField(max_length=120, null=True, blank=True)
+    carrera = models.CharField(max_length=120, null=True, blank=True)
+    anio_cursa = models.PositiveSmallIntegerField(null=True, blank=True)
+    estado = models.CharField(max_length=50, null=True, blank=True)
+    asignatura = models.CharField(max_length=160, null=True, blank=True)
+    correo_institucional = models.EmailField(null=True, blank=True)
+    correo_personal = models.EmailField(null=True, blank=True)
+
+    class Meta:
+        db_table = "student_academic"
+
+    def __str__(self):
+        return f"{self.user.email} - Académicos"
+
+
+class StudentMedicalBackground(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="medical_data")
+    alergias = models.BooleanField(default=False)
+    alergias_detalle = models.TextField(null=True, blank=True)
+    grupo_sanguineo = models.CharField(
+        max_length=3,
+        choices=[
+            ("A+", "A+"), ("A-", "A-"),
+            ("B+", "B+"), ("B-", "B-"),
+            ("AB+", "AB+"), ("AB-", "AB-"),
+            ("O+", "O+"), ("O-", "O-"),
+        ],
+        null=True,
+        blank=True,
+    )
+    enfermedades_cronicas = models.BooleanField(default=False)
+    cronicas_detalle = models.TextField(null=True, blank=True)
+    medicamentos_diarios = models.BooleanField(default=False)
+    medicamentos_detalle = models.TextField(null=True, blank=True)
+    otros_antecedentes = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = "student_medical_background"
+
+    def __str__(self):
+        return f"{self.user.email} - Médicos"
+
+
+class StudentVaccines(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="vaccines")
+    covid_serology = models.CharField(max_length=50, null=True, blank=True)
+    covid_dose1_date = models.DateField(null=True, blank=True)
+    covid_dose2_date = models.DateField(null=True, blank=True)
+    covid_dose3_date = models.DateField(null=True, blank=True)
+    hepb_serology = models.CharField(max_length=50, null=True, blank=True)
+    hepb_dose1_date = models.DateField(null=True, blank=True)
+    hepb_dose2_date = models.DateField(null=True, blank=True)
+    hepb_dose3_date = models.DateField(null=True, blank=True)
+    varicela_serology = models.CharField(max_length=50, null=True, blank=True)
+    varicela_dose1_date = models.DateField(null=True, blank=True)
+    varicela_dose2_date = models.DateField(null=True, blank=True)
+    influenza_serology = models.CharField(max_length=50, null=True, blank=True)
+    influenza_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        db_table = "student_vaccines"
+
+    def __str__(self):
+        return f"{self.user.email} - Vacunas"
+
+
+class StudentDocuments(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="documents")
+    file_name = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=50, null=True, blank=True)
+    file_path = models.CharField(max_length=500)
+    descripcion = models.TextField(null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "student_documents"
+        indexes = [
+            models.Index(fields=["user"], name="idx_doc_user"),
+            models.Index(fields=["file_type"], name="idx_doc_type"),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.file_name}"
+
+class StudentDeclaration(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="declaration"
+    )
+    nombre_estudiante = models.CharField(max_length=120)
+    rut = models.CharField(max_length=20, db_index=True)
+    firma = models.CharField(max_length=255, null=True, blank=True)  # o FileField si quieres archivo
+    fecha = models.DateField(auto_now_add=True)
+
+    class Meta:
+        db_table = "student_declaration"
+
+    def __str__(self):
+        return f"Declaración de {self.nombre_estudiante} ({self.rut})"

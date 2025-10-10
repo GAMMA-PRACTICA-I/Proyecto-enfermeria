@@ -32,31 +32,11 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect, resolve_url
 from accounts.serializers import FichaDTO
 
-#------------------------ informes pdf
-from django.http import FileResponse
-from io import BytesIO
-
-from .utils.pdf import (
-    render_html_to_pdf_bytes,
-    merge_pdf_streams,
-    image_bytes_to_singlepage_pdf_bytes,
-    classify_attachment,
-)
-
-#-----------------------------------
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%(lineno)d] %(message)s')
-
-
 
 def _get_or_create_active_ficha(user: User) -> StudentFicha:
     ficha = StudentFicha.objects.filter(user=user).order_by("-created_at").first()
     if ficha is None:
         ficha = StudentFicha.objects.create(user=user)
-        logger.info(f"Ficha creada automáticamente id={ficha.id} usuario={user.email}")
-    else:
-        logger.info(f"Ficha existente id={ficha.id} usuario={user.email}")
     return ficha
 
 
@@ -139,7 +119,6 @@ class FichaView(View):
 
     @transaction.atomic
     def post(self, request: HttpRequest) -> HttpResponse:
-        logging.getLogger(__name__).info(f"POST ficha iniciado usuario={request.user.email}")
         user: User = request.user
         ficha = _get_or_create_active_ficha(user)
 
@@ -161,12 +140,9 @@ class FichaView(View):
             # mapeo de prevision -> seguro
             g.seguro = gen_form.cleaned_data.get("prevision") or None
             g.seguro_detalle = gen_form.cleaned_data.get("prevision_detalle") or None
-            g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
             g.save()
-            logger.info(f"Generales guardados ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Antecedentes Generales.")
-            logger.warning("Generales inválidos")
 
         # II. Académicos
         acad_form = StudentAcademicForm(request.POST)
@@ -181,10 +157,8 @@ class FichaView(View):
             a.correo_institucional = gen_form.cleaned_data.get("correo_institucional") if gen_form.is_valid() else None
             a.correo_personal = acad_form.cleaned_data.get("correo_personal") or None
             a.save()
-            logger.info(f"Académicos guardados ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Antecedentes Académicos.")
-            logger.warning("Académicos inválidos")
 
         # III. Mórbidos
         med_form = StudentMedicalForm(request.POST)
@@ -196,10 +170,8 @@ class FichaView(View):
             m.medicamentos_detalle = med_form.cleaned_data.get("medicamentos_diarios") or None
             m.otros_antecedentes = med_form.cleaned_data.get("otros_antecedentes") or None
             m.save()
-            logger.info(f"Mórbidos guardados ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Antecedentes Mórbidos.")
-            logger.warning("Mórbidos inválidos")
 
         # IV. Vacunas / Serología
         vac_form = StudentVaccinesForm(request.POST)
@@ -240,10 +212,8 @@ class FichaView(View):
                 VaccineDose.objects.create(
                     ficha=ficha, vaccine_type=VaccineType.INFLUENZA, dose_label=str(inf_date.year), date=inf_date
                 )
-            logger.info(f"Vacunas/Serología guardadas ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Vacunas/Serología.")
-            logger.warning("Vacunas/Serología inválidas")
 
         # V. Documentos (adjuntos)
         # names EXACTOS del HTML: todos con [] cuando corresponde
@@ -285,7 +255,6 @@ class FichaView(View):
                 _doc_create_with_blob(ficha, section, actual_item, f)
 
         _save_ci_rule_guard(ficha)
-        logger.info(f"Documentos procesados ficha={ficha.id}")
 
         # VI. Declaración
         dec_form = StudentDeclarationForm(request.POST)
@@ -298,25 +267,17 @@ class FichaView(View):
                 d.fecha = fecha_manual
             d.firma = dec_form.cleaned_data.get("decl_firma") or None
             d.save()
-            logger.info(f"Declaración guardada ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Declaración.")
-            logger.warning("Declaración inválida")
 
         # Estado post-guardado (estudiante)
         if user.rol == "STUDENT":
             finalizar = request.POST.get("finalizar")
             ficha.estado_global = StudentFicha.Estado.ENVIADA if finalizar else StudentFicha.Estado.DRAFT
             ficha.save()
-            logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-            logger.info(f"Académicos guardados ficha={ficha.id}")
 
-        #messages.success(request, "Ficha guardada correctamente.")
-        # return redirect(reverse("ficha"))
-        #return redirect("ficha_pdf")
         messages.success(request, "Ficha guardada correctamente.")
-        return redirect("dashboard_estudiante")
-
+        return redirect(reverse("ficha"))
 
 
 @method_decorator(login_required, name="dispatch")
@@ -387,8 +348,6 @@ class ApproveFichaView(View):
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
         ficha.save()
-        logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
 
 
@@ -404,11 +363,9 @@ class ObserveFichaView(View):
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
         ficha.save()
-        logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
 def home(request):
-    return redirect('dashboard_estudiante')
+    return redirect('dashboard_index')
 
 def logout_to_login(request):
     logout(request)
@@ -416,66 +373,7 @@ def logout_to_login(request):
     #return redirect(resolve_url(getattr(settings, "LOGIN_URL", "/accounts/login/")))
     return redirect('login')
 
-# @login_required
-# def dashboard_estudiante(request):
-#     return render(request, 'dashboards/estudiante.html')
 @login_required
-def dashboard_estudiante(request):
-    ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
-    ctx = {
-        "ficha": ficha,
-        "ficha_pdf_disponible": bool(ficha),          # habilita el botón si hay ficha
-        "is_revisor": request.user.rol == "REVIEWER", # ya lo usas en ficha.html
-    }
-    return render(request, 'dashboards/estudiante.html', ctx)
-
-
-@login_required
-def ficha_pdf(request):
-    """
-    Genera un PDF con:
-      - Portada + secciones de la Ficha (render HTML -> PDF)
-      - Anexos: si son PDF se anexan, si son imágenes se convierten a PDF y se anexan.
-    """
-    # Obtiene la ficha activa del usuario
-    ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
-    if not ficha:
-        return redirect("ficha")
-
-    # Contexto para el HTML de la ficha (reutilizamos el DTO que ya tienes)
-    dto = FichaDTO.from_model(ficha).to_dict()
-    base_pdf = render_html_to_pdf_bytes("pdf/ficha_pdf.html", {"ficha": ficha, "data": dto})
-
-    # Reunimos anexos (por FileField o por Blob)
-    attachments: list[bytes] = []
-
-    for doc in ficha.documents.all().order_by("id"):
-        # 1) Si existe archivo en FileField
-        if doc.file:
-            try:
-                raw = doc.file.read()
-            except Exception:
-                raw = None
-            if raw:
-                is_pdf, is_img = classify_attachment(doc.file_name, doc.file_mime)
-                if is_pdf:
-                    attachments.append(raw)
-                elif is_img:
-                    attachments.append(image_bytes_to_singlepage_pdf_bytes(raw))
-                continue
-
-        # 2) Si no hay archivo en FileField pero hay blob en DB
-        if hasattr(doc, "blob") and doc.blob and doc.blob.data:
-            raw = bytes(doc.blob.data)
-            is_pdf, is_img = classify_attachment(doc.file_name, doc.file_mime)
-            if is_pdf:
-                attachments.append(raw)
-            elif is_img:
-                attachments.append(image_bytes_to_singlepage_pdf_bytes(raw))
-
-    # Fusiona: base + anexos
-    streams = [base_pdf] + attachments if attachments else [base_pdf]
-    merged = merge_pdf_streams(streams)
-
-    # Respuesta de descarga/visualización
-    return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
+def dashboard(request):
+    # Renderiza tu layout de dashboard (el que tiene el menú)
+    return render(request, 'dashboard/index.html')

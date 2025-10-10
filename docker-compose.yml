@@ -53,6 +53,6 @@ services:
       - static:/app/staticfiles
 
 volumes:
-  dbdata:
+  dbdata: 
   media:
   static:

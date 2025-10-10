@@ -16,8 +16,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "accounts",
+    #"accounts",
+    "accounts.apps.AccountsConfig",  # usa el AppConfig
 ]
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -87,7 +89,8 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/"
+#LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = '/accounts/'
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -108,3 +111,4 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Opcional: timeout de conexión (segundos)
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "30"))
+
