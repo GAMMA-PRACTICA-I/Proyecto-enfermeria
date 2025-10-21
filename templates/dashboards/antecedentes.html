@@ -14,6 +14,14 @@
 
 <script>
   document.getElementById('marcarOk').addEventListener('click', ()=>{
+    const archivos = document.queryselectorAll('input[type="file"]');
+    for (const archivo of archivos) {
+      if (!archivo.file.length) {
+        alert('Tienes que subir todos los certificados para poder marcar como aprovado');
+        return;
+      }
+    }
+
     const chip = parent.document.querySelector('a[href="#medico"] .badge');
     if (chip) { chip.textContent = 'Aprobado'; chip.classList.remove('warn'); }
     alert('Estado actualizado a Aprobado.');
