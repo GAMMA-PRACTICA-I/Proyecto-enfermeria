@@ -1,1 +1,73 @@
+# =========================================
+# Archivos de entorno y configuración local
+# =========================================
 .env
+*.env
+config/settings.py
+config/settings.local.py
+config/settings.local.backup.py
+
+# =========================================
+# Archivos de Python
+# =========================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+*.manifest
+*.spec
+
+# =========================================
+# Entornos virtuales
+# =========================================
+venv/
+.envs/
+.venv/
+env/
+env.bak/
+
+# =========================================
+# Archivos temporales / de desarrollo
+# =========================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+*.bak
+*.tmp
+
+# =========================================
+# Archivos de Django
+# =========================================
+db.sqlite3
+/media/
+media/
+static/
+staticfiles/
+node_modules/
+
+# =========================================
+# Archivos de Docker
+# =========================================
+*.pid
+*.seed
+*.pid.lock
+
+# =========================================
+# Archivos de compilación / dependencias
+# =========================================
+*.lock
+__pycache__/
+build/
+dist/
+*.tar.gz
+
+# =========================================
+# Archivos del sistema operativo
+# =========================================
+ehthumbs.db
+Desktop.ini
