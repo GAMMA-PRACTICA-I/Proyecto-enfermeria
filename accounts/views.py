@@ -49,7 +49,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%(lineno)d] %(message)s')
 
 
-
 def _get_or_create_active_ficha(user: User) -> StudentFicha:
     ficha = StudentFicha.objects.filter(user=user).order_by("-created_at").first()
     if ficha is None:
@@ -125,7 +124,7 @@ def _save_ci_rule_guard(ficha: StudentFicha):
 
 @method_decorator(login_required, name="dispatch")
 class FichaView(View):
-    template_name = "dashboards/index.html"
+    template_name = "dashboards/estudiante.html"
 
     def get(self, request: HttpRequest) -> HttpResponse:
         ficha = _get_or_create_active_ficha(request.user)
@@ -144,7 +143,7 @@ class FichaView(View):
         ficha = _get_or_create_active_ficha(user)
 
         # I. Generales
-        gen_form = StudentGeneralForm(request.POST)
+        gen_form = StudentGeneralForm(request.POST, request.FILES)
         if gen_form.is_valid():
             g = getattr(ficha, "generales", None) or StudentGeneral(ficha=ficha)
             g.nombre_legal = gen_form.cleaned_data.get("nombre_legal") or None
@@ -162,6 +161,9 @@ class FichaView(View):
             g.seguro = gen_form.cleaned_data.get("prevision") or None
             g.seguro_detalle = gen_form.cleaned_data.get("prevision_detalle") or None
             g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
+            foto = gen_form.cleaned_data.get("foto_ficha")
+            if foto:
+                g.foto_ficha = foto
             g.save()
             logger.info(f"Generales guardados ficha={ficha.id}")
         else:
@@ -311,12 +313,8 @@ class FichaView(View):
             logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
             logger.info(f"Académicos guardados ficha={ficha.id}")
 
-        #messages.success(request, "Ficha guardada correctamente.")
-        # return redirect(reverse("ficha"))
-        #return redirect("ficha_pdf")
         messages.success(request, "Ficha guardada correctamente.")
         return redirect("dashboard_estudiante")
-
 
 
 @method_decorator(login_required, name="dispatch")
@@ -407,25 +405,24 @@ class ObserveFichaView(View):
         logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
         logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
+
+
 def home(request):
     return redirect('dashboard_estudiante')
 
+
 def logout_to_login(request):
     logout(request)
-    # Redirige a LOGIN_URL si está configurado (por defecto /accounts/login/)
-    #return redirect(resolve_url(getattr(settings, "LOGIN_URL", "/accounts/login/")))
     return redirect('login')
 
-# @login_required
-# def dashboard_estudiante(request):
-#     return render(request, 'dashboards/estudiante.html')
+
 @login_required
 def dashboard_estudiante(request):
     ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
     ctx = {
         "ficha": ficha,
-        "ficha_pdf_disponible": bool(ficha),          # habilita el botón si hay ficha
-        "is_revisor": request.user.rol == "REVIEWER", # ya lo usas en ficha.html
+        "ficha_pdf_disponible": bool(ficha),
+        "is_revisor": request.user.rol == "REVIEWER",
     }
     return render(request, 'dashboards/estudiante.html', ctx)
 
@@ -437,13 +434,41 @@ def ficha_pdf(request):
       - Portada + secciones de la Ficha (render HTML -> PDF)
       - Anexos: si son PDF se anexan, si son imágenes se convierten a PDF y se anexan.
     """
-    # Obtiene la ficha activa del usuario
     ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
     if not ficha:
         return redirect("ficha")
 
-    # Contexto para el HTML de la ficha (reutilizamos el DTO que ya tienes)
+    # Contexto base via DTO
     dto = FichaDTO.from_model(ficha).to_dict()
+
+    # --- FOTO: priorizar file://, luego URL, luego base64 (cambio mínimo necesario) ---
+    generales = getattr(ficha, "generales", None)
+    foto_path = None
+    foto_url = None
+    foto_b64 = None
+
+    if generales and generales.foto_ficha:
+        try:
+            foto_path = f"file://{generales.foto_ficha.path}"
+        except Exception:
+            foto_path = None
+        try:
+            foto_url = request.build_absolute_uri(generales.foto_ficha.url)
+        except Exception:
+            foto_url = None
+        try:
+            import base64
+            with generales.foto_ficha.open("rb") as _f:
+                foto_b64 = base64.b64encode(_f.read()).decode("ascii")
+        except Exception:
+            foto_b64 = None
+
+    dto.setdefault("generales", {})
+    dto["generales"]["foto_ficha_path"] = foto_path
+    dto["generales"]["foto_ficha_url"]  = foto_url
+    dto["generales"]["foto_ficha_b64"]  = foto_b64
+    # -------------------------------------------------------------------------------
+
     base_pdf = render_html_to_pdf_bytes("pdf/ficha_pdf.html", {"ficha": ficha, "data": dto})
 
     # Reunimos anexos (por FileField o por Blob)

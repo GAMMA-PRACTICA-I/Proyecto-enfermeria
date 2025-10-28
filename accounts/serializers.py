@@ -2,7 +2,7 @@
 Serializadores simples sin depender de DRF (para no introducir nuevas dependencias).
 Si luego quieres migrar a DRF, puedes reemplazarlos por ModelSerializers sin cambiar vistas.
 """
-
+import base64 
 from dataclasses import dataclass, asdict
 from typing import List, Optional
 from accounts.models import (
@@ -85,6 +85,15 @@ class FichaDTO:
         generales = None
         if hasattr(ficha, "generales") and ficha.generales:
             g = ficha.generales
+            def _png_to_b64(fieldfile):
+                if not fieldfile:
+                    return None
+                try:
+                     with fieldfile.open("rb") as f:
+                            return base64.b64encode(f.read()).decode("ascii")
+                except Exception:
+                        return None
+                
             generales = {
                 "nombre_legal": g.nombre_legal,
                 "rut": g.rut,
@@ -99,6 +108,7 @@ class FichaDTO:
                 "centro_salud": g.centro_salud,
                 "seguro": g.seguro,
                 "seguro_detalle": g.seguro_detalle,
+                "foto_ficha_b64": _png_to_b64(getattr(g, "foto_ficha", None)),
             }
 
         academicos = None

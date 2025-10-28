@@ -16,6 +16,10 @@ class StudentGeneralForm(forms.Form):
     prevision = forms.CharField(required=False, max_length=20)        # se mapea a 'seguro' en la vista
     prevision_detalle = forms.CharField(required=False, max_length=120)
     correo_institucional = forms.EmailField(required=False)
+    foto_ficha = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={"accept": "image/png"})
+    )
 
 
 class StudentAcademicForm(forms.Form):
