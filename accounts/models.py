@@ -448,3 +448,20 @@ class StudentDeclaration(models.Model):
     def __str__(self):
         return f"Declaración Ficha {self.ficha_id} - {self.nombre_estudiante}"
 
+def _delete_old_pdf_when_replacing(sender, instance: StudentFicha, **kwargs):
+    """
+    Si la ficha ya existe y se va a reemplazar el FileField 'pdf',
+    eliminamos el archivo anterior del storage para no acumular PDFs viejos.
+    """
+    if not instance.pk:
+        return
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+
+    # Si el nombre de archivo cambia (vamos a subir uno nuevo), borra el antiguo
+    old_file = getattr(old, "pdf", None)
+    new_file = getattr(instance, "pdf", None)
+    if old_file and old_file.name and (not new_file or old_file.name != new_file.name):
+        old_file.delete(save=False)
