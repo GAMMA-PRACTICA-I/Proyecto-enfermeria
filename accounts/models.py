@@ -295,7 +295,8 @@ class DocumentItem(models.TextChoices):
     CI_FRENTE = "CI_FRENTE", "CI (frente)"
     CI_REVERSO = "CI_REVERSO", "CI (reverso)"
     AUTORIZACION_MEDICA = "AUTORIZACION_MEDICA", "Autorización médica práctica"
-
+    #certificado alumno regular
+    CERT_ALUMNO_REGULAR = "CERT_ALUMNO_REGULAR", "Certificado de Alumno Regular"
     # Vacunas/Serologías (adjuntos)
     HEPB_CERT = "HEPB_CERT", "Cert. Hepatitis B"
     VARICELA_IGG = "VARICELA_IGG", "Serología Varicela (IgG)"

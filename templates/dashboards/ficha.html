@@ -6,7 +6,7 @@
   <title>Ficha Estudiante - Campos Clínicos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa;--primary:#0f172a;--accent:#2563eb;--ok:#059669;--warn:#b45309}
+    :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa;--primary:#003366;--accent:#2563eb;--ok:#059669;--warn:#b45309}
     html,body{margin:0;padding:0;width:100%;overflow-x:hidden}
     *{box-sizing:border-box}
     body{font-family:system-ui,Arial;color:var(--text)}
@@ -26,8 +26,17 @@
     input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.18)}
     textarea{min-height:96px;resize:vertical}
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
-    .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--primary);color:#fff;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--primary)}
+    .btn{
+        padding:10px 14px;
+        border-radius:10px;
+        border:1px solid var(--line);
+        background:var(--primary) !important;  /* fuerza el azul oscuro */
+        color:#fff;
+        cursor:pointer}
+    .btn.ghost{
+      background:#fff !important;
+      color:var(--primary) !important;
+      border:1px solid var(--primary) !important;}
     .progress{display:flex;gap:6px;align-items:center;margin:10px 0 6px}
     .dot{width:10px;height:10px;border-radius:999px;border:1px solid var(--line);background:#e9eef8;opacity:.8}
     .dot.active{background:#c6d7ff;border-color:#94b3ff;opacity:1}
@@ -70,20 +79,36 @@
         <button type="button" class="tab" data-tab="morbidos" role="tab">Antecedentes Mórbidos</button>
         <button type="button" class="tab" data-tab="vacunas" role="tab">Vacunas / Serología</button>
         <button type="button" class="tab" data-tab="adjunta" role="tab">Documentación Adjunta</button>
-        <button type="button" class="tab" data-tab="declaracion" role="tab">Declaración</button>
-      </div>
-
-      <form method="post" action="{% url 'ficha' %}" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
 
-        <!-- I. ANTECEDENTES GENERALES (sin adjuntos, según Word) -->
+       <!-- I. ANTECEDENTES GENERALES (sin adjuntos, según Word) -->
         <section class="pane" data-pane="generales">
           <div class="grid2">
             <div>
-                <label>Foto ficha (PNG)</label>
-                <span class="hint">Esta imagen aparecerá en la esquina superior derecha del PDF.</span>
-                <input type="file" name="foto_ficha" accept="image/png" />
+              <label>Foto ficha (PNG)</label>
+              <span class="hint">Esta imagen aparecerá en la esquina superior derecha del PDF.</span>
+              <div class="uploader" data-key="foto_ficha">
+                <div class="controls">
+                  <input type="file" id="foto_ficha_input" name="foto_ficha" accept="image/png" hidden>
+                  <button type="button" class="btn" data-action="pick" data-target="foto_ficha_input">Subir foto</button>
+                  <button type="button" class="btn ghost" data-action="clear" data-target="foto_ficha_input">Quitar</button>
+                </div>
+              </div>
             </div>
+
+            <div>
+              <label>Certificado de Alumno Regular (PDF)</label>
+              <span class="hint">Adjunta tu certificado emitido por la universidad.</span>
+              <div class="uploader" data-key="cert_alumno_regular">
+                <div class="controls">
+                  <input type="file" id="cert_alumno_regular_input" name="cert_alumno_regular[]" accept="application/pdf" hidden>
+                  <button type="button" class="btn" data-action="pick" data-target="cert_alumno_regular_input">Subir certificado</button>
+                  <button type="button" class="btn ghost" data-action="clear" data-target="cert_alumno_regular_input">Quitar</button>
+                </div>
+                <div class="files" id="cert_alumno_regular_files"></div>
+              </div>
+            </div>
+
             <div>
               <label>Nombre completo legal</label>
               <span class="hint">En el Word dice “extraída automáticamente de UNAB”; aquí editable.</span>
@@ -170,6 +195,7 @@
             <button type="button" class="btn next">Siguiente</button>
           </div>
         </section>
+
 
         <!-- II. ANTECEDENTES ACADÉMICOS (sin adjuntos) -->
         <section class="pane" data-pane="academicos" hidden>
