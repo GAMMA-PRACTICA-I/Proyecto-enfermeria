@@ -146,6 +146,28 @@ class StudentGeneral(models.Model):
 
     def __str__(self):
         return f"Generales - Ficha {self.ficha_id}"
+    
+
+class StudentGeneralPhotoBlob(models.Model):
+    general = models.OneToOneField(
+    StudentGeneral,
+    on_delete=models.CASCADE,
+    related_name="photo_blob",
+    )
+    mime = models.CharField(max_length=100, default="image/png")
+    data = models.BinaryField()  # bytes reales
+    size_bytes = models.BigIntegerField(default=0)
+    sha256 = models.CharField(max_length=64, db_index=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        db_table = "student_general_photo_blob"
+        indexes = [
+           models.Index(fields=["sha256"], name="idx_genphotoblob_sha256"),
+        ]
+
+    def __str__(self):
+        return f"FotoBlob General#{self.general_id} ({self.mime}, {self.size_bytes}B)"
 
 
 # =========================

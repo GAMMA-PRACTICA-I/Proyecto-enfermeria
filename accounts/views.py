@@ -15,6 +15,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
+from .models import StudentGeneralPhotoBlob  # NUEVO
+import base64  # ya lo usas más abajo, por si acaso
 
 from .forms import (
     StudentGeneralForm, StudentAcademicForm, StudentMedicalForm,
@@ -163,12 +165,28 @@ class FichaView(View):
             g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
             foto = gen_form.cleaned_data.get("foto_ficha")
             if foto:
-                g.foto_ficha = foto
-            g.save()
-            logger.info(f"Generales guardados ficha={ficha.id}")
-        else:
-            messages.error(request, "Revise los campos de Antecedentes Generales.")
-            logger.warning("Generales inválidos")
+                # 1) Guardar/actualizar blob en BD
+                sha, size, data = _compute_sha256(foto)
+                if hasattr(g, "photo_blob"):
+                        pb = g.photo_blob
+                        pb.mime = getattr(foto, "content_type", "image/png") or "image/png"
+                        pb.data = data
+                        pb.size_bytes = size
+                        pb.sha256 = sha
+                        pb.save()
+                else:
+                    StudentGeneralPhotoBlob.objects.create(
+                        general=g,
+                        mime=getattr(foto, "content_type", "image/png") or "image/png",
+                        data=data,
+                        size_bytes=size,
+                        sha256=sha,)
+                # 2) Evitar dependencia de filesystem: limpiar ImageField
+                #    (lo dejamos explicitamente vacío)
+                g.foto_ficha.delete(save=False)  # elimina archivo si llegó a escribirse
+                g.foto_ficha = None
+
+            
 
         # II. Académicos
         acad_form = StudentAcademicForm(request.POST)
@@ -442,32 +460,41 @@ def ficha_pdf(request):
     dto = FichaDTO.from_model(ficha).to_dict()
 
     # --- FOTO: priorizar file://, luego URL, luego base64 (cambio mínimo necesario) ---
+    # --- FOTO para PDF: preferir blob en BD; si no, intentar file/URL como fallback ---
     generales = getattr(ficha, "generales", None)
     foto_path = None
     foto_url = None
     foto_b64 = None
 
-    if generales and generales.foto_ficha:
-        try:
-            foto_path = f"file://{generales.foto_ficha.path}"
-        except Exception:
-            foto_path = None
-        try:
-            foto_url = request.build_absolute_uri(generales.foto_ficha.url)
-        except Exception:
-            foto_url = None
-        try:
-            import base64
-            with generales.foto_ficha.open("rb") as _f:
-                foto_b64 = base64.b64encode(_f.read()).decode("ascii")
-        except Exception:
-            foto_b64 = None
+    if generales:
+    # 1) Si hay blob en BD, usamos base64 y listo (no dependemos del filesystem)
+        if hasattr(generales, "photo_blob") and generales.photo_blob and generales.photo_blob.data:
+            try:
+                foto_b64 = base64.b64encode(bytes(generales.photo_blob.data)).decode("ascii")
+            except Exception:
+                foto_b64 = None
+    # 2) Fallback: si por alguna razón existiera un archivo, usarlo
+        elif generales.foto_ficha:
+            try:
+                foto_path = f"file://{generales.foto_ficha.path}"
+            except Exception:
+                foto_path = None
+            try:
+                foto_url = request.build_absolute_uri(generales.foto_ficha.url)
+            except Exception:
+                foto_url = None
+            try:
+                with generales.foto_ficha.open("rb") as _f:
+                    foto_b64 = base64.b64encode(_f.read()).decode("ascii")
+            except Exception:
+                pass
 
     dto.setdefault("generales", {})
     dto["generales"]["foto_ficha_path"] = foto_path
     dto["generales"]["foto_ficha_url"]  = foto_url
     dto["generales"]["foto_ficha_b64"]  = foto_b64
     # -------------------------------------------------------------------------------
+
 
     base_pdf = render_html_to_pdf_bytes("pdf/ficha_pdf.html", {"ficha": ficha, "data": dto})
 
