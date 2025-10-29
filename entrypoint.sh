@@ -1,45 +1,44 @@
 #!/bin/sh
 set -e
-DATADIR="/var/lib/mysql"
-SOCK="/var/run/mysqld/mysqld.sock"
-
-chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
 chown -R app:app /app
 mkdir -p /app/media
 chown -R app:app /app/media
 
-if [ ! -d "$DATADIR/mysql" ]; then
-  gosu mysql mysqld --initialize-insecure --datadir="$DATADIR"
-fi
+tries=0
+max=20
+echo "Esperando conexión a la base de datos AWS..."
 
-gosu mysql mysqld \
-  --datadir="$DATADIR" \
-  --socket="$SOCK" \
-  --pid-file=/var/run/mysqld/mysqld.pid &
-
-echo "Esperando MariaDB..."
-until mysqladmin --protocol=SOCKET -S "$SOCK" ping --silent; do
-  sleep 1
+while ! mysql -h "${DB_HOST}" -P "${DB_PORT:-3306}" -u "${DB_USER}" -p${DB_PASS} \
+  --ssl --ssl-ca="${DB_SSL_CA}" --ssl-verify-server-cert=OFF -e "SELECT 1;" >/dev/null 2> /tmp/db_err.log; do
+  tries=$((tries+1))
+  echo "Aguardando que la base de datos esté disponible... (intento $tries/$max)"
+  if [ $tries -ge $max ]; then
+    echo "❌ Error al conectar a la BD. Último error:"
+    cat /tmp/db_err.log
+    exit 1
+  fi
+  sleep 3
 done
 
-DB_NAME="${DB_NAME:-ficha_medica}"
-DB_USER="${DB_USER:-appuser}"
-DB_PASS="${DB_PASS:-apppass}"
-MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-rootpass}"
+echo "✅ Conexión exitosa a la base de datos AWS."
 
-mysql --protocol=SOCKET -S "$SOCK" -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}'; FLUSH PRIVILEGES;"
-mysql --protocol=SOCKET -S "$SOCK" -u root -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql --protocol=SOCKET -S "$SOCK" -u root -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}';"
-mysql --protocol=SOCKET -S "$SOCK" -u root -p"${MYSQL_ROOT_PASSWORD}" -e "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'%'; FLUSH PRIVILEGES;"
+echo "✅ Conexión exitosa a la base de datos AWS."
+mysql -h "${DB_HOST}" -P "${DB_PORT:-3306}" -u "${DB_USER}" -p${DB_PASS} \
+  --ssl --ssl-ca="${DB_SSL_CA}" --ssl-verify-server-cert=OFF -D "${DB_NAME}" -e "SELECT DATABASE();"
+  
+DB_NAME="${DB_NAME:?Falta DB_NAME}"
+DB_USER="${DB_USER:?Falta DB_USER}"
+DB_PASS="${DB_PASS:?Falta DB_PASS}"
 
 export DJANGO_SETTINGS_MODULE=config.settings
 export PYTHONUNBUFFERED=1
 
 # aplicar migraciones
-gosu app python manage.py migrate --noinput
+python manage.py migrate --noinput
 
 # crear usuarios por rol
-gosu app python manage.py shell <<'PYCODE'
+# crear usuarios por rol
+python manage.py shell <<'PYCODE'
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
@@ -68,7 +67,3 @@ ensure_user("n.guerrajara@uandresbello.edu", "revisor123", rol="REVIEWER", is_st
 # estudiante
 ensure_user("m.montoyamendoza1@uandresbello.edu", "estudiante123", rol="STUDENT")
 PYCODE
-
-
-# arrancar servidor
-exec gosu app python manage.py runserver 0.0.0.0:8000

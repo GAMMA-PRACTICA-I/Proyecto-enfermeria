@@ -4,11 +4,20 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-
+from django.core.validators import FileExtensionValidator
 
 # =========================
 #  Usuarios / Roles
 # =========================
+def general_png_upload_path(instance, filename):
+        # Evita fallar si aún no hay ficha asociada
+        ficha_id = getattr(instance, "ficha_id", None) or "unknown"
+        return f"student_docs/ficha_{ficha_id}/foto_ficha.png"
+# Ruta para el campo ImageField usada por la migración 0002
+def _foto_ficha_path(instance, filename):
+    # Si aún no hay ficha asociada, evita fallar
+    ficha_id = getattr(instance, "ficha_id", None) or "unknown"
+    return f"student_docs/ficha_{ficha_id}/foto_ficha.png"
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -124,12 +133,41 @@ class StudentGeneral(models.Model):
 
     seguro = models.CharField(max_length=20, choices=Seguro.choices, null=True, blank=True)
     seguro_detalle = models.CharField(max_length=120, null=True, blank=True)
-
+    def _foto_ficha_path(instance, filename):
+        return f"student_docs/ficha_{instance.ficha_id}/foto_ficha.png"
+    foto_ficha = models.ImageField(
+        upload_to=general_png_upload_path,
+        null=True, blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=["png"])],
+        help_text="Solo PNG"
+        )
     class Meta:
         db_table = "student_general"
 
     def __str__(self):
         return f"Generales - Ficha {self.ficha_id}"
+    
+
+class StudentGeneralPhotoBlob(models.Model):
+    general = models.OneToOneField(
+    StudentGeneral,
+    on_delete=models.CASCADE,
+    related_name="photo_blob",
+    )
+    mime = models.CharField(max_length=100, default="image/png")
+    data = models.BinaryField()  # bytes reales
+    size_bytes = models.BigIntegerField(default=0)
+    sha256 = models.CharField(max_length=64, db_index=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        db_table = "student_general_photo_blob"
+        indexes = [
+           models.Index(fields=["sha256"], name="idx_genphotoblob_sha256"),
+        ]
+
+    def __str__(self):
+        return f"FotoBlob General#{self.general_id} ({self.mime}, {self.size_bytes}B)"
 
 
 # =========================
@@ -257,7 +295,8 @@ class DocumentItem(models.TextChoices):
     CI_FRENTE = "CI_FRENTE", "CI (frente)"
     CI_REVERSO = "CI_REVERSO", "CI (reverso)"
     AUTORIZACION_MEDICA = "AUTORIZACION_MEDICA", "Autorización médica práctica"
-
+    #certificado alumno regular
+    CERT_ALUMNO_REGULAR = "CERT_ALUMNO_REGULAR", "Certificado de Alumno Regular"
     # Vacunas/Serologías (adjuntos)
     HEPB_CERT = "HEPB_CERT", "Cert. Hepatitis B"
     VARICELA_IGG = "VARICELA_IGG", "Serología Varicela (IgG)"
@@ -408,3 +447,4 @@ class StudentDeclaration(models.Model):
 
     def __str__(self):
         return f"Declaración Ficha {self.ficha_id} - {self.nombre_estudiante}"
+
