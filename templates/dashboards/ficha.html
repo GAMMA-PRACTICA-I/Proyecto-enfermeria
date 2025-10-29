@@ -6,7 +6,7 @@
   <title>Ficha Estudiante - Campos Clínicos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa;--primary:#0f172a;--accent:#2563eb;--ok:#059669;--warn:#b45309}
+   :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa;--primary:#003366;--accent:#2563eb;--ok:#059669;--warn:#b45309}
     html,body{margin:0;padding:0;width:100%;overflow-x:hidden}
     *{box-sizing:border-box}
     body{font-family:system-ui,Arial;color:var(--text)}
@@ -26,8 +26,17 @@
     input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.18)}
     textarea{min-height:96px;resize:vertical}
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
-    .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--primary);color:#fff;cursor:pointer}
-    .btn.ghost{background:#fff;color:var(--primary)}
+    .btn{
+        padding:10px 14px;
+        border-radius:10px;
+        border:1px solid var(--line);
+        background:var(--primary) !important;  /* fuerza el azul oscuro */
+        color:#fff;
+        cursor:pointer}
+    .btn.ghost{
+      background:#fff !important;
+      color:var(--primary) !important;
+      border:1px solid var(--primary) !important;}
     .progress{display:flex;gap:6px;align-items:center;margin:10px 0 6px}
     .dot{width:10px;height:10px;border-radius:999px;border:1px solid var(--line);background:#e9eef8;opacity:.8}
     .dot.active{background:#c6d7ff;border-color:#94b3ff;opacity:1}
@@ -88,6 +97,7 @@
                   <button type="button" class="btn" data-action="pick" data-target="foto_ficha_input">Subir foto</button>
                   <button type="button" class="btn ghost" data-action="clear" data-target="foto_ficha_input">Quitar</button>
                 </div>
+                <div class="files" id="foto_ficha_files"></div>
               </div>
             </div>
                <div>
@@ -673,45 +683,66 @@
 
     function clearInput(input){ input.value=''; }
 
-    function renderList(key, files){
-        const box = document.getElementById(key + '_files');
-        if (!box) return;
-        box.innerHTML = '';
+        function renderList(key, files){
+      const box = document.getElementById(key + '_files');
+      if (!box) return;
+      box.innerHTML = '';
 
-        (files || []).forEach((fileName)=>{
-          const row = document.createElement('div');
-          row.className = 'file-item';
+      (files || []).forEach((fileName)=>{
+        const row = document.createElement('div');
+        row.className = 'file-item';
 
-          const left = document.createElement('div');
-          left.className = 'file-name';
-          left.textContent = shortName(fileName);
+        // 🖼️ Si es la foto de la ficha, mostramos vista previa
+        if (key === 'foto_ficha') {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(document.querySelector(`#${key}_input`).files[0]);
+          img.style.maxWidth = '120px';
+          img.style.borderRadius = '8px';
+          img.style.display = 'block';
+          img.style.marginTop = '6px';
 
-          const right = document.createElement('div');
-          right.className = 'file-actions';
+          const label = document.createElement('div');
+          label.textContent = shortName(fileName);
+          label.style.fontSize = '0.9rem';
+          label.style.marginTop = '4px';
 
-          const sel = document.createElement('select');
-          sel.className = 'status-select';
-          sel.name = `${key}_status[]`;
-          (IS_REVISOR ? STATUS_REVISOR : STATUS_STUDENT).forEach(o=>{
-            const opt = document.createElement('option');
-            opt.value = o.v; opt.textContent = o.t;
-            if (o.v === 'adjuntado') opt.selected = true;
-            sel.appendChild(opt);
-          });
+          box.appendChild(img);
+          box.appendChild(label);
+          return;
+        }
 
-          const hidden = document.createElement('input');
-          hidden.type = 'hidden';
-          // nombre derivado SOLO del key; no uses `input`
-          hidden.name = `${key}_name[]`;
-          hidden.value = fileName;
+        // 📄 para todos los otros (PDF, etc.)
+        const left = document.createElement('div');
+        left.className = 'file-name';
+        left.textContent = shortName(fileName);
 
-          right.appendChild(sel);
-          row.appendChild(left);
-          row.appendChild(right);
-          row.appendChild(hidden);
-          box.appendChild(row);
+        const right = document.createElement('div');
+        right.className = 'file-actions';
+
+        const sel = document.createElement('select');
+        sel.className = 'status-select';
+        sel.name = `${key}_status[]`;
+        (IS_REVISOR ? STATUS_REVISOR : STATUS_STUDENT).forEach(o=>{
+          const opt = document.createElement('option');
+          opt.value = o.v;
+          opt.textContent = o.t;
+          if (o.v === 'adjuntado') opt.selected = true;
+          sel.appendChild(opt);
         });
-      }
+
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = `${key}_name[]`;
+        hidden.value = fileName;
+
+        right.appendChild(sel);
+        row.appendChild(left);
+        row.appendChild(right);
+        row.appendChild(hidden);
+        box.appendChild(row);
+      });
+    }
+
 
     function handlePicker(btn){
       const target=btn.getAttribute('data-target');

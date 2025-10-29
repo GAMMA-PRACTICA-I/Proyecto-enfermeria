@@ -1,105 +1,238 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Iniciar sesión</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f2f2f2; /* blanco ceniza */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Login – Campo Clínico UNAB</title>
+<link as="image" href="fondo.jpg" rel="preload"/>
+<!-- Vincula la hoja de estilos externa -->
 
-        .login-container {
-            background-color: white;
-            padding: 30px;
-            border: 2px solid #000;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 300px;
-        }
+<style>
+/* Inlined from a.css */
+/* ===========================
+   Variables y reset básicos
+   =========================== */
+:root{
+  /* Azules coordinados con tu fondo */
+  --navy: #0d6bb3;     /* azul medio */
+  --blue: #6fd1ff;     /* azul celeste */
 
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+  /* Texto y neutros */
+  --ink:  #0f172a;
+  --muted:#334155;
 
-        label {
-            display: block;
-            margin-top: 15px;
-            font-weight: bold;
-        }
+  /* Tarjeta clara */
+  --card-bg: #ffffff;
+  --card-brd: rgba(15,23,42,.12);
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
+  /* Efectos */
+  --shadow: 0 30px 60px rgba(2,6,23,.25);
+  --radius: 18px;
+}
 
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: black;
-            color: white;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-        }
+*{ box-sizing: border-box; }
+html, body{ height: 100%; }
 
-        button:hover {
-            background-color: #333;
-        }
+/* ===== Fondo con imagen + overlay claro ===== */
+body{
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Arial, sans-serif;
+  color: var(--ink);
 
-        .errorlist {
-            color: red;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.84), rgba(255,255,255,.70)),
+    url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 
-        .forgot {
-            text-align: center;
-            margin-top: 15px;
-        }
+  display: grid;
+  place-items: center;
+}
 
-        .forgot a {
-            color: #000;
-            text-decoration: none;
-            font-size: 0.9em;
-        }
+/* ===========================
+   Layout principal (2 columnas)
+   =========================== */
+/* –12%: ancho total y panel más angosto, y todo un poco hacia la derecha */
+.wrap{
+  width: min(1088px, 88vw);                     /* antes ~1235px */
+  /*       top   right                    bottom left  */
+  padding: 0    clamp(56px, 8vw, 160px)  0     clamp(48px, 8vw, 160px);
 
-        .forgot a:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
+  display: grid;
+  grid-template-columns: 1fr min(528px, 92vw);  /* panel 600px → 528px */
+  align-items: center;
+  column-gap: 56px;
+}
+
+/* ===========================
+   Columna izquierda (Logo)
+   =========================== */
+.side{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* empuja el logo un poco a la derecha */
+  min-height: 320px;
+}
+
+/* LOGO grande en desktop */
+.logo{
+  width: min(720px, 95%);   /* ↑ más grande */
+  height: auto;
+  display: block;
+  filter: none;
+}
+
+/* ===========================
+   Columna derecha (Tarjeta/Login)
+   =========================== */
+.panel{
+  margin-left: auto;
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--card-brd);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Barra superior con degradé similar al fondo */
+.panel .bar{
+  background: linear-gradient(90deg, var(--navy), var(--blue));
+  color: #fff;
+  padding: 14px 18px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+/* Login un poquito más hacia la derecha (padding-left mayor) */
+.panel .content{
+  padding: 24px 24px 24px 32px; /* L = 32px */
+}
+
+/* ===========================
+   Formulario
+   =========================== */
+.field{ margin: 12px 0; }
+
+.label{
+  display: block;
+  font-weight: 700;
+  font-size: .95rem;
+  margin-bottom: 6px;
+}
+
+.input{
+  width: 100%;
+  height: 54px;              /* mantén la altura que te gustó */
+  padding: 0 14px;
+  border: 1px solid var(--card-brd);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  box-shadow: 0 2px 0 rgba(2,6,23,.06) inset;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.input:focus{
+  border-color: #cbd5e1;
+  box-shadow:
+    0 0 0 3px rgba(79,163,227,.25),
+    0 2px 0 rgba(2,6,23,.06) inset;
+  transform: translateY(-1px);
+}
+
+.actions{
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.link{
+  font-size: .92rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.link:hover{ text-decoration: underline; }
+
+/* Botón con degradé coordinado */
+.btn{
+  flex: 1;
+  height: 54px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  background: linear-gradient(90deg, var(--navy), var(--blue));
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(2,6,23,.18);
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+.btn:hover{ transform: translateY(-1px); }
+.btn:active{ transform: translateY(0); opacity: .95; }
+
+/* ===========================
+   Responsivo (móviles/tablet)
+   =========================== */
+@media (max-width: 900px){
+  .wrap{
+    grid-template-columns: 1fr;
+    row-gap: 20px;
+    padding: 20px;
+    width: 96vw;
+  }
+  .panel{ margin-left: 0; }
+  .side{ justify-content: center; }
+  .logo{ width: min(420px, 90%); }  /* logo también un poco más grande en mobile */
+}
+
+</style></head>
 <body>
-    <div class="login-container">
-        <h1>Bienvenido al campo clínico</h1>
-        <form method="post">
-            {% csrf_token %}
-            {% if form.errors %}
-                <div class="errorlist">
-                    Credenciales inválidas. Intenta de nuevo.
-                </div>
-            {% endif %}
-
-            <label for="id_username">Correo electrónico:</label>
-            <input type="email" id="id_username" name="username" required>
-
-            <label for="id_password">Contraseña:</label>
-            <input type="password" id="id_password" name="password" required>
-
-            <button type="submit">Iniciar sesión</button>
-        </form>
-        <div class="forgot">
-            <a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a>
-        </div>
-    </div>
+<!--
+    Contenedor general: define un layout de 2 columnas
+    - Izquierda: área de logo
+    - Derecha: tarjeta/panel de login
+  -->
+<main class="wrap">
+<!-- COLUMNA IZQUIERDA: Logo institucional -->
+<aside aria-label="Identidad institucional" class="side">
+<!--
+        Coloca tu archivo real de logo aquí.
+        Ajusta el alt con una descripción accesible.
+      -->
+<img alt="Universidad Andrés Bello" class="logo" src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png"/>
+</aside>
+<!-- COLUMNA DERECHA: Tarjeta de acceso -->
+<section aria-label="Ingreso a la plataforma" class="panel">
+<!-- Barra superior con degradado y título -->
+<div class="bar">CAMPO CLÍNICO</div>
+<!-- Contenido de la tarjeta -->
+<div class="content">
+<form action="/login" autocomplete="on" method="post" novalidate="">
+<!-- Campo: Usuario -->
+<div class="field">
+<label class="label" for="usuario">Usuario</label>
+<input aria-required="true" class="input" id="usuario" inputmode="email" name="usuario" placeholder="tu_correo@uandresbello.edu" required="" type="email"/>
+</div>
+<!-- Campo: Clave -->
+<div class="field">
+<label class="label" for="clave">Clave</label>
+<input aria-required="true" class="input" id="clave" name="clave" placeholder="••••••••" required="" type="password"/>
+</div>
+<!-- Acciones: enlace de recuperación + botón enviar -->
+<div class="actions">
+<a class="link" href="#olvide">¿Olvidaste tu clave?</a>
+<button class="btn" type="submit">Ingresar</button>
+</div>
+</form>
+</div>
+</section>
+</main>
 </body>
 </html>

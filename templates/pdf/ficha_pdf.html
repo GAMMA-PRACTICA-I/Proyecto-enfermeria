@@ -4,45 +4,51 @@
   <meta charset="utf-8">
   <title>Ficha Estudiantil</title>
   <style>
-    body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; color: #111; position: relative; }
+    body {
+      font-family: DejaVu Sans, Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #111;
+      position: relative;
+    }
     h1, h2 { margin: 0 0 8px; }
     h1 { font-size: 20px; }
-    h2 { font-size: 16px; margin-top: 18px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    h2 {
+      font-size: 16px;
+      margin-top: 18px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+    }
     .muted { color: #555; }
     table { width: 100%; border-collapse: collapse; margin: 8px 0; }
     th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
     .kv td { border: none; padding: 2px 0; }
 
-    /* Foto fijo arriba-derecha */
+    /* FOTO DE FICHA: esquina superior derecha */
     .foto-ficha {
       position: absolute;
       top: 10px;
       right: 10px;
       width: 110px;
-      height: 110px;
+      height: auto;
       object-fit: cover;
       border: 1px solid #ddd;
       padding: 3px;
       background: #fff;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
 
-  {# ---- CAMBIO MINIMO: sin paréntesis, usando if anidados ---- #}
-  {% if data.generales %}
-    {% if data.generales.foto_ficha_path %}
-      <img class="foto-ficha" src="{{ data.generales.foto_ficha_path }}" alt="Foto ficha" />
-    {% elif data.generales.foto_ficha_url %}
-      <img class="foto-ficha" src="{{ data.generales.foto_ficha_url }}" alt="Foto ficha" />
-    {% elif data.generales.foto_ficha_b64 %}
-      <img class="foto-ficha" src="data:image/png;base64,{{ data.generales.foto_ficha_b64 }}" alt="Foto ficha" />
-    {% endif %}
+  {% if data.generales and data.generales.foto_ficha_b64 %}
+    <img class="foto-ficha" src="data:image/png;base64,{{ data.generales.foto_ficha_b64 }}" alt="Foto ficha" />
   {% endif %}
 
   <h1>Ficha Estudiantil – Campos Clínicos</h1>
-  <p class="muted">ID Ficha: {{ ficha.id }} · Email: {{ data.user_email }}</p>
-  <p class="muted">Estado: {{ ficha.get_estado_global_display }}</p>
+  <p class="muted">
+    ID Ficha: {{ ficha.id }} · Email: {{ data.user_email }}<br>
+    Estado: {{ ficha.get_estado_global_display }}
+  </p>
 
   {% if data.generales %}
   <h2>I. Antecedentes Generales</h2>
@@ -126,6 +132,8 @@
   </table>
   {% endif %}
 
-  <p class="muted" style="margin-top: 20px;">— Fin de la ficha. A continuación se adjuntan los anexos (PDFs e imágenes) —</p>
+  <p class="muted" style="margin-top: 20px;">
+    — Fin de la ficha. A continuación se adjuntan los anexos (PDFs e imágenes) —
+  </p>
 </body>
 </html>
