@@ -6,6 +6,7 @@ from .views import (
     ReviewDocumentUpdateView,
     ApproveFichaView,
     ObserveFichaView,
+    PermitReEditFichaView
 )
 from .views import ficha_pdf
 
@@ -17,4 +18,5 @@ urlpatterns = [
     path("revisar/ficha/<int:ficha_id>/aprobar/", ApproveFichaView.as_view(), name="aprobar_ficha"),
     path("revisar/ficha/<int:ficha_id>/observar/", ObserveFichaView.as_view(), name="observar_ficha"),
     path("ficha/pdf/", ficha_pdf, name="ficha_pdf"),
+    path("revisar/ficha/<int:ficha_id>/permitir_edicion/", PermitReEditFichaView.as_view(), name="permitir_edicion_ficha"),
 ]

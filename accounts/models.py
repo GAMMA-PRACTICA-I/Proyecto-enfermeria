@@ -86,7 +86,16 @@ class StudentFicha(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    def permitir_reedicion(self, by_user=None):
+        from django.utils import timezone
+        if self.estado_global not in (self.Estado.OBSERVADA, self.Estado.RECHAZADA):
+            raise ValueError("La ficha no está en un estado que permita volver a editar.")
+        self.estado_global = self.Estado.DRAFT
+        self.observaciones_globales = None
+        if by_user is not None:
+            self.revisado_por = by_user
+            self.revisado_en = timezone.now()
+            self.save(update_fields=["estado_global", "observaciones_globales", "revisado_por", "revisado_en", "updated_at"])
     class Meta:
         db_table = "student_ficha"
         indexes = [

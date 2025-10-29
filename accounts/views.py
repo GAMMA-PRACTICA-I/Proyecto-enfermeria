@@ -46,6 +46,34 @@ from .utils.pdf import (
 )
 
 #-----------------------------------
+from django.views import View
+from django.http import JsonResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from .models import StudentFicha
+
+@method_decorator(login_required, name="dispatch")
+class PermitReEditFichaView(View):
+    def post(self, request, ficha_id):
+        if request.user.rol != "REVIEWER":
+            return HttpResponseForbidden("No autorizado.")
+        ficha = get_object_or_404(StudentFicha, pk=ficha_id)
+        ficha.permitir_reedicion(by_user=request.user)
+        return JsonResponse({"ok": True, "estado": ficha.estado_global})
+
+
+@method_decorator(login_required, name="dispatch")
+class PermitReEditFichaView(View):
+    def post(self, request, ficha_id):
+        if request.user.rol != "REVIEWER":
+            return HttpResponseForbidden("No autorizado.")
+        ficha = get_object_or_404(StudentFicha, pk=ficha_id)
+        ficha.permitir_reedicion(by_user=request.user)
+        return JsonResponse({"ok": True, "estado": ficha.estado_global})
+
+
+#-----------------------------------
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%(lineno)d] %(message)s')
