@@ -6,6 +6,10 @@ from django.conf import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
+    # === LÍNEA NUEVA: alias para /login que usa la misma plantilla ===
+    path("login/", auth_views.LoginView.as_view(template_name="accounts/login.html")),
+
     path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html"), name="login"),
     path("accounts/logout/", logout_to_login, name="logout"),
     path("", home, name="home"),
@@ -61,6 +65,6 @@ urlpatterns = [
         name="password_change_done",
     ),
 
-    # ====== NUEVO: include de las urls de la app accounts ======
+    # ====== include de las urls de la app accounts ======
     path("accounts/", include("accounts.urls")),
 ]

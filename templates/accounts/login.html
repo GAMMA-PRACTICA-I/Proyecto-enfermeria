@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Login – Campo Clínico UNAB</title>
-<link as="image" href="fondo.jpg" rel="preload"/>
+<!-- <link as="image" href="fondo.jpg" rel="preload"/> -->
 <!-- Vincula la hoja de estilos externa -->
 
 <style>
@@ -214,22 +214,39 @@ body{
 <div class="bar">CAMPO CLÍNICO</div>
 <!-- Contenido de la tarjeta -->
 <div class="content">
-<form action="/login" autocomplete="on" method="post" novalidate="">
-<!-- Campo: Usuario -->
-<div class="field">
-<label class="label" for="usuario">Usuario</label>
-<input aria-required="true" class="input" id="usuario" inputmode="email" name="usuario" placeholder="tu_correo@uandresbello.edu" required="" type="email"/>
-</div>
-<!-- Campo: Clave -->
-<div class="field">
-<label class="label" for="clave">Clave</label>
-<input aria-required="true" class="input" id="clave" name="clave" placeholder="••••••••" required="" type="password"/>
-</div>
-<!-- Acciones: enlace de recuperación + botón enviar -->
-<div class="actions">
-<a class="link" href="#olvide">¿Olvidaste tu clave?</a>
-<button class="btn" type="submit">Ingresar</button>
-</div>
+<form action="/login/" method="post" autocomplete="on" novalidate>
+  {% csrf_token %}
+
+  <!-- Usuario -->
+  <div class="field">
+    <label class="label" for="id_username">Usuario</label>
+    <input class="input"
+           id="id_username"
+           name="username"          
+           type="text"
+           inputmode="email"
+           placeholder="tu_correo@uandresbello.edu"
+           required>
+  </div>
+
+  <!-- Clave -->
+  <div class="field">
+    <label class="label" for="id_password">Clave</label>
+    <input class="input"
+           id="id_password"
+           name="password"          
+           type="password"
+           placeholder="••••••••"
+           required>
+  </div>
+
+  <!-- preserva redirección si venías de una vista protegida -->
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+  <div class="actions">
+    <a class="link" href="#olvide">¿Olvidaste tu clave?</a>
+    <button class="btn" type="submit">Ingresar</button>
+  </div>
 </form>
 </div>
 </section>

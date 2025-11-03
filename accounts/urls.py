@@ -8,8 +8,11 @@ from .views import (
     ObserveFichaView,
 )
 from .views import ficha_pdf
+from django.views.generic.base import RedirectView
+
 
 urlpatterns = [
+    path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
     path("", dashboard_estudiante, name="dashboard_estudiante"),
     path("ficha/", FichaView.as_view(), name="ficha"),
     path("revisiones/pendientes/", ReviewDashboardView.as_view(), name="revisiones_pendientes"),
