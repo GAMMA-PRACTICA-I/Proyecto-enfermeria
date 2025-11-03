@@ -1,15 +1,30 @@
-from django.contrib import admin 
+from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
 from accounts.views import home, logout_to_login
 from django.conf import settings
 
 urlpatterns = [
+    # Admin
     path("admin/", admin.site.urls),
-    path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html"), name="login"),
+
+    # Login / Logout
+    path(
+        "accounts/login/",
+        auth_views.LoginView.as_view(template_name="accounts/login.html"),
+        name="login",
+    ),
     path("accounts/logout/", logout_to_login, name="logout"),
+
+    # Alias para /login y /login/  -> redirigen a /accounts/login/
+    path("login", RedirectView.as_view(url="/accounts/login/", permanent=False)),
+    path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
+
+    # Home
     path("", home, name="home"),
 
+    # Reset de contraseña (no autenticado)
     path(
         "accounts/password_reset/",
         auth_views.PasswordResetView.as_view(
@@ -44,7 +59,7 @@ urlpatterns = [
         name="password_reset_complete",
     ),
 
-    # cambio de contraseña autenticado
+    # Cambio de contraseña (autenticado)
     path(
         "accounts/password_change/",
         auth_views.PasswordChangeView.as_view(
@@ -61,6 +76,6 @@ urlpatterns = [
         name="password_change_done",
     ),
 
-    # ====== NUEVO: include de las urls de la app accounts ======
+    # Rutas propias de la app accounts
     path("accounts/", include("accounts.urls")),
 ]

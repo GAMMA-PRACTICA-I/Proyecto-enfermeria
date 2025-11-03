@@ -124,6 +124,25 @@ def _save_ci_rule_guard(ficha: StudentFicha):
         raise ValueError("Existen más de dos adjuntos de CI (frente/reverso) para esta ficha.")
 
 
+# === CAMBIO MÍNIMO: eliminar adjuntos previos del mismo item antes de crear nuevos ===
+def _delete_existing_docs(ficha: StudentFicha, items: List[str]) -> None:
+    """
+    Borra (storage + BD) todos los adjuntos de la ficha cuyo item esté en 'items'.
+    Con esto evitamos acumulación histórica y garantizamos reemplazo.
+    """
+    qs = StudentDocuments.objects.filter(ficha=ficha, item__in=items).select_related("blob")
+    for d in qs:
+        # 1) borrar archivo físico si existe en FileField
+        try:
+            if d.file and d.file.name:
+                d.file.storage.delete(d.file.name)
+        except Exception:
+            pass
+        # 2) borrar registro (el blob se elimina por cascade)
+        d.delete()
+# =============================================================================
+
+
 @method_decorator(login_required, name="dispatch")
 class FichaView(View):
     template_name = "dashboards/estudiante.html"
@@ -182,7 +201,6 @@ class FichaView(View):
                         size_bytes=size,
                         sha256=sha,)
                 # 2) Evitar dependencia de filesystem: limpiar ImageField
-                #    (lo dejamos explicitamente vacío)
                 g.foto_ficha.delete(save=False)  # elimina archivo si llegó a escribirse
                 g.foto_ficha = None
 
@@ -298,6 +316,14 @@ class FichaView(View):
             files = request.FILES.getlist(input_name)
             if not files:
                 continue
+
+            # === CAMBIO: borrar existentes del/los mismo(s) item(s) antes de crear nuevos ===
+            if input_name == "ci_archivos[]":
+                _delete_existing_docs(ficha, [DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO])
+            else:
+                _delete_existing_docs(ficha, [item])
+            # ===============================================================================
+
             for idx, f in enumerate(files):
                 actual_item = item
                 if input_name == "ci_archivos[]":
