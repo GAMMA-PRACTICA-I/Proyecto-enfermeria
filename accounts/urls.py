@@ -8,9 +8,11 @@ from .views import (
     ObserveFichaView,
 )
 from .views import ficha_pdf
+from .views import register
 
 urlpatterns = [
     path("", dashboard_estudiante, name="dashboard_estudiante"),
+    path("register/", register, name="register"),
     path("ficha/", FichaView.as_view(), name="ficha"),
     path("revisiones/pendientes/", ReviewDashboardView.as_view(), name="revisiones_pendientes"),
     path("revisar/documento/<int:doc_id>/", ReviewDocumentUpdateView.as_view(), name="revisar_documento"),

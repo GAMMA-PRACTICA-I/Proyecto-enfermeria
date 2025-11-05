@@ -31,6 +31,7 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.shortcuts import redirect, resolve_url
 from accounts.serializers import FichaDTO
+from django.contrib.auth import get_user_model
 
 #------------------------ informes pdf
 from django.http import FileResponse
@@ -479,3 +480,29 @@ def ficha_pdf(request):
 
     # Respuesta de descarga/visualización
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
+
+# Registrar nuevo usuario
+
+User = get_user_model()
+
+def register(request):
+    if request.method == "POST":
+        email = request.POST.get("email")
+        rol = request.POST.get("rol")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        if password1 != password2:
+            messages.error(request, "Las contraseñas no coinciden.")
+            return redirect("register")
+
+        try:
+            User.objects.create_user(email=email, password=password1, rol=rol)
+            messages.success(request, "Usuario creado correctamente.")
+            return redirect("login")  # login ya existe en tu proyecto
+
+        except Exception as e:
+            messages.error(request, f"Error al crear usuario: {e}")
+            return redirect("register")
+
+    return render(request, "accounts/register.html")
