@@ -15,6 +15,11 @@ urlpatterns = [
         auth_views.LoginView.as_view(template_name="accounts/login.html"),
         name="login",
     ),
+
+    # === LÍNEA NUEVA: alias para /login que usa la misma plantilla ===
+    path("login/", auth_views.LoginView.as_view(template_name="accounts/login.html")),
+
+    path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html"), name="login"),
     path("accounts/logout/", logout_to_login, name="logout"),
 
     # Alias para /login y /login/  -> redirigen a /accounts/login/
@@ -77,5 +82,6 @@ urlpatterns = [
     ),
 
     # Rutas propias de la app accounts
+    # ====== include de las urls de la app accounts ======
     path("accounts/", include("accounts.urls")),
 ]
