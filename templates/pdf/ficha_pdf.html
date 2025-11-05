@@ -4,82 +4,57 @@
   <meta charset="utf-8">
   <title>Ficha Estudiantil</title>
   <style>
+    @page { size: A4; margin: 2cm; }
     body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; color: #111; position: relative; }
     h1, h2 { margin: 0 0 8px; }
     h1 { font-size: 20px; }
     h2 { font-size: 16px; margin-top: 18px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
     .muted { color: #555; }
+
     table { width: 100%; border-collapse: collapse; margin: 8px 0; }
     th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
     .kv td { border: none; padding: 2px 0; }
 
-    /* Foto fijo arriba-derecha */
-    .foto-ficha {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 110px;
-      height: auto;
-      object-fit: cover;
-      border: 1px solid #ddd;
-      padding: 3px;
-      background: #fff;
-    }    
+    /* Foto arriba-derecha (versión única y funcional en xhtml2pdf) */
+    .foto-wrap { text-align: right; }
+    .foto-ficha { width: 400px; height: auto; display: inline-block; border: 1px solid #ddd; padding: 3px; background: #fff; }
+    .header-grid { width:100%; border-collapse:collapse; border:none; table-layout:fixed; }
+    .header-grid td { border:none; vertical-align:top; padding:0; }
+    .header-meta p { margin:0 0 2px 0; line-height:1.2; color:#555; font-size:12pt; }
   </style>
 </head>
 <body>
 
-
-
   <h1>Ficha Estudiantil – Campos Clínicos</h1>
-  <!-- <div style="text-align: right;">
-  {# ---- CAMBIO MINIMO: sin paréntesis, usando if anidados ---- #}
-  {% if data.generales %}
-    {% if data.generales.foto_ficha_path %}
-      <img class="foto-ficha" src="{{ data.generales.foto_ficha_path }}" alt="Foto ficha" />
-    {% elif data.generales.foto_ficha_url %}
-      <img class="foto-ficha" src="{{ data.generales.foto_ficha_url }}" alt="Foto ficha" />
-    {% elif data.generales.foto_ficha_b64 %}
-      <img class="foto-ficha" src="data:image/png;base64,{{ data.generales.foto_ficha_b64 }}" alt="Foto ficha" />
-    {% endif %}
-  {% endif %}
-  </div> -->
 
-  <div style="width:100%;">
-    <table style="width:100%; border-collapse:collapse; border:none; table-layout:fixed;">
-      <tr>
-        <!-- Columna 1: DATOS (izquierda) -->
-        <td style="border:none; vertical-align:top; padding:0;">
-          <p style="margin:0 0 2px 0; line-height:1.2; color:#555; font-size:12pt;">
-            ID Ficha: {{ ficha.id }}
-          </p>
-          <p style="margin:0 0 2px 0; line-height:1.2; color:#555; font-size:12pt;">
-            Email: {{ data.user_email }}
-          </p>
-          <p style="margin:0; line-height:1.2; color:#555; font-size:12pt;">
-            Estado: {{ ficha.get_estado_global_display }}
-          </p>
-        </td>
-
-        <!-- Columna 2: FOTO (derecha, ancho 450px) -->
-        <td style="border:none; width:450px; vertical-align:top; padding:0; text-align:right;">
-          {% if data.generales %}
-            {% if data.generales.foto_ficha_path %}
-              <img src="{{ data.generales.foto_ficha_path }}" alt="Foto ficha"
-                  style="width:400px; height:auto; display:inline-block;" />
-            {% elif data.generales.foto_ficha_url %}
-              <img src="{{ data.generales.foto_ficha_url }}" alt="Foto ficha"
-                  style="width:400px; height:auto; display:inline-block;" />
-            {% elif data.generales.foto_ficha_b64 %}
-              <img src="data:image/png;base64,{{ data.generales.foto_ficha_b64 }}" alt="Foto ficha"
-                  style="width:400px; height:auto; display:inline-block;" />
-            {% endif %}
+  <table class="header-grid">
+    <tr>
+      <!-- Columna 1: datos -->
+      <td class="header-meta">
+        <p><b>ID Ficha:</b> {{ ficha.id }}</p>
+        <p><b>Email:</b> {{ data.user_email }}</p>
+        <p><b>Estado:</b> {{ ficha.get_estado_global_display }}</p>
+      </td>
+      <!-- Columna 2: foto (derecha) -->
+      <td style="width:450px; text-align:right;">
+        {% if data.generales %}
+          {% if data.generales.foto_ficha_path %}
+            <div class="foto-wrap">
+              <img class="foto-ficha" src="{{ data.generales.foto_ficha_path }}" alt="Foto ficha"/>
+            </div>
+          {% elif data.generales.foto_ficha_url %}
+            <div class="foto-wrap">
+              <img class="foto-ficha" src="{{ data.generales.foto_ficha_url }}" alt="Foto ficha"/>
+            </div>
+          {% elif data.generales.foto_ficha_b64 %}
+            <div class="foto-wrap">
+              <img class="foto-ficha" src="data:image/png;base64,{{ data.generales.foto_ficha_b64 }}" alt="Foto ficha"/>
+            </div>
           {% endif %}
-        </td>
-      </tr>
-    </table>
-  </div>
-
+        {% endif %}
+      </td>
+    </tr>
+  </table>
 
   {% if data.generales %}
   <h2>I. Antecedentes Generales</h2>
@@ -91,7 +66,10 @@
     <tr><td><b>Teléfono:</b> {{ data.generales.telefono_celular|default:"—" }}</td></tr>
     <tr><td><b>Dirección actual:</b> {{ data.generales.direccion_actual|default:"—" }}</td></tr>
     <tr><td><b>Dirección origen:</b> {{ data.generales.direccion_origen|default:"—" }}</td></tr>
-    <tr><td><b>Contacto emergencia:</b> {{ data.generales.contacto_emergencia_nombre|default:"—" }} ({{ data.generales.contacto_emergencia_parentesco|default:"—" }}) – {{ data.generales.contacto_emergencia_telefono|default:"—" }}</td></tr>
+    <tr><td><b>Contacto emergencia:</b>
+      {{ data.generales.contacto_emergencia_nombre|default:"—" }}
+      ({{ data.generales.contacto_emergencia_parentesco|default:"—" }})
+      – {{ data.generales.contacto_emergencia_telefono|default:"—" }}</td></tr>
     <tr><td><b>Centro de salud:</b> {{ data.generales.centro_salud|default:"—" }}</td></tr>
     <tr><td><b>Previsión/Seguro:</b> {{ data.generales.seguro|default:"—" }} {{ data.generales.seguro_detalle|default:"" }}</td></tr>
   </table>
@@ -163,6 +141,8 @@
   </table>
   {% endif %}
 
-  <p class="muted" style="margin-top: 20px;">— Fin de la ficha. A continuación se adjuntan los anexos (PDFs e imágenes) —</p>
+  <p class="muted" style="margin-top: 20px;">
+    — Fin de la ficha. A continuación se adjuntan los anexos (PDFs e imágenes) —
+  </p>
 </body>
 </html>

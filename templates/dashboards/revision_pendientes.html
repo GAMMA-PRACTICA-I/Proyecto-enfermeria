@@ -4,24 +4,14 @@
   <meta charset="utf-8"/>
   <title>Panel de Revisor – Campo Clínico UNAB</title>
   <style>
-    /* ====== Shell tomado del estudiante (mismo layout/aside) ====== */
+    /* ====== Estilos comunes (idénticos al estudiante) ====== */
     body{min-height:100vh;margin:0;font-family:Arial, sans-serif;display:flex}
-    aside{
-      width:260px;background:#0b3a7e;color:#fff;border-right:1px solid #0a2f65;
-      display:flex;flex-direction:column;padding:18px 16px
-    }
-    .brand{font-weight:800;letter-spacing:.4px;margin-bottom:8px}
-    .user-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);
-      padding:12px;border-radius:14px;margin:12px 0 16px}
-    .avatar{width:36px;height:36px;border-radius:10px;background:#19437c;display:grid;place-items:center;font-weight:700}
-    .small{font-size:12px;opacity:.8;margin-top:2px}
-    nav .nav-link{display:block;padding:10px 12px;border-radius:10px;color:#fff;text-decoration:none;
-      opacity:.95;border:1px solid transparent}
-    nav .nav-link:hover{background:rgba(255,255,255,.12)}
-    nav .active{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25)}
-    /* ====== Contenido principal ====== */
-    main{flex:1;background:#f6f8fb;min-height:100vh}
-    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    .nav-link{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer}
+    .nav-link.active{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25)}
+
+    /* ====== Contenido principal del revisor ====== */
+    .main-content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px}
+    .wrap{max-width:1100px;margin:0 auto;width:100%}
     h1{margin:0 0 14px;font-size:22px}
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
     .tab{border:1px solid #e6eaf0;background:#e9eef8;padding:8px 12px;border-radius:999px;cursor:pointer}
@@ -37,6 +27,7 @@
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
     .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid #e6eaf0;background:#fff;text-decoration:none;color:#111}
     .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+
     /* Modal mínimo */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center}
     .modal.open{display:flex}
@@ -48,57 +39,86 @@
 </head>
 <body>
 
-  <!-- ASIDE: igual al del estudiante, mostrando rol real -->
-  <aside>
-    <div class="brand">CAMPO CLÍNICO</div>
-    <div class="user-card">
-      <div class="avatar">US</div>
-      <div>
-        <div style="font-weight:700">{{ request.user.email }}</div>
-        <div class="small">{{ request.user.get_rol_display|default:request.user.rol }}</div>
+  <!-- ASIDE: calcado del estudiante, cambiando la etiqueta de rol y los links -->
+  <aside
+    style="
+      width:260px;
+      background:#0b3a7e;
+      color:#fff;
+      border-right:1px solid #0a2f65;
+      display:flex;
+      flex-direction:column;
+      padding:16px 14px;
+      box-sizing:border-box;
+      position:fixed;
+      inset:0 auto 0 0;
+      overflow:auto;
+      z-index:10;
+    "
+  >
+    <div style="font-weight:800; letter-spacing:.03em; margin:0 0 6px">CAMPO CLÍNICO</div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin:6px 0 14px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.08)">
+      <div style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:900;background:#0e4aa6;color:#fff">US</div>
+      <div style="min-width:0">
+        <strong
+          title="{{ request.user.get_full_name|default:request.user.email }}"
+          style="display:block;font-size:14px;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {{ request.user.get_full_name|default:request.user.email }}
+        </strong>
+        <small style="opacity:.9;display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Revisor</small>
       </div>
     </div>
 
-    <div style="font-size:12px;opacity:.8;margin:8px 0">NAVEGACIÓN</div>
-    <nav>
-      <a class="nav-link active" href="{% url 'revisiones_pendientes' %}">Revisión de fichas</a>
-      <a class="nav-link" href="/soporte">Soporte</a>
-      <!-- (Opcional) volver al dashboard estudiante si el revisor también estudia -->
-      <!-- <a class="nav-link" href="{% url 'dashboard_estudiante' %}">Panel estudiante</a> -->
+    <nav aria-label="principal" style="flex:1">
+      <h6 style="margin:14px 8px 6px; font:700 11px/1 system-ui; letter-spacing:.12em; opacity:.85">NAVEGACIÓN</h6>
+      <ul style="list-style:none;margin:0;padding:6px">
+        <li><a class="nav-link active" href="{% url 'revisiones_pendientes' %}">Revisión de fichas</a></li>
+        <li><a class="nav-link" href="/soporte">Soporte</a></li>
+      </ul>
     </nav>
+
+    <div style="margin-top:auto">
+      <form method="post" action="{% url 'logout' %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:#0f172a;color:#fff;cursor:pointer">Cerrar sesión</button>
+      </form>
+    </div>
   </aside>
 
-  <!-- CONTENIDO -->
-  <main>
-    <div class="wrap">
-      <h1>Revisión de fichas</h1>
+  <!-- Contenedor desplazado igual que en estudiante -->
+  <div style="margin-left:260px; min-height:100vh; overflow:auto;">
+    <main class="main-content" style="width:100%;">
+      <div class="wrap">
+        <h1>Revisión de fichas</h1>
 
-      <div class="row">
-        <div class="tabs">
-          <button class="tab active" data-filter="abiertas">Abiertas</button>
-          <button class="tab" data-filter="cerradas">Cerradas</button>
-          <button class="tab" data-filter="todas">Todas</button>
+        <div class="row">
+          <div class="tabs">
+            <button class="tab active" data-filter="abiertas">Abiertas</button>
+            <button class="tab" data-filter="cerradas">Cerradas</button>
+            <button class="tab" data-filter="todas">Todas</button>
+          </div>
+          <input class="search" id="q" placeholder="Buscar por nombre o correo…"/>
         </div>
-        <input class="search" id="q" placeholder="Buscar por nombre o correo…"/>
-      </div>
 
-      <div class="card">
-        <table class="table" id="tbl">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>RUT / ID</th>
-              <th>Correo</th>
-              <th>Estado</th>
-              <th>Actualizada</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody><!-- se llena por JS --></tbody>
-        </table>
+        <div class="card">
+          <table class="table" id="tbl">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>RUT / ID</th>
+                <th>Correo</th>
+                <th>Estado</th>
+                <th>Actualizada</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody><!-- se llena por JS --></tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <!-- Modal motivo de rechazo -->
   <div class="modal" id="mRechazo">
@@ -113,23 +133,22 @@
   </div>
 
   <script>
-    // ====== DATA desde Django (mínimo: id, nombre, rut/id, email, estado, fecha_iso) ======
+    /* ========= DATA desde Django ========= */
     const DATA = [
       {% for f in fichas %}
       {
         id: {{ f.id }},
-        nombre: "{{ f.user.email|default:'-' }}",
-        rut: "{{ f.user.id|default:'-' }}",
-        email: "{{ f.user.email|default:'-' }}",
-        estado: "{{ f.get_estado_global_display|default:f.estado_global }}",
+        nombre: "{{ f.user.get_full_name|default:f.user.email }}",
+        rut: "{{ f.user.id }}",
+        email: "{{ f.user.email }}",
+        estado: "{{ f.get_estado_global_display }}",
         estado_raw: "{{ f.estado_global }}",
         fecha: "{{ f.updated_at|date:'Y-m-d H:i' }}"
       }{% if not forloop.last %},{% endif %}
-      {% empty %}
       {% endfor %}
     ];
 
-    // ====== UI ======
+    /* ========= UI ========= */
     const tbody = document.querySelector('#tbl tbody');
     const q = document.getElementById('q');
     const tabs = Array.from(document.querySelectorAll('.tab'));
@@ -142,50 +161,51 @@
     let currentId = null;
 
     function paint(){
-      const term = (q.value||'').toLowerCase().trim();
-      const rows = DATA.filter(x=>{
-        const byTab = (filtro==='todas') ||
-                      (filtro==='cerradas' && (x.estado_raw==='APROBADA' || x.estado_raw==='CERRADA')) ||
-                      (filtro==='abiertas' && !(x.estado_raw==='APROBADA' || x.estado_raw==='CERRADA'));
-        const byText = !term || (x.nombre?.toLowerCase().includes(term) || x.email?.toLowerCase().includes(term));
+      const term = (q.value || '').toLowerCase().trim();
+      const rows = DATA.filter(function(x){
+        const byTab =
+          (filtro === 'todas') ||
+          (filtro === 'cerradas' && (x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA')) ||
+          (filtro === 'abiertas' && !(x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA'));
+        const byText = !term || (String(x.nombre || '').toLowerCase().includes(term) || String(x.email || '').toLowerCase().includes(term));
         return byTab && byText;
-      }).map(x=>{
+      }).map(function(x){
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${x.nombre||'-'}</td>
-          <td>${x.rut||'-'}</td>
-          <td>${x.email||'-'}</td>
-          <td><span class="status ${x.estado_raw==='APROBADA'?'s-ok':'s-warn'}">${x.estado}</span></td>
-          <td>${x.fecha||'-'}</td>
-          <td>
-            <a class="btn" href="/accounts/revisar/ficha/${x.id}/aprobar/">Aprobar</a>
-            <button class="btn" onclick="openMotivo(${x.id})">Observar</button>
-          </td>`;
+        tr.innerHTML =
+          '<td>' + (x.nombre || '-') + '</td>' +
+          '<td>' + (x.rut || '-') + '</td>' +
+          '<td>' + (x.email || '-') + '</td>' +
+          '<td><span class="status ' + (x.estado_raw === 'APROBADA' ? 's-ok' : 's-warn') + '">' + x.estado + '</span></td>' +
+          '<td>' + (x.fecha || '-') + '</td>' +
+          '<td>' +
+            '<a class="btn" href="/accounts/revisar/ficha/' + x.id + '/aprobar/">Aprobar</a> ' +
+            '<button class="btn" onclick="openMotivo(' + x.id + ')">Observar</button>' +
+          '</td>';
         return tr;
       });
-      tbody.replaceChildren(...rows);
+      tbody.replaceChildren.apply(tbody, rows);
     }
 
     q.addEventListener('input', paint);
-    tabs.forEach(t=>{
-      t.addEventListener('click', ()=>{
-        tabs.forEach(x=>x.classList.remove('active'));
+    tabs.forEach(function(t){
+      t.addEventListener('click', function(){
+        tabs.forEach(function(x){ x.classList.remove('active'); });
         t.classList.add('active');
-        filtro = t.dataset.filter;
+        filtro = t.getAttribute('data-filter');
         paint();
       });
     });
 
-    btnCancelar.onclick = ()=> mRechazo.classList.remove('open');
-    btnGuardar.onclick = ()=>{
-      // aquí puedes hacer fetch POST a tu endpoint de observación si ya existe
-      // fetch(`/accounts/revisar/ficha/${currentId}/observar/`, {method:'POST', body:...})
+    btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
+    btnGuardar.onclick = function(){
+      // Aquí puedes hacer POST a tu endpoint si ya existe
+      // fetch('/accounts/revisar/ficha/' + currentId + '/observar/', { method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'}, body: new URLSearchParams({ notes: txtMotivo.value }) });
       mRechazo.classList.remove('open');
     };
 
     window.openMotivo = function(id){
       currentId = id;
-      txtMotivo.value = "";
+      txtMotivo.value = '';
       mRechazo.classList.add('open');
     };
 

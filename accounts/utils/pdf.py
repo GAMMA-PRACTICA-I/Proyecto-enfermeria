@@ -1,10 +1,10 @@
 from io import BytesIO
 from typing import Iterable, Optional, Tuple
+import base64
 
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from PyPDF2 import PdfReader, PdfWriter
-from PIL import Image
 
 
 def render_html_to_pdf_bytes(template_name: str, context: dict) -> bytes:
@@ -18,14 +18,72 @@ def render_html_to_pdf_bytes(template_name: str, context: dict) -> bytes:
     return out.getvalue()
 
 
-def image_bytes_to_singlepage_pdf_bytes(img_bytes: bytes) -> bytes:
+def title_page_pdf_bytes(title: str, subtitle: Optional[str] = None) -> bytes:
+    def _esc(s: str) -> str:
+        return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    subtitle_html = f"<div class='sub'>{_esc(subtitle)}</div>" if subtitle else ""
+    html = f"""
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          @page {{ size: A4; margin: 2.5cm; }}
+          body {{ font-family: Helvetica, Arial, sans-serif; }}
+          .wrap {{
+            height: 24cm; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+          }}
+          h1 {{ font-size: 24pt; margin: 0 0 8px 0; }}
+          .sub {{ font-size: 12pt; color: #444; }}
+        </style>
+      </head>
+      <body>
+        <div class="wrap">
+          <h1>{_esc(title)}</h1>
+          {subtitle_html}
+        </div>
+      </body>
+    </html>
     """
-    Convierte bytes de imagen (PNG/JPG) a un PDF de 1 página.
-    """
-    bio = BytesIO(img_bytes)
-    img = Image.open(bio).convert("RGB")
+    src = BytesIO(html.encode("utf-8"))
     out = BytesIO()
-    img.save(out, format="PDF")
+    pisa.CreatePDF(src, dest=out, encoding="utf-8")
+    return out.getvalue()
+
+
+
+
+def image_bytes_to_singlepage_pdf_bytes(img_bytes: bytes, mime: str = "image/png") -> bytes:
+    """
+    Convierte bytes de imagen a un PDF A4 de 1 página, centrado y con márgenes.
+    (Usa xhtml2pdf para evitar PDFs gigantes del tamaño de la imagen.)
+    """
+    b64 = base64.b64encode(img_bytes).decode("ascii")
+    html = f"""
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          @page {{ size: A4; margin: 2cm; }}
+          body {{ margin:0; padding:0; }}
+          .frame {{
+            width: 100%; height: 27.7cm;  /* área útil aproximada */
+            display: flex; align-items: center; justify-content: center;
+          }}
+          img {{ max-width: 100%; max-height: 100%; }}
+        </style>
+      </head>
+      <body>
+        <div class="frame">
+          <img src="data:{mime};base64,{b64}" alt="anexo"/>
+        </div>
+      </body>
+    </html>
+    """
+    src = BytesIO(html.encode("utf-8"))
+    out = BytesIO()
+    pisa.CreatePDF(src, dest=out, encoding="utf-8")
     return out.getvalue()
 
 
@@ -35,6 +93,8 @@ def merge_pdf_streams(streams: Iterable[bytes]) -> bytes:
     """
     writer = PdfWriter()
     for pdf_bytes in streams:
+        if not pdf_bytes:
+            continue
         reader = PdfReader(BytesIO(pdf_bytes))
         for page in reader.pages:
             writer.add_page(page)

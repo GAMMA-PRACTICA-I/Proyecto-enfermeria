@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from .models import StudentGeneralPhotoBlob  # NUEVO
-import base64  # ya lo usas más abajo, por si acaso
+
 
 from .forms import (
     StudentGeneralForm, StudentAcademicForm, StudentMedicalForm,
@@ -38,12 +38,34 @@ from accounts.serializers import FichaDTO
 from django.http import FileResponse
 from io import BytesIO
 
-from .utils.pdf import (
-    render_html_to_pdf_bytes,
-    merge_pdf_streams,
-    image_bytes_to_singlepage_pdf_bytes,
-    classify_attachment,
-)
+# from .utils.pdf import (
+#     render_html_to_pdf_bytes,
+#     merge_pdf_streams,
+#     image_bytes_to_singlepage_pdf_bytes,
+#     classify_attachment,
+#     title_page_pdf_bytes
+# )
+from .utils import pdf as pdf_utils
+
+from django.utils.text import slugify
+
+import base64
+
+
+SECTION_ORDER = [
+    "Certificado de Alumno Regular",
+    "Carnet - Anverso",
+    "Carnet - Reverso",
+    "Foto Personal",
+    "Antecedentes Generales",
+    "Antecedentes Académicos",
+    "Antecedentes Mórbidos",
+    "Vacunas / Serología",
+    "Documentación Adjunta",
+    "Declaración",
+]
+ORDER_IDX = {name: i for i, name in enumerate(SECTION_ORDER)}
+
 
 #-----------------------------------
 import logging
@@ -94,17 +116,36 @@ def _doc_create_with_blob(
     ficha: StudentFicha,
     section: str,
     item: str,
-    uploaded_file
+    file_obj,                      # <-- usa file_obj como nombre del parámetro
 ) -> StudentDocuments:
-    sha, size, data = _compute_sha256(uploaded_file)
+    # hash + bytes
+    sha, size, data = _compute_sha256(file_obj)
+
+    # nombre canónico: <seccion>__uid<user>__fid<ficha>.<ext>
+    section_title = dict(DocumentSection.choices).get(section, str(section))
+    base = f"{section_title}__uid{ficha.user_id}__fid{ficha.id}"
+
+    content_type = (getattr(file_obj, "content_type", "") or "").lower()
+    if content_type == "application/pdf":
+        ext = ".pdf"
+    else:
+        orig = getattr(file_obj, "name", "") or ""
+        ext = "." + orig.rsplit(".", 1)[-1].lower() if "." in orig else ".bin"
+
+    canon_name = f"{slugify(base)}{ext}"
+
+    # asegura nombre físico y lógico
+    file_obj.name = canon_name
+
     doc = StudentDocuments.objects.create(
         ficha=ficha,
         section=section,
         item=item,
-        file_name=uploaded_file.name,
-        file_mime=getattr(uploaded_file, "content_type", None),
+        file_name=canon_name,                 # nombre lógico
+        file_mime=content_type or None,
         review_status=DocumentReviewStatus.ADJUNTADO,
     )
+
     StudentDocumentBlob.objects.create(
         document=doc,
         storage_backend=StudentDocumentBlob.Backend.DB,
@@ -179,19 +220,21 @@ class FichaView(View):
             g.contacto_emergencia_parentesco = gen_form.cleaned_data.get("contacto_emergencia_parentesco") or None
             g.contacto_emergencia_telefono = gen_form.cleaned_data.get("contacto_emergencia_telefono") or None
             g.centro_salud = gen_form.cleaned_data.get("centro_salud") or None
-            g.seguro = gen_form.cleaned_data.get("prevision") or None  # mapeo prevision -> seguro
+            g.seguro = gen_form.cleaned_data.get("prevision") or None
             g.seguro_detalle = gen_form.cleaned_data.get("prevision_detalle") or None
             g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
 
-            # **CLAVE**: persistir antes de crear/actualizar el blob (evita "unsaved related object 'general'")
+            # CLAVE: persistir 'g' antes de referenciarlo desde el blob
             g.save()
 
             foto = gen_form.cleaned_data.get("foto_ficha")
             if foto:
                 sha, size, data = _compute_sha256(foto)
-                # actualizar si existe; si no, crear
-                if hasattr(g, "photo_blob") and g.photo_blob_id:
-                    pb = g.photo_blob
+
+                # Busca si ya existe un blob para este StudentGeneral
+                pb = StudentGeneralPhotoBlob.objects.filter(general=g).first()
+
+                if pb:
                     pb.mime = getattr(foto, "content_type", "image/png") or "image/png"
                     pb.data = data
                     pb.size_bytes = size
@@ -205,7 +248,8 @@ class FichaView(View):
                         size_bytes=size,
                         sha256=sha,
                     )
-                # limpiar archivo del ImageField (evitar filesystem)
+
+                # limpiar ImageField (evitar filesystem)
                 g.foto_ficha.delete(save=False)
                 g.foto_ficha = None
                 g.save(update_fields=["foto_ficha"])
@@ -477,35 +521,28 @@ def dashboard_estudiante(request):
     return render(request, 'dashboards/estudiante.html', ctx)
 
 
+
 @login_required
 def ficha_pdf(request):
     """
-    Genera un PDF con:
-      - Portada + secciones de la Ficha (render HTML -> PDF)
-      - Anexos: si son PDF se anexan, si son imágenes se convierten a PDF y se anexan.
+    Ficha (HTML->PDF) + por CADA anexo: portada (título) + contenido.
+    PDFs se anexan tal cual; imágenes se convierten a 1 página A4 centrada.
     """
     ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
     if not ficha:
         return redirect("ficha")
 
-    # Contexto base via DTO
+    # ---- DTO base + foto (prioriza blob; fallback file/URL/base64) ----
     dto = FichaDTO.from_model(ficha).to_dict()
-
-    # --- FOTO: priorizar file://, luego URL, luego base64 (cambio mínimo necesario) ---
-    # --- FOTO para PDF: preferir blob en BD; si no, intentar file/URL como fallback ---
     generales = getattr(ficha, "generales", None)
-    foto_path = None
-    foto_url = None
-    foto_b64 = None
+    foto_path = foto_url = foto_b64 = None
 
     if generales:
-    # 1) Si hay blob en BD, usamos base64 y listo (no dependemos del filesystem)
-        if hasattr(generales, "photo_blob") and generales.photo_blob and generales.photo_blob.data:
+        if getattr(generales, "photo_blob", None) and generales.photo_blob.data:
             try:
                 foto_b64 = base64.b64encode(bytes(generales.photo_blob.data)).decode("ascii")
             except Exception:
                 foto_b64 = None
-    # 2) Fallback: si por alguna razón existiera un archivo, usarlo
         elif generales.foto_ficha:
             try:
                 foto_path = f"file://{generales.foto_ficha.path}"
@@ -523,46 +560,65 @@ def ficha_pdf(request):
 
     dto.setdefault("generales", {})
     dto["generales"]["foto_ficha_path"] = foto_path
-    dto["generales"]["foto_ficha_url"]  = foto_url
-    dto["generales"]["foto_ficha_b64"]  = foto_b64
-    # -------------------------------------------------------------------------------
+    dto["generales"]["foto_ficha_url"] = foto_url
+    dto["generales"]["foto_ficha_b64"] = foto_b64
 
+    # -------- PDF de la ficha --------
+    base_pdf = pdf_utils.render_html_to_pdf_bytes("pdf/ficha_pdf.html", {"ficha": ficha, "data": dto})
 
-    base_pdf = render_html_to_pdf_bytes("pdf/ficha_pdf.html", {"ficha": ficha, "data": dto})
+    
 
-    # Reunimos anexos (por FileField o por Blob)
-    attachments: list[bytes] = []
+    # ---- anexos: portada + contenido ----
+    streams = [base_pdf]
+    docs_qs = ficha.documents.select_related("blob").order_by("uploaded_at", "id")  # orden estable
 
-    for doc in ficha.documents.all().order_by("id"):
-        # 1) Si existe archivo en FileField
-        if doc.file:
+    for doc in docs_qs:
+        # bytes (prefiere blob; fallback FileField)
+        raw = None
+        if getattr(doc, "blob", None) and doc.blob.data:
+            raw = bytes(doc.blob.data)
+        elif doc.file:
             try:
                 raw = doc.file.read()
             except Exception:
                 raw = None
-            if raw:
-                is_pdf, is_img = classify_attachment(doc.file_name, doc.file_mime)
-                if is_pdf:
-                    attachments.append(raw)
-                elif is_img:
-                    attachments.append(image_bytes_to_singlepage_pdf_bytes(raw))
-                continue
+        if not raw:
+            continue
 
-        # 2) Si no hay archivo en FileField pero hay blob en DB
-        if hasattr(doc, "blob") and doc.blob and doc.blob.data:
-            raw = bytes(doc.blob.data)
-            is_pdf, is_img = classify_attachment(doc.file_name, doc.file_mime)
-            if is_pdf:
-                attachments.append(raw)
-            elif is_img:
-                attachments.append(image_bytes_to_singlepage_pdf_bytes(raw))
+        mime = (doc.file_mime or getattr(getattr(doc, "file", None), "content_type", "") or "").lower()
+        is_pdf, is_img = pdf_utils.classify_attachment(doc.file_name or getattr(doc.file, "name", ""), mime)
 
-    # Fusiona: base + anexos
-    streams = [base_pdf] + attachments if attachments else [base_pdf]
-    merged = merge_pdf_streams(streams)
+        # Título = "Sección — Campo"; Subtítulo con metadatos útiles
+        sec = (doc.section or "").strip()
+        itm = (doc.item or "").strip()
+        if sec and itm:
+            title = f"{sec} — {itm}"
+        elif sec:
+            title = sec
+        elif itm:
+            title = itm
+        else:
+            title = "Documento adjunto"
 
-    # Respuesta de descarga/visualización
+        subtitle = f"Alumno: {ficha.user.email}  |  Ficha #{ficha.id}"
+        # si quieres también mostrar el nombre de archivo:
+        if doc.file_name: subtitle += f"  |  Archivo: {doc.file_name}"
+
+        streams.append(pdf_utils.title_page_pdf_bytes(title, subtitle))
+        
+
+        # contenido
+        if is_pdf:
+            streams.append(raw)
+        elif is_img:
+            streams.append(pdf_utils.image_bytes_to_singlepage_pdf_bytes(raw, mime=mime or "image/png"))
+        else:
+            # tipo no soportado -> solo portada (se omite contenido)
+            continue
+
+    merged = pdf_utils.merge_pdf_streams(streams)
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
+
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
