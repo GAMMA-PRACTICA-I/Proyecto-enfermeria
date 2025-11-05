@@ -167,6 +167,7 @@ class FichaView(View):
         gen_form = StudentGeneralForm(request.POST, request.FILES)
         if gen_form.is_valid():
             g = getattr(ficha, "generales", None) or StudentGeneral(ficha=ficha)
+
             g.nombre_legal = gen_form.cleaned_data.get("nombre_legal") or None
             g.genero = gen_form.cleaned_data.get("genero") or None
             g.rut = gen_form.cleaned_data.get("rut") or None
@@ -178,31 +179,36 @@ class FichaView(View):
             g.contacto_emergencia_parentesco = gen_form.cleaned_data.get("contacto_emergencia_parentesco") or None
             g.contacto_emergencia_telefono = gen_form.cleaned_data.get("contacto_emergencia_telefono") or None
             g.centro_salud = gen_form.cleaned_data.get("centro_salud") or None
-            # mapeo de prevision -> seguro
-            g.seguro = gen_form.cleaned_data.get("prevision") or None
+            g.seguro = gen_form.cleaned_data.get("prevision") or None  # mapeo prevision -> seguro
             g.seguro_detalle = gen_form.cleaned_data.get("prevision_detalle") or None
             g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
+
+            # **CLAVE**: persistir antes de crear/actualizar el blob (evita "unsaved related object 'general'")
+            g.save()
+
             foto = gen_form.cleaned_data.get("foto_ficha")
             if foto:
-                # 1) Guardar/actualizar blob en BD
                 sha, size, data = _compute_sha256(foto)
-                if hasattr(g, "photo_blob"):
-                        pb = g.photo_blob
-                        pb.mime = getattr(foto, "content_type", "image/png") or "image/png"
-                        pb.data = data
-                        pb.size_bytes = size
-                        pb.sha256 = sha
-                        pb.save()
+                # actualizar si existe; si no, crear
+                if hasattr(g, "photo_blob") and g.photo_blob_id:
+                    pb = g.photo_blob
+                    pb.mime = getattr(foto, "content_type", "image/png") or "image/png"
+                    pb.data = data
+                    pb.size_bytes = size
+                    pb.sha256 = sha
+                    pb.save()
                 else:
                     StudentGeneralPhotoBlob.objects.create(
                         general=g,
                         mime=getattr(foto, "content_type", "image/png") or "image/png",
                         data=data,
                         size_bytes=size,
-                        sha256=sha,)
-                # 2) Evitar dependencia de filesystem: limpiar ImageField
-                g.foto_ficha.delete(save=False)  # elimina archivo si llegó a escribirse
+                        sha256=sha,
+                    )
+                # limpiar archivo del ImageField (evitar filesystem)
+                g.foto_ficha.delete(save=False)
                 g.foto_ficha = None
+                g.save(update_fields=["foto_ficha"])
 
             
 
