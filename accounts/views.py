@@ -337,7 +337,7 @@ class FichaView(View):
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDashboardView(View):
-    template_name = "dashboards/revision_pendientes.html"
+    template_name = "dashboards/revision_pendientes.html"  # <- usar el nuevo shell con sidebar
 
     def get(self, request: HttpRequest) -> HttpResponse:
         if request.user.rol != "REVIEWER":
@@ -531,3 +531,13 @@ def ficha_pdf(request):
 
     # Respuesta de descarga/visualización
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
+
+@login_required
+def landing_por_rol(request):
+    if getattr(request.user, "rol", "") == "REVIEWER":
+        return redirect("revisiones_pendientes")
+    # if request.user.rol == "ADMIN": return redirect("/admin/")
+    return dashboard_estudiante(request)
