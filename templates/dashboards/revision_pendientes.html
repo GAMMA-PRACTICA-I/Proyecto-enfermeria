@@ -132,84 +132,79 @@
     </div>
   </div>
 
-  <script>
-    /* ========= DATA desde Django ========= */
-    const DATA = [
-      {% for f in fichas %}
-      {
-        id: {{ f.id }},
-        nombre: "{{ f.user.get_full_name|default:f.user.email }}",
-        rut: "{{ f.user.id }}",
-        email: "{{ f.user.email }}",
-        estado: "{{ f.get_estado_global_display }}",
-        estado_raw: "{{ f.estado_global }}",
-        fecha: "{{ f.updated_at|date:'Y-m-d H:i' }}"
-      }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ];
+  <script type="application/javascript">
+  // ========= DATA desde Django (escapado para JS) =========
+  const DATA = [
+    {% for f in fichas %}
+    {
+      id: {{ f.id }},
+      nombre: "{{ f.user.get_full_name|default:f.user.email|escapejs }}",
+      rut: "{{ f.user.id|escapejs }}",
+      email: "{{ f.user.email|escapejs }}",
+      estado: "{{ f.get_estado_global_display|escapejs }}",
+      estado_raw: "{{ f.estado_global|escapejs }}",
+      fecha: "{{ f.updated_at|date:'Y-m-d H:i'|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% empty %}
+    {% endfor %}
+  ];
 
-    /* ========= UI ========= */
-    const tbody = document.querySelector('#tbl tbody');
-    const q = document.getElementById('q');
-    const tabs = Array.from(document.querySelectorAll('.tab'));
-    const mRechazo = document.getElementById('mRechazo');
-    const txtMotivo = document.getElementById('txtMotivo');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const btnGuardar = document.getElementById('btnGuardar');
+  const tbody = document.querySelector('#tbl tbody');
+  const q = document.getElementById('q');
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+  const mRechazo = document.getElementById('mRechazo');
+  const txtMotivo = document.getElementById('txtMotivo');
+  const btnCancelar = document.getElementById('btnCancelar');
+  const btnGuardar = document.getElementById('btnGuardar');
 
-    let filtro = 'abiertas';
-    let currentId = null;
+  let filtro = 'abiertas';
+  let currentId = null;
 
-    function paint(){
-      const term = (q.value || '').toLowerCase().trim();
-      const rows = DATA.filter(function(x){
-        const byTab =
-          (filtro === 'todas') ||
-          (filtro === 'cerradas' && (x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA')) ||
-          (filtro === 'abiertas' && !(x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA'));
-        const byText = !term || (String(x.nombre || '').toLowerCase().includes(term) || String(x.email || '').toLowerCase().includes(term));
-        return byTab && byText;
-      }).map(function(x){
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + (x.nombre || '-') + '</td>' +
-          '<td>' + (x.rut || '-') + '</td>' +
-          '<td>' + (x.email || '-') + '</td>' +
-          '<td><span class="status ' + (x.estado_raw === 'APROBADA' ? 's-ok' : 's-warn') + '">' + x.estado + '</span></td>' +
-          '<td>' + (x.fecha || '-') + '</td>' +
-          '<td>' +
-            '<a class="btn" href="/accounts/revisar/ficha/' + x.id + '/aprobar/">Aprobar</a> ' +
-            '<button class="btn" onclick="openMotivo(' + x.id + ')">Observar</button>' +
-          '</td>';
-        return tr;
-      });
-      tbody.replaceChildren.apply(tbody, rows);
-    }
-
-    q.addEventListener('input', paint);
-    tabs.forEach(function(t){
-      t.addEventListener('click', function(){
-        tabs.forEach(function(x){ x.classList.remove('active'); });
-        t.classList.add('active');
-        filtro = t.getAttribute('data-filter');
-        paint();
-      });
+  function paint(){
+    const term = (q.value || '').toLowerCase().trim();
+    const rows = DATA.filter(function(x){
+      const cerrada = (x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA');
+      const byTab = (filtro === 'todas') || (filtro === 'cerradas' && cerrada) || (filtro === 'abiertas' && !cerrada);
+      const byText = !term || (String(x.nombre||'').toLowerCase().includes(term) || String(x.email||'').toLowerCase().includes(term));
+      return byTab && byText;
+    }).map(function(x){
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + (x.nombre || '-') + '</td>' +
+        '<td>' + (x.rut || '-') + '</td>' +
+        '<td>' + (x.email || '-') + '</td>' +
+        '<td><span class="status ' + ((x.estado_raw === 'APROBADA') ? 's-ok' : 's-warn') + '">' + x.estado + '</span></td>' +
+        '<td>' + (x.fecha || '-') + '</td>' +
+        '<td>' +
+          '<a class="btn" href="/accounts/revisar/ficha/' + x.id + '/aprobar/">Aprobar</a> ' +
+          '<button class="btn" onclick="openMotivo(' + x.id + ')">Observar</button>' +
+        '</td>';
+      return tr;
     });
+    tbody.replaceChildren.apply(tbody, rows);
+  }
 
-    btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
-    btnGuardar.onclick = function(){
-      // Aquí puedes hacer POST a tu endpoint si ya existe
-      // fetch('/accounts/revisar/ficha/' + currentId + '/observar/', { method:'POST', headers:{'X-CSRFToken': '{{ csrf_token }}'}, body: new URLSearchParams({ notes: txtMotivo.value }) });
-      mRechazo.classList.remove('open');
-    };
+  q.addEventListener('input', paint);
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      filtro = t.getAttribute('data-filter');
+      paint();
+    });
+  });
 
-    window.openMotivo = function(id){
-      currentId = id;
-      txtMotivo.value = '';
-      mRechazo.classList.add('open');
-    };
+  btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
+  btnGuardar.onclick = function(){
+    // POST opcional aquí
+    mRechazo.classList.remove('open');
+  };
 
-    paint();
-  </script>
-</body>
-</html>
+  window.openMotivo = function(id){
+    currentId = id;
+    txtMotivo.value = '';
+    mRechazo.classList.add('open');
+  };
+
+  paint();
+</script>
