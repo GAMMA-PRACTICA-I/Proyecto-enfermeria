@@ -1,15 +1,43 @@
-<section class="card">
-  <h2 style="margin-top:0">Certificados</h2>
-  <ul style="margin:0;padding-left:18px">
-    <li>Alumno regular</li>
-    <li>Práctica clínica</li>
-  </ul>
-  <div style="margin-top:12px;display:flex;gap:10px">
-    <button style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#1f2937;color:#e8ecf1">
-      Solicitar certificado
-    </button>
-    <button style="padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#e8ecf1">
-      Ver historial
-    </button>
-  </div>
-</section>
+<h2>Certificados / Documentos adjuntos</h2>
+
+{% if documentos %}
+<table style="width:100%; border-collapse:collapse; margin-top:12px">
+  <thead>
+    <tr style="text-align:left; border-bottom:1px solid #ddd;">
+      <th style="padding:6px;">Documento</th>
+      <th style="padding:6px;">Estado</th>
+      <th style="padding:6px;">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for doc in documentos %}
+    <tr>
+      <td style="padding:6px;">{{ doc.get_item_display }}</td>
+
+      <td style="padding:6px;">
+        {{ doc.get_review_status_display }}
+      </td>
+
+      <td style="padding:6px;">
+        <!-- ✅ botón que abre la vista detalle_documento -->
+        <a href="{% url 'detalle_documento' doc.id %}"
+           style="padding:6px 10px; border-radius:6px; background:#0a68ff;
+                  text-decoration:none; color:white; display:inline-block;">
+            Ver detalle
+        </a>
+
+        {% if doc.file %}
+        <a href="{{ doc.file.url }}" target="_blank"
+           style="padding:6px 10px; border-radius:6px; background:#fff;
+                  border:1px solid #ddd; margin-left:8px; text-decoration:none; color:#222;">
+            Ver archivo
+        </a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No hay documentos subidos.</p>
+{% endif %}

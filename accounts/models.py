@@ -96,7 +96,39 @@ class StudentFicha(models.Model):
     def __str__(self):
         return f"Ficha #{self.id} de {self.user.email} ({self.get_estado_global_display()})"
 
+# =========================
+#  Comentarios
+# =========================
 
+class ComentarioDocumento(models.Model):
+    documento = models.ForeignKey(
+        'StudentDocuments',
+        on_delete=models.CASCADE,
+        related_name="comentarios"
+    )
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    mensaje = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comentario de {self.autor} en {self.documento}"
+
+# =========================
+#  Comentario general por ficha
+# =========================
+class ComentarioFicha(models.Model):
+    ficha = models.ForeignKey(StudentFicha, on_delete=models.CASCADE, related_name="comentarios_ficha")
+    autor = models.ForeignKey(User, on_delete=models.CASCADE)
+    mensaje = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comentario de {self.autor.email} en {self.ficha.id}"
+
+    
 # =========================
 #  I. Antecedentes Generales
 # =========================

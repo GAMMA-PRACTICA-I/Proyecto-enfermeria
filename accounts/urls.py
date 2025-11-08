@@ -11,6 +11,7 @@ from .views import (
     ObserveFichaView,
     ficha_pdf,
 )
+from . import views
 
 urlpatterns = [
     # Mantengo tu redirect de login
@@ -31,4 +32,8 @@ urlpatterns = [
     path("revisar/documento/<int:doc_id>/", ReviewDocumentUpdateView.as_view(), name="revisar_documento"),
     path("revisar/ficha/<int:ficha_id>/aprobar/", ApproveFichaView.as_view(), name="aprobar_ficha"),
     path("revisar/ficha/<int:ficha_id>/observar/", ObserveFichaView.as_view(), name="observar_ficha"),
+    
+    # Comentario
+    path("documento/<int:id>/", views.detalle_documento, name="detalle_documento"),
+
 ]

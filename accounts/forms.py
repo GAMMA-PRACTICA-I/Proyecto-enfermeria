@@ -1,4 +1,5 @@
 from django import forms
+from .models import ComentarioFicha
 
 
 class StudentGeneralForm(forms.Form):
@@ -51,4 +52,32 @@ class StudentDeclarationForm(forms.Form):
     decl_rut = forms.CharField(required=False, max_length=20)
     decl_fecha = forms.DateField(required=False, input_formats=["%Y-%m-%d"])
     decl_firma = forms.CharField(required=False, max_length=255)
-    
+
+from django import forms
+from .models import ComentarioDocumento
+
+
+class ComentarioDocumentoForm(forms.ModelForm):
+    class Meta:
+        model = ComentarioDocumento
+        fields = ["mensaje"]  # <-- este es el campo del comentario
+
+        widgets = {
+            "mensaje": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Escribe un comentario..."
+            })
+        }
+
+class ComentarioFichaForm(forms.ModelForm):
+    class Meta:
+        model = ComentarioFicha
+        fields = ["mensaje"]
+        widgets = {
+            "mensaje": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Escribe un comentario para toda la ficha..."
+            })
+        }

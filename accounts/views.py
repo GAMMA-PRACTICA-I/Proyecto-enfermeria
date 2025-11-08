@@ -15,7 +15,19 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
-from .models import StudentGeneralPhotoBlob  # NUEVO
+
+# === MODELOS ===
+from .models import (
+    StudentFicha, StudentDocuments, ComentarioDocumento, StudentGeneralPhotoBlob,
+    User, StudentGeneral, StudentAcademic, StudentMedicalBackground,
+    VaccineDose, SerologyResult, VaccineType, SerologyResultType,
+    StudentDocumentBlob, DocumentSection, DocumentItem,
+    DocumentReviewStatus, DocumentReviewLog, StudentDeclaration
+)
+
+# === FORMULARIOS ===
+from .forms import ComentarioDocumentoForm, ComentarioFichaForm
+
 
 
 from .forms import (
@@ -196,6 +208,8 @@ class FichaView(View):
             "ficha": ficha,
             "ficha_json": dto,
             "is_revisor": is_revisor,
+            "comentarios_ficha": ficha.comentarios_ficha.all().order_by("-fecha"),
+            "form_comentario": ComentarioFichaForm(),
         })
 
     @transaction.atomic
@@ -408,6 +422,16 @@ class FichaView(View):
             logger.info(f"Académicos guardados ficha={ficha.id}")
 
         messages.success(request, "Ficha guardada correctamente.")
+        
+        if "comentar" in request.POST:
+            form = ComentarioFichaForm(request.POST)
+            if form.is_valid():
+                comentario = form.save(commit=False)
+                comentario.autor = request.user
+                comentario.ficha = ficha
+                comentario.save()
+            return redirect("ficha")
+
         return redirect("dashboard_estudiante")
 
 
@@ -513,28 +537,28 @@ def logout_to_login(request):
 @login_required
 def dashboard_estudiante(request):
     ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
+
+    documentos = StudentDocuments.objects.filter(ficha=ficha).order_by("-uploaded_at") if ficha else []
+
     ctx = {
         "ficha": ficha,
+        "documentos": documentos,
         "ficha_pdf_disponible": bool(ficha),
         "is_revisor": request.user.rol == "REVIEWER",
     }
     return render(request, 'dashboards/estudiante.html', ctx)
 
 
-
 @login_required
 def ficha_pdf(request):
-    """
-    Ficha (HTML->PDF) + por CADA anexo: portada (título) + contenido.
-    PDFs se anexan tal cual; imágenes se convierten a 1 página A4 centrada.
-    """
     ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
     if not ficha:
         return redirect("ficha")
 
-    # ---- DTO base + foto (prioriza blob; fallback file/URL/base64) ----
+    # --- DTO base + foto (prioriza blob; fallback archivo/URL/base64) ---
     dto = FichaDTO.from_model(ficha).to_dict()
     generales = getattr(ficha, "generales", None)
+
     foto_path = foto_url = foto_b64 = None
 
     if generales:
@@ -546,16 +570,18 @@ def ficha_pdf(request):
         elif generales.foto_ficha:
             try:
                 foto_path = f"file://{generales.foto_ficha.path}"
-            except Exception:
+            except:
                 foto_path = None
+
             try:
                 foto_url = request.build_absolute_uri(generales.foto_ficha.url)
-            except Exception:
+            except:
                 foto_url = None
+
             try:
-                with generales.foto_ficha.open("rb") as _f:
-                    foto_b64 = base64.b64encode(_f.read()).decode("ascii")
-            except Exception:
+                with generales.foto_ficha.open("rb") as f:
+                    foto_b64 = base64.b64encode(f.read()).decode("ascii")
+            except:
                 pass
 
     dto.setdefault("generales", {})
@@ -563,62 +589,76 @@ def ficha_pdf(request):
     dto["generales"]["foto_ficha_url"] = foto_url
     dto["generales"]["foto_ficha_b64"] = foto_b64
 
-    # -------- PDF de la ficha --------
-    base_pdf = pdf_utils.render_html_to_pdf_bytes("pdf/ficha_pdf.html", {"ficha": ficha, "data": dto})
+    # -------- PDF de la ficha (portada + contenido) --------
+    base_pdf = pdf_utils.render_html_to_pdf_bytes("pdf/ficha_pdf.html", {
+        "ficha": ficha,
+        "data": dto,
+        "comentarios": ficha.comentarios_ficha.all().order_by("-fecha"),
+    })
 
-    
-
-    # ---- anexos: portada + contenido ----
     streams = [base_pdf]
-    docs_qs = ficha.documents.select_related("blob").order_by("uploaded_at", "id")  # orden estable
+
+    docs_qs = ficha.documents.select_related("blob").order_by("uploaded_at", "id")
 
     for doc in docs_qs:
-        # bytes (prefiere blob; fallback FileField)
         raw = None
         if getattr(doc, "blob", None) and doc.blob.data:
             raw = bytes(doc.blob.data)
         elif doc.file:
             try:
                 raw = doc.file.read()
-            except Exception:
+            except:
                 raw = None
+
         if not raw:
             continue
 
-        mime = (doc.file_mime or getattr(getattr(doc, "file", None), "content_type", "") or "").lower()
-        is_pdf, is_img = pdf_utils.classify_attachment(doc.file_name or getattr(doc.file, "name", ""), mime)
+        mime = (doc.file_mime or getattr(doc.file, "content_type", "") or "").lower()
+        is_pdf, is_img = pdf_utils.classify_attachment(doc.file_name or "", mime)
 
-        # Título = "Sección — Campo"; Subtítulo con metadatos útiles
-        sec = (doc.section or "").strip()
-        itm = (doc.item or "").strip()
-        if sec and itm:
-            title = f"{sec} — {itm}"
-        elif sec:
-            title = sec
-        elif itm:
-            title = itm
-        else:
-            title = "Documento adjunto"
-
+        title = f"{doc.section} — {doc.item}" if doc.section and doc.item else "Documento adjunto"
         subtitle = f"Alumno: {ficha.user.email}  |  Ficha #{ficha.id}"
-        # si quieres también mostrar el nombre de archivo:
-        if doc.file_name: subtitle += f"  |  Archivo: {doc.file_name}"
+
+        if doc.file_name:
+            subtitle += f"  | archivo: {doc.file_name}"
 
         streams.append(pdf_utils.title_page_pdf_bytes(title, subtitle))
-        
 
-        # contenido
         if is_pdf:
             streams.append(raw)
         elif is_img:
             streams.append(pdf_utils.image_bytes_to_singlepage_pdf_bytes(raw, mime=mime or "image/png"))
-        else:
-            # tipo no soportado -> solo portada (se omite contenido)
-            continue
 
     merged = pdf_utils.merge_pdf_streams(streams)
+
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
 
+# ✅ ESTA FUNCIÓN VA COMPLETAMENTE FUERA DE OTRAS FUNCIONES
+@login_required
+def detalle_documento(request, id):
+    documento = get_object_or_404(StudentDocuments, id=id)
+    comentarios = documento.comentarios.all().order_by("-fecha")
+
+    puede_comentar = request.user.rol in ["REVISOR", "DOCENTE"]
+
+    if request.method == "POST" and puede_comentar:
+        form = ComentarioDocumentoForm(request.POST)
+        if form.is_valid():
+            comentario = form.save(commit=False)
+            comentario.autor = request.user
+            comentario.documento = documento
+            comentario.save()
+            return redirect("detalle_documento", id=id)
+
+    else:
+        form = ComentarioDocumentoForm()
+
+    return render(request, "accounts/detalle_documento.html", {
+        "documento": documento,
+        "comentarios": comentarios,
+        "form": form,
+        "puede_comentar": puede_comentar
+    })
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect

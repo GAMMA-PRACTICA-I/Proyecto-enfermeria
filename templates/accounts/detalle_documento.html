@@ -1,0 +1,47 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2 class="mb-3">Detalle del Documento</h2>
+
+    <div class="card p-3 mb-4">
+        <p><strong>Estudiante:</strong> {{ documento.student }}</p>
+        <p><strong>Tipo de documento:</strong> {{ documento.document_type }}</p>
+
+        {% if documento.file %}
+            <p><strong>Archivo:</strong>
+                <a href="{{ documento.file.url }}" target="_blank" class="btn btn-sm btn-primary">
+                    Abrir documento
+                </a>
+            </p>
+        {% endif %}
+
+        <p><strong>Estado:</strong> {{ documento.status }}</p>
+    </div>
+
+    <hr>
+
+    <h3>Comentarios</h3>
+
+    {% for c in comentarios %}
+        <div class="alert alert-secondary">
+            <b>{{ c.autor.username }}</b> — {{ c.fecha|date:"d/m/Y H:i" }} <br>
+            {{ c.mensaje }}
+        </div>
+    {% empty %}
+        <p>No hay comentarios todavía.</p>
+    {% endfor %}
+
+    {% if puede_comentar %}
+        <hr>
+        <h4>Agregar comentario</h4>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button class="btn btn-success">Enviar comentario</button>
+        </form>
+    {% endif %}
+
+</div>
+{% endblock %}
