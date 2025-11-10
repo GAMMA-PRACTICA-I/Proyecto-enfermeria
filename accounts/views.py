@@ -539,12 +539,9 @@ def logout_to_login(request):
 
 @login_required
 def dashboard_estudiante(request):
-<<<<<<< HEAD
     ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
     documentos = StudentDocuments.objects.filter(ficha=ficha).order_by("-uploaded_at") if ficha else []
-=======
-    ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
->>>>>>> aaaa
+    
     ctx = {
         "ficha": ficha,
         "documentos": documentos,
@@ -556,15 +553,11 @@ def dashboard_estudiante(request):
 
 @login_required
 def ficha_pdf(request):
-<<<<<<< HEAD
-
-=======
     """
     Ficha (HTML->PDF) + por CADA anexo: portada (título) + contenido.
     PDFs se anexan tal cual; imágenes se convierten a 1 página A4 centrada.
     """
     ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
->>>>>>> aaaa
     if not ficha:
         return redirect("ficha")
 
