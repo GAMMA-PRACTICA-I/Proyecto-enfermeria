@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.core.validators import FileExtensionValidator
-
+from django.db.models import Q
 # =========================
 #  Usuarios / Roles
 # =========================
@@ -74,7 +74,8 @@ class StudentFicha(models.Model):
         OBSERVADA = "OBSERVADA", "Observada"
         APROBADA = "APROBADA", "Aprobada"
         RECHAZADA = "RECHAZADA", "Rechazada"
-
+    
+    is_activa = models.BooleanField(default=True, db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="fichas")
     estado_global = models.CharField(max_length=20, choices=Estado.choices, default=Estado.DRAFT, db_index=True)
     observaciones_globales = models.TextField(blank=True, null=True)
@@ -86,13 +87,28 @@ class StudentFicha(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         db_table = "student_ficha"
         indexes = [
             models.Index(fields=["user", "estado_global"], name="idx_ficha_user_estado"),
+            models.Index(fields=["user", "is_activa"], name="idx_ficha_user_activa"),
         ]
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=Q(is_activa=True),
+                name="uniq_ficha_activa_por_usuario",
+            )]
+    def save(self, *args, **kwargs):
+        """Si esta ficha queda activa, desactiva cualquier otra activa del mismo usuario."""
+        becoming_active = self.is_activa
+        super().save(*args, **kwargs)
+        if becoming_active:
+            StudentFicha.objects.filter(
+                user_id=self.user_id, is_activa=True
+            ).exclude(pk=self.pk).update(is_activa=False)
+            
     def __str__(self):
         return f"Ficha #{self.id} de {self.user.email} ({self.get_estado_global_display()})"
 

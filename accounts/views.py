@@ -74,13 +74,13 @@ logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%
 
 
 def _get_or_create_active_ficha(user: User) -> StudentFicha:
-    ficha = StudentFicha.objects.filter(user=user).order_by("-created_at").first()
-    if ficha is None:
-        ficha = StudentFicha.objects.create(user=user)
-        logger.info(f"Ficha creada automáticamente id={ficha.id} usuario={user.email}")
-    else:
-        logger.info(f"Ficha existente id={ficha.id} usuario={user.email}")
+    ficha, _ = StudentFicha.objects.get_or_create(
+        user=user,
+        is_activa=True,
+        defaults={"estado_global": StudentFicha.Estado.DRAFT},
+    )
     return ficha
+
 
 
 def _parse_date_safe(s: Optional[str]) -> Optional[datetime.date]:
@@ -202,7 +202,10 @@ class FichaView(View):
     def post(self, request: HttpRequest) -> HttpResponse:
         logging.getLogger(__name__).info(f"POST ficha iniciado usuario={request.user.email}")
         user: User = request.user
-        ficha = _get_or_create_active_ficha(user)
+        ficha, _ = StudentFicha.objects.select_for_update().get_or_create(
+            user=user,
+            is_activa=True,
+            defaults={"estado_global": StudentFicha.Estado.DRAFT},)
 
         # I. Generales
         gen_form = StudentGeneralForm(request.POST, request.FILES)
@@ -512,7 +515,7 @@ def logout_to_login(request):
 
 @login_required
 def dashboard_estudiante(request):
-    ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
+    ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
     ctx = {
         "ficha": ficha,
         "ficha_pdf_disponible": bool(ficha),
@@ -528,7 +531,7 @@ def ficha_pdf(request):
     Ficha (HTML->PDF) + por CADA anexo: portada (título) + contenido.
     PDFs se anexan tal cual; imágenes se convierten a 1 página A4 centrada.
     """
-    ficha = StudentFicha.objects.filter(user=request.user).order_by("-created_at").first()
+    ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
     if not ficha:
         return redirect("ficha")
 
