@@ -1,6 +1,7 @@
 # accounts/urls.py
 from django.urls import path
 from django.views.generic.base import RedirectView
+from .views import register
 from .views import (
     landing_por_rol,            # <— NUEVO: despachador por rol
     dashboard_estudiante,
@@ -14,6 +15,9 @@ from .views import (
 from . import views
 
 urlpatterns = [
+    
+    path("register/", register, name="register"),
+
     # Mantengo tu redirect de login
     path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
 
