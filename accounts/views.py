@@ -1,69 +1,67 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+import logging
 from datetime import datetime
+from io import BytesIO
 from typing import List, Tuple, Optional
 
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import (
-    HttpRequest, HttpResponse, JsonResponse, HttpResponseForbidden
+    HttpRequest,
+    HttpResponse,
+    JsonResponse,
+    HttpResponseForbidden,
+    HttpResponseBadRequest,
+    FileResponse,
 )
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.text import slugify
 from django.views import View
 
 # === MODELOS ===
 from .models import (
-    StudentFicha, StudentDocuments, ComentarioDocumento, StudentGeneralPhotoBlob,
-    User, StudentGeneral, StudentAcademic, StudentMedicalBackground,
-    VaccineDose, SerologyResult, VaccineType, SerologyResultType,
-    StudentDocumentBlob, DocumentSection, DocumentItem,
-    DocumentReviewStatus, DocumentReviewLog, StudentDeclaration
+    User,
+    StudentFicha,
+    StudentGeneral,
+    StudentAcademic,
+    StudentMedicalBackground,
+    VaccineDose,
+    SerologyResult,
+    VaccineType,
+    SerologyResultType,
+    StudentDocuments,
+    StudentDocumentBlob,
+    DocumentSection,
+    DocumentItem,
+    DocumentReviewStatus,
+    DocumentReviewLog,
+    StudentDeclaration,
+    StudentGeneralPhotoBlob,
+    StudentFieldReview,
 )
 
 # === FORMULARIOS ===
-from .forms import ComentarioDocumentoForm, ComentarioFichaForm
-
-
-
 from .forms import (
-    StudentGeneralForm, StudentAcademicForm, StudentMedicalForm,
-    StudentVaccinesForm, StudentDeclarationForm
-)
-from .models import (
-    User, StudentFicha, StudentGeneral, StudentAcademic, StudentMedicalBackground,
-    VaccineDose, SerologyResult, VaccineType, SerologyResultType,
-    StudentDocuments, StudentDocumentBlob, DocumentSection, DocumentItem,
-    DocumentReviewStatus, DocumentReviewLog, StudentDeclaration
+    ComentarioDocumentoForm,
+    ComentarioFichaForm,
+    StudentGeneralForm,
+    StudentAcademicForm,
+    StudentMedicalForm,
+    StudentVaccinesForm,
+    StudentDeclarationForm,
 )
 
-from django.conf import settings
-from django.contrib.auth import logout
-from django.shortcuts import redirect, resolve_url
 from accounts.serializers import FichaDTO
-from django.contrib.auth import get_user_model
-
-#------------------------ informes pdf
-from django.http import FileResponse
-from io import BytesIO
-
-# from .utils.pdf import (
-#     render_html_to_pdf_bytes,
-#     merge_pdf_streams,
-#     image_bytes_to_singlepage_pdf_bytes,
-#     classify_attachment,
-#     title_page_pdf_bytes
-# )
 from .utils import pdf as pdf_utils
-
-from django.utils.text import slugify
-
-import base64
-
 
 SECTION_ORDER = [
     "Certificado de Alumno Regular",
@@ -79,9 +77,7 @@ SECTION_ORDER = [
 ]
 ORDER_IDX = {name: i for i, name in enumerate(SECTION_ORDER)}
 
-
-#-----------------------------------
-import logging
+# -----------------------------------
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%(lineno)d] %(message)s')
 
@@ -95,7 +91,6 @@ def _get_or_create_active_ficha(user: User) -> StudentFicha:
     return ficha
 
 
-
 def _parse_date_safe(s: Optional[str]) -> Optional[datetime.date]:
     if not s:
         return None
@@ -106,7 +101,7 @@ def _parse_date_safe(s: Optional[str]) -> Optional[datetime.date]:
 
 
 def _clean_dates_list(raw_list: List[str]) -> List[datetime.date]:
-    ans = []
+    ans: List[datetime.date] = []
     for s in raw_list:
         d = _parse_date_safe(s)
         if d:
@@ -129,12 +124,10 @@ def _doc_create_with_blob(
     ficha: StudentFicha,
     section: str,
     item: str,
-    file_obj,                      # <-- usa file_obj como nombre del parámetro
+    file_obj,
 ) -> StudentDocuments:
-    # hash + bytes
     sha, size, data = _compute_sha256(file_obj)
 
-    # nombre canónico: <seccion>__uid<user>__fid<ficha>.<ext>
     section_title = dict(DocumentSection.choices).get(section, str(section))
     base = f"{section_title}__uid{ficha.user_id}__fid{ficha.id}"
 
@@ -146,15 +139,13 @@ def _doc_create_with_blob(
         ext = "." + orig.rsplit(".", 1)[-1].lower() if "." in orig else ".bin"
 
     canon_name = f"{slugify(base)}{ext}"
-
-    # asegura nombre físico y lógico
     file_obj.name = canon_name
 
     doc = StudentDocuments.objects.create(
         ficha=ficha,
         section=section,
         item=item,
-        file_name=canon_name,                 # nombre lógico
+        file_name=canon_name,
         file_mime=content_type or None,
         review_status=DocumentReviewStatus.ADJUNTADO,
     )
@@ -172,29 +163,21 @@ def _doc_create_with_blob(
 def _save_ci_rule_guard(ficha: StudentFicha):
     count_ci = StudentDocuments.objects.filter(
         ficha=ficha,
-        item__in=[DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO]
+        item__in=[DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO],
     ).count()
     if count_ci > 2:
         raise ValueError("Existen más de dos adjuntos de CI (frente/reverso) para esta ficha.")
 
 
-# === CAMBIO MÍNIMO: eliminar adjuntos previos del mismo item antes de crear nuevos ===
 def _delete_existing_docs(ficha: StudentFicha, items: List[str]) -> None:
-    """
-    Borra (storage + BD) todos los adjuntos de la ficha cuyo item esté en 'items'.
-    Con esto evitamos acumulación histórica y garantizamos reemplazo.
-    """
     qs = StudentDocuments.objects.filter(ficha=ficha, item__in=items).select_related("blob")
     for d in qs:
-        # 1) borrar archivo físico si existe en FileField
         try:
             if d.file and d.file.name:
                 d.file.storage.delete(d.file.name)
         except Exception:
             pass
-        # 2) borrar registro (el blob se elimina por cascade)
         d.delete()
-# =============================================================================
 
 
 @method_decorator(login_required, name="dispatch")
@@ -205,13 +188,17 @@ class FichaView(View):
         ficha = _get_or_create_active_ficha(request.user)
         is_revisor = request.user.rol == "REVIEWER"
         dto = FichaDTO.from_model(ficha).to_dict()
-        return render(request, self.template_name, {
-            "ficha": ficha,
-            "ficha_json": dto,
-            "is_revisor": is_revisor,
-            "comentarios_ficha": ficha.comentarios_ficha.all().order_by("-fecha"),
-            "form_comentario": ComentarioFichaForm(),
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "ficha": ficha,
+                "ficha_json": dto,
+                "is_revisor": is_revisor,
+                "comentarios_ficha": ficha.comentarios_ficha.all().order_by("-fecha"),
+                "form_comentario": ComentarioFichaForm(),
+            },
+        )
 
     @transaction.atomic
     def post(self, request: HttpRequest) -> HttpResponse:
@@ -220,7 +207,8 @@ class FichaView(View):
         ficha, _ = StudentFicha.objects.select_for_update().get_or_create(
             user=user,
             is_activa=True,
-            defaults={"estado_global": StudentFicha.Estado.DRAFT},)
+            defaults={"estado_global": StudentFicha.Estado.DRAFT},
+        )
 
         # I. Generales
         gen_form = StudentGeneralForm(request.POST, request.FILES)
@@ -242,16 +230,12 @@ class FichaView(View):
             g.seguro_detalle = gen_form.cleaned_data.get("prevision_detalle") or None
             g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
 
-            # CLAVE: persistir 'g' antes de referenciarlo desde el blob
             g.save()
 
             foto = gen_form.cleaned_data.get("foto_ficha")
             if foto:
                 sha, size, data = _compute_sha256(foto)
-
-                # Busca si ya existe un blob para este StudentGeneral
                 pb = StudentGeneralPhotoBlob.objects.filter(general=g).first()
-
                 if pb:
                     pb.mime = getattr(foto, "content_type", "image/png") or "image/png"
                     pb.data = data
@@ -266,13 +250,9 @@ class FichaView(View):
                         size_bytes=size,
                         sha256=sha,
                     )
-
-                # limpiar ImageField (evitar filesystem)
                 g.foto_ficha.delete(save=False)
                 g.foto_ficha = None
                 g.save(update_fields=["foto_ficha"])
-
-            
 
         # II. Académicos
         acad_form = StudentAcademicForm(request.POST)
@@ -283,7 +263,6 @@ class FichaView(View):
             a.anio_cursa = acad_form.cleaned_data.get("anio_cursa")
             a.estado = acad_form.cleaned_data.get("estado") or None
             a.asignatura = acad_form.cleaned_data.get("asignatura") or None
-            # correo institucional viene en Generales (tu HTML lo tiene ahí)
             a.correo_institucional = gen_form.cleaned_data.get("correo_institucional") if gen_form.is_valid() else None
             a.correo_personal = acad_form.cleaned_data.get("correo_personal") or None
             a.save()
@@ -310,7 +289,6 @@ class FichaView(View):
         # IV. Vacunas / Serología
         vac_form = StudentVaccinesForm(request.POST)
         if vac_form.is_valid():
-            # borrado/replace para simplificar
             ficha.vaccine_doses.all().delete()
             ficha.serologies.all().delete()
 
@@ -337,8 +315,7 @@ class FichaView(View):
             var_date = vac_form.cleaned_data.get("varicela_serologia_fecha")
             if var_res and var_res in SerologyResultType.values:
                 SerologyResult.objects.create(
-                    ficha=ficha, pathogen=VaccineType.VARICELA, result=var_res,
-                    date=var_date or timezone.now().date()
+                    ficha=ficha, pathogen=VaccineType.VARICELA, result=var_res, date=var_date or timezone.now().date()
                 )
 
             inf_date = vac_form.cleaned_data.get("influenza_fecha")
@@ -351,28 +328,18 @@ class FichaView(View):
             messages.error(request, "Revise los campos de Vacunas/Serología.")
             logger.warning("Vacunas/Serología inválidas")
 
-        # V. Documentos (adjuntos)
-        # names EXACTOS del HTML: todos con [] cuando corresponde
+        # V. Documentos
         file_map = {
-            # Identificación
-            "ci_archivos[]": (DocumentSection.GENERALES, DocumentItem.CI_FRENTE),  # alternamos frente/reverso por orden
-
-            # Autorización médica
+            "ci_archivos[]": (DocumentSection.GENERALES, DocumentItem.CI_FRENTE),
             "autorizacion_medica_certificados[]": (DocumentSection.MORBIDOS, DocumentItem.AUTORIZACION_MEDICA),
-
-            # Mórbidos asociados a campos
             "alergias_certificados[]": (DocumentSection.MORBIDOS, DocumentItem.ALERGIAS_CERT),
             "enfermedades_cronicas_certificados[]": (DocumentSection.MORBIDOS, DocumentItem.ENFERMEDADES_CERT),
             "medicamentos_diarios_certificados[]": (DocumentSection.MORBIDOS, DocumentItem.MEDICAMENTOS_CERT),
             "otros_antecedentes_certificados[]": (DocumentSection.MORBIDOS, DocumentItem.OTROS_ANTECEDENTES_CERT),
-
-            # Vacunas/Serologías
             "hepb_cert[]": (DocumentSection.VACUNAS, DocumentItem.HEPB_CERT),
             "varicela_igg[]": (DocumentSection.VACUNAS, DocumentItem.VARICELA_IGG),
             "influenza_cert[]": (DocumentSection.VACUNAS, DocumentItem.INFLUENZA_CERT),
             "sarscov2_cert[]": (DocumentSection.VACUNAS, DocumentItem.SARS_COV_2_MEVACUNO),
-
-            # Cursos (documentación adjunta)
             "curso_intro_covid_certificados[]": (DocumentSection.ADJUNTA, DocumentItem.CURSO_INTRO_COVID),
             "curso_epp_certificados[]": (DocumentSection.ADJUNTA, DocumentItem.CURSO_EPP),
             "curso_iaas_certificados[]": (DocumentSection.ADJUNTA, DocumentItem.CURSO_IAAS),
@@ -385,12 +352,10 @@ class FichaView(View):
             if not files:
                 continue
 
-            # === CAMBIO: borrar existentes del/los mismo(s) item(s) antes de crear nuevos ===
             if input_name == "ci_archivos[]":
                 _delete_existing_docs(ficha, [DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO])
             else:
                 _delete_existing_docs(ficha, [item])
-            # ===============================================================================
 
             for idx, f in enumerate(files):
                 actual_item = item
@@ -417,16 +382,14 @@ class FichaView(View):
             messages.error(request, "Revise los campos de Declaración.")
             logger.warning("Declaración inválida")
 
-        # Estado post-guardado (estudiante)
         if user.rol == "STUDENT":
             finalizar = request.POST.get("finalizar")
             ficha.estado_global = StudentFicha.Estado.ENVIADA if finalizar else StudentFicha.Estado.DRAFT
             ficha.save()
             logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-            logger.info(f"Académicos guardados ficha={ficha.id}")
 
         messages.success(request, "Ficha guardada correctamente.")
-        
+
         if "comentar" in request.POST:
             form = ComentarioFichaForm(request.POST)
             if form.is_valid():
@@ -441,18 +404,21 @@ class FichaView(View):
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDashboardView(View):
-    template_name = "dashboards/revision_pendientes.html"  # <- usar el nuevo shell con sidebar
+    template_name = "dashboards/revision_pendientes.html"
 
     def get(self, request: HttpRequest) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
-        fichas = StudentFicha.objects.filter(
-            estado_global__in=[
-                StudentFicha.Estado.ENVIADA,
-                StudentFicha.Estado.EN_REVISION,
-                StudentFicha.Estado.OBSERVADA
-            ]
-        ).order_by("created_at")
+        fichas = (
+            StudentFicha.objects.filter(
+                estado_global__in=[
+                    StudentFicha.Estado.ENVIADA,
+                    StudentFicha.Estado.EN_REVISION,
+                    StudentFicha.Estado.OBSERVADA,
+                ]
+            )
+            .order_by("created_at")
+        )
         return render(request, self.template_name, {"fichas": fichas})
 
 
@@ -498,7 +464,6 @@ class ApproveFichaView(View):
             return HttpResponseForbidden("No autorizado.")
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
-        # Todos los documentos deben estar REVISADO_OK
         pending = ficha.documents.exclude(review_status=DocumentReviewStatus.REVISADO_OK).exists()
         if pending:
             return JsonResponse({"ok": False, "error": "Aún hay documentos pendientes/no OK."}, status=400)
@@ -507,8 +472,6 @@ class ApproveFichaView(View):
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
         ficha.save()
-        logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
 
 
@@ -524,45 +487,38 @@ class ObserveFichaView(View):
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
         ficha.save()
-        logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
 
 
 def home(request):
-    return redirect('dashboard_estudiante')
+    return redirect("dashboard_estudiante")
 
 
 def logout_to_login(request):
     logout(request)
-    return redirect('login')
+    return redirect("login")
 
 
 @login_required
 def dashboard_estudiante(request):
     ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
     documentos = StudentDocuments.objects.filter(ficha=ficha).order_by("-uploaded_at") if ficha else []
-    
+
     ctx = {
         "ficha": ficha,
         "documentos": documentos,
         "ficha_pdf_disponible": bool(ficha),
         "is_revisor": request.user.rol == "REVIEWER",
     }
-    return render(request, 'dashboards/estudiante.html', ctx)
+    return render(request, "dashboards/estudiante.html", ctx)
 
 
 @login_required
 def ficha_pdf(request):
-    """
-    Ficha (HTML->PDF) + por CADA anexo: portada (título) + contenido.
-    PDFs se anexan tal cual; imágenes se convierten a 1 página A4 centrada.
-    """
     ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
     if not ficha:
         return redirect("ficha")
 
-    # --- DTO base + foto (prioriza blob; fallback archivo/URL/base64) ---
     dto = FichaDTO.from_model(ficha).to_dict()
     generales = getattr(ficha, "generales", None)
 
@@ -577,18 +533,16 @@ def ficha_pdf(request):
         elif generales.foto_ficha:
             try:
                 foto_path = f"file://{generales.foto_ficha.path}"
-            except:
+            except Exception:
                 foto_path = None
-
             try:
                 foto_url = request.build_absolute_uri(generales.foto_ficha.url)
-            except:
+            except Exception:
                 foto_url = None
-
             try:
                 with generales.foto_ficha.open("rb") as f:
                     foto_b64 = base64.b64encode(f.read()).decode("ascii")
-            except:
+            except Exception:
                 pass
 
     dto.setdefault("generales", {})
@@ -596,15 +550,16 @@ def ficha_pdf(request):
     dto["generales"]["foto_ficha_url"] = foto_url
     dto["generales"]["foto_ficha_b64"] = foto_b64
 
-    # -------- PDF de la ficha (portada + contenido) --------
-    base_pdf = pdf_utils.render_html_to_pdf_bytes("pdf/ficha_pdf.html", {
-        "ficha": ficha,
-        "data": dto,
-        "comentarios": ficha.comentarios_ficha.all().order_by("-fecha"),
-    })
+    base_pdf = pdf_utils.render_html_to_pdf_bytes(
+        "pdf/ficha_pdf.html",
+        {
+            "ficha": ficha,
+            "data": dto,
+            "comentarios": ficha.comentarios_ficha.all().order_by("-fecha"),
+        },
+    )
 
-    streams = [base_pdf]
-
+    streams: List[bytes] = [base_pdf]
     docs_qs = ficha.documents.select_related("blob").order_by("uploaded_at", "id")
 
     for doc in docs_qs:
@@ -614,9 +569,8 @@ def ficha_pdf(request):
         elif doc.file:
             try:
                 raw = doc.file.read()
-            except:
+            except Exception:
                 raw = None
-
         if not raw:
             continue
 
@@ -625,7 +579,6 @@ def ficha_pdf(request):
 
         title = f"{doc.section} — {doc.item}" if doc.section and doc.item else "Documento adjunto"
         subtitle = f"Alumno: {ficha.user.email}  |  Ficha #{ficha.id}"
-
         if doc.file_name:
             subtitle += f"  | archivo: {doc.file_name}"
 
@@ -637,10 +590,11 @@ def ficha_pdf(request):
             streams.append(pdf_utils.image_bytes_to_singlepage_pdf_bytes(raw, mime=mime or "image/png"))
 
     merged = pdf_utils.merge_pdf_streams(streams)
-
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
 
+
 User = get_user_model()
+
 
 def register(request):
     if request.method == "POST":
@@ -656,15 +610,14 @@ def register(request):
         try:
             User.objects.create_user(email=email, password=password1, rol=rol)
             messages.success(request, "Usuario creado correctamente.")
-            return redirect("login")  # login ya existe en el proyecto
-
+            return redirect("login")
         except Exception as e:
             messages.error(request, f"Error al crear usuario: {e}")
             return redirect("register")
 
     return render(request, "accounts/register.html")
 
-# ✅ ESTA FUNCIÓN VA COMPLETAMENTE FUERA DE OTRAS FUNCIONES
+
 @login_required
 def detalle_documento(request, id):
     documento = get_object_or_404(StudentDocuments, id=id)
@@ -680,146 +633,155 @@ def detalle_documento(request, id):
             comentario.documento = documento
             comentario.save()
             return redirect("detalle_documento", id=id)
-
     else:
         form = ComentarioDocumentoForm()
 
-    return render(request, "accounts/detalle_documento.html", {
-        "documento": documento,
-        "comentarios": comentarios,
-        "form": form,
-        "puede_comentar": puede_comentar
-    })
+    return render(
+        request,
+        "accounts/detalle_documento.html",
+        {
+            "documento": documento,
+            "comentarios": comentarios,
+            "form": form,
+            "puede_comentar": puede_comentar,
+        },
+    )
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
 
 @login_required
 def landing_por_rol(request):
     if getattr(request.user, "rol", "") == "REVIEWER":
         return redirect("revisiones_pendientes")
-    # if request.user.rol == "ADMIN": return redirect("/admin/")
     return dashboard_estudiante(request)
+
 
 # ---------- Vista detalle para REVISOR con controles de revisión ----------
 @method_decorator(login_required, name="dispatch")
 class ReviewerFichaDetailView(View):
-    template_name = "dashboards/revisor.html"   # nuevo template (lo pongo abajo)
+    """
+    Preview con radios ✓/✗ por campo y notas por cada rechazado.
+    Template: 'accounts/revisor_ficha.html'
+    AJAX:
+      - POST a 'api_review_field' para marcar campos
+      - POST a 'api_review_finalize' para finalizar y consolidar notas
+    """
+    template_name = "accounts/revisor_ficha.html"
 
     def get(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
-        # Armamos un "esquema" plano de campos revisables (secciones/keys/labels/values)
-        fields = []
-
-        g = getattr(ficha, "generales", None)
-        if g:
-            fields += [
-                ("Antecedentes Generales", "nombre_legal", "Nombre legal", g.nombre_legal or ""),
-                ("Antecedentes Generales", "rut", "RUT", g.rut or ""),
-                ("Antecedentes Generales", "genero", "Género", g.genero or ""),
-                ("Antecedentes Generales", "fecha_nacimiento", "Fecha nacimiento", g.fecha_nacimiento or ""),
-                ("Antecedentes Generales", "telefono_celular", "Teléfono", g.telefono_celular or ""),
-                ("Antecedentes Generales", "direccion_actual", "Dirección actual", g.direccion_actual or ""),
-                ("Antecedentes Generales", "direccion_origen", "Dirección origen", g.direccion_origen or ""),
-                ("Antecedentes Generales", "contacto_emergencia_nombre", "Contacto emergencia - Nombre", g.contacto_emergencia_nombre or ""),
-                ("Antecedentes Generales", "contacto_emergencia_parentesco", "Contacto emergencia - Parentesco", g.contacto_emergencia_parentesco or ""),
-                ("Antecedentes Generales", "contacto_emergencia_telefono", "Contacto emergencia - Teléfono", g.contacto_emergencia_telefono or ""),
-                ("Antecedentes Generales", "centro_salud", "Centro de salud", g.centro_salud or ""),
-                ("Antecedentes Generales", "seguro", "Previsión", g.seguro or ""),
-                ("Antecedentes Generales", "seguro_detalle", "Detalle previsión", g.seguro_detalle or ""),
-            ]
-
-        a = getattr(ficha, "academicos", None)
-        if a:
-            fields += [
-                ("Antecedentes Académicos", "nombre_social", "Nombre social", a.nombre_social or ""),
-                ("Antecedentes Académicos", "carrera", "Carrera", a.carrera or ""),
-                ("Antecedentes Académicos", "anio_cursa", "Año cursa", a.anio_cursa or ""),
-                ("Antecedentes Académicos", "estado", "Estado académico", a.estado or ""),
-                ("Antecedentes Académicos", "asignatura", "Asignatura", a.asignatura or ""),
-                ("Antecedentes Académicos", "correo_institucional", "Correo institucional", a.correo_institucional or ""),
-                ("Antecedentes Académicos", "correo_personal", "Correo personal", a.correo_personal or ""),
-            ]
-
-        m = getattr(ficha, "medicos", None)
-        if m:
-            fields += [
-                ("Antecedentes Mórbidos", "alergias_detalle", "Alergias", m.alergias_detalle or ""),
-                ("Antecedentes Mórbidos", "grupo_sanguineo", "Grupo sanguíneo", m.grupo_sanguineo or ""),
-                ("Antecedentes Mórbidos", "cronicas_detalle", "Enfermedades crónicas", m.cronicas_detalle or ""),
-                ("Antecedentes Mórbidos", "medicamentos_detalle", "Medicamentos diarios", m.medicamentos_detalle or ""),
-                ("Antecedentes Mórbidos", "otros_antecedentes", "Otros antecedentes", m.otros_antecedentes or ""),
-            ]
-
-        d = getattr(ficha, "declaracion", None)
-        if d:
-            fields += [
-                ("Declaración", "decl_nombre", "Nombre declaración", d.nombre_estudiante or ""),
-                ("Declaración", "decl_rut", "RUT declaración", d.rut or ""),
-                ("Declaración", "decl_fecha", "Fecha declaración", d.fecha or ""),
-                ("Declaración", "decl_firma", "Firma (hash/texto)", d.firma or ""),
-            ]
-
-        # Cargar revisiones previas para pre-pintar el estado
-        reviews = {
-            (r.field_key): {"status": r.status, "notes": r.notes or ""}
-            for r in ficha.field_reviews.all()
+        sections = {
+            "Antecedentes Generales": {
+                "nombre_legal": getattr(ficha.generales, "nombre_legal", "") if hasattr(ficha, "generales") else "",
+                "rut": getattr(ficha.generales, "rut", "") if hasattr(ficha, "generales") else "",
+                "genero": getattr(ficha.generales, "genero", "") if hasattr(ficha, "generales") else "",
+                "telefono_celular": getattr(ficha.generales, "telefono_celular", "") if hasattr(ficha, "generales") else "",
+                "direccion_actual": getattr(ficha.generales, "direccion_actual", "") if hasattr(ficha, "generales") else "",
+            },
+            "Antecedentes Académicos": {
+                "carrera": getattr(ficha.academicos, "carrera", "") if hasattr(ficha, "academicos") else "",
+                "anio_cursa": getattr(ficha.academicos, "anio_cursa", "") if hasattr(ficha, "academicos") else "",
+                "estado": getattr(ficha.academicos, "estado", "") if hasattr(ficha, "academicos") else "",
+                "asignatura": getattr(ficha.academicos, "asignatura", "") if hasattr(ficha, "academicos") else "",
+            },
+            "Antecedentes Mórbidos": {
+                "grupo_sanguineo": getattr(ficha.medicos, "grupo_sanguineo", "") if hasattr(ficha, "medicos") else "",
+                "alergias_detalle": getattr(ficha.medicos, "alergias_detalle", "") if hasattr(ficha, "medicos") else "",
+                "cronicas_detalle": getattr(ficha.medicos, "cronicas_detalle", "") if hasattr(ficha, "medicos") else "",
+                "medicamentos_detalle": getattr(ficha.medicos, "medicamentos_detalle", "") if hasattr(ficha, "medicos") else "",
+            },
         }
 
-        return render(request, self.template_name, {
-            "ficha": ficha,
-            "fields": fields,      # lista de tuplas (section, key, label, value)
-            "reviews": reviews,    # dict por key
-        })
+        prev = {
+            fr.field_key: {"status": fr.status, "notes": fr.notes or ""}
+            for fr in ficha.field_reviews.all()
+        }
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "ficha": ficha,
+                "sections": sections,
+                "prev": prev,
+            },
+        )
 
 
 # ---------- API: marcar un campo (✔/✖ y comentario) ----------
 @method_decorator(login_required, name="dispatch")
-class ReviewFieldAPI(View):
+class FieldReviewAPI(View):
     def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
-        field_key = request.POST.get("field_key", "").strip()
-        section   = request.POST.get("section", "").strip()
-        status    = request.POST.get("status", "").strip()    # REVISADO_OK / REVISADO_NO_OK
-        notes     = request.POST.get("notes", "").strip()
+        section = (request.POST.get("section") or "").strip()
+        field_key = (request.POST.get("field_key") or "").strip()
+        status = (request.POST.get("status") or "").strip()  # "REVISADO_OK" / "REVISADO_NO_OK"
+        notes = (request.POST.get("notes") or "").strip()
 
-        if not field_key or status not in ("REVISADO_OK", "REVISADO_NO_OK"):
-            return JsonResponse({"ok": False, "error": "Datos inválidos"}, status=400)
+        if not section or not field_key or status not in ("REVISADO_OK", "REVISADO_NO_OK"):
+            return HttpResponseBadRequest("Datos incompletos.")
 
         obj, _ = StudentFieldReview.objects.update_or_create(
             ficha=ficha,
             field_key=field_key,
             defaults={
-                "section": section or "",
+                "section": section,
                 "status": status,
-                "notes": notes or None,
+                "notes": notes if status == "REVISADO_NO_OK" else "",
                 "reviewed_by": request.user,
                 "reviewed_at": timezone.now(),
-            }
+            },
         )
-        return JsonResponse({"ok": True, "field_key": field_key, "status": obj.status})
+        return JsonResponse({"ok": True, "status": obj.status})
 
 
-# ---------- API: finalizar revisión (setear estado global) ----------
+# ---------- API: finalizar revisión (setear estado global y consolidar notas) ----------
 @method_decorator(login_required, name="dispatch")
 class FinalizeReviewAPI(View):
     def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
+
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
-        # Si existe al menos un campo NO_OK -> RECHAZADA; si no, APROBADA
         exists_no_ok = ficha.field_reviews.filter(status="REVISADO_NO_OK").exists()
 
+        combined_notes = None
+        if exists_no_ok:
+            rechazados = list(
+                ficha.field_reviews.filter(status="REVISADO_NO_OK").values("section", "field_key", "notes")
+            )
+            detalles: List[str] = []
+            for r in rechazados:
+                linea = f"- {r['section']} • {r['field_key']}"
+                if r.get("notes"):
+                    linea += f": {r['notes']}"
+                detalles.append(linea)
+
+            global_notes = (request.POST.get("global_notes") or "").strip()
+            if global_notes:
+                detalles.append("")
+                detalles.append(f"Comentario general del revisor: {global_notes}")
+
+            combined_notes = "\n".join(detalles)
+
         ficha.estado_global = StudentFicha.Estado.RECHAZADA if exists_no_ok else StudentFicha.Estado.APROBADA
+        ficha.observaciones_globales = combined_notes
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
-        ficha.save(update_fields=["estado_global", "revisado_por", "revisado_en", "updated_at"])
+        ficha.save(
+            update_fields=[
+                "estado_global",
+                "observaciones_globales",
+                "revisado_por",
+                "revisado_en",
+                "updated_at",
+            ]
+        )
 
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
