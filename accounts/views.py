@@ -700,3 +700,126 @@ def landing_por_rol(request):
         return redirect("revisiones_pendientes")
     # if request.user.rol == "ADMIN": return redirect("/admin/")
     return dashboard_estudiante(request)
+
+# ---------- Vista detalle para REVISOR con controles de revisión ----------
+@method_decorator(login_required, name="dispatch")
+class ReviewerFichaDetailView(View):
+    template_name = "dashboards/revisor.html"   # nuevo template (lo pongo abajo)
+
+    def get(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
+        if request.user.rol != "REVIEWER":
+            return HttpResponseForbidden("No autorizado.")
+        ficha = get_object_or_404(StudentFicha, pk=ficha_id)
+
+        # Armamos un "esquema" plano de campos revisables (secciones/keys/labels/values)
+        fields = []
+
+        g = getattr(ficha, "generales", None)
+        if g:
+            fields += [
+                ("Antecedentes Generales", "nombre_legal", "Nombre legal", g.nombre_legal or ""),
+                ("Antecedentes Generales", "rut", "RUT", g.rut or ""),
+                ("Antecedentes Generales", "genero", "Género", g.genero or ""),
+                ("Antecedentes Generales", "fecha_nacimiento", "Fecha nacimiento", g.fecha_nacimiento or ""),
+                ("Antecedentes Generales", "telefono_celular", "Teléfono", g.telefono_celular or ""),
+                ("Antecedentes Generales", "direccion_actual", "Dirección actual", g.direccion_actual or ""),
+                ("Antecedentes Generales", "direccion_origen", "Dirección origen", g.direccion_origen or ""),
+                ("Antecedentes Generales", "contacto_emergencia_nombre", "Contacto emergencia - Nombre", g.contacto_emergencia_nombre or ""),
+                ("Antecedentes Generales", "contacto_emergencia_parentesco", "Contacto emergencia - Parentesco", g.contacto_emergencia_parentesco or ""),
+                ("Antecedentes Generales", "contacto_emergencia_telefono", "Contacto emergencia - Teléfono", g.contacto_emergencia_telefono or ""),
+                ("Antecedentes Generales", "centro_salud", "Centro de salud", g.centro_salud or ""),
+                ("Antecedentes Generales", "seguro", "Previsión", g.seguro or ""),
+                ("Antecedentes Generales", "seguro_detalle", "Detalle previsión", g.seguro_detalle or ""),
+            ]
+
+        a = getattr(ficha, "academicos", None)
+        if a:
+            fields += [
+                ("Antecedentes Académicos", "nombre_social", "Nombre social", a.nombre_social or ""),
+                ("Antecedentes Académicos", "carrera", "Carrera", a.carrera or ""),
+                ("Antecedentes Académicos", "anio_cursa", "Año cursa", a.anio_cursa or ""),
+                ("Antecedentes Académicos", "estado", "Estado académico", a.estado or ""),
+                ("Antecedentes Académicos", "asignatura", "Asignatura", a.asignatura or ""),
+                ("Antecedentes Académicos", "correo_institucional", "Correo institucional", a.correo_institucional or ""),
+                ("Antecedentes Académicos", "correo_personal", "Correo personal", a.correo_personal or ""),
+            ]
+
+        m = getattr(ficha, "medicos", None)
+        if m:
+            fields += [
+                ("Antecedentes Mórbidos", "alergias_detalle", "Alergias", m.alergias_detalle or ""),
+                ("Antecedentes Mórbidos", "grupo_sanguineo", "Grupo sanguíneo", m.grupo_sanguineo or ""),
+                ("Antecedentes Mórbidos", "cronicas_detalle", "Enfermedades crónicas", m.cronicas_detalle or ""),
+                ("Antecedentes Mórbidos", "medicamentos_detalle", "Medicamentos diarios", m.medicamentos_detalle or ""),
+                ("Antecedentes Mórbidos", "otros_antecedentes", "Otros antecedentes", m.otros_antecedentes or ""),
+            ]
+
+        d = getattr(ficha, "declaracion", None)
+        if d:
+            fields += [
+                ("Declaración", "decl_nombre", "Nombre declaración", d.nombre_estudiante or ""),
+                ("Declaración", "decl_rut", "RUT declaración", d.rut or ""),
+                ("Declaración", "decl_fecha", "Fecha declaración", d.fecha or ""),
+                ("Declaración", "decl_firma", "Firma (hash/texto)", d.firma or ""),
+            ]
+
+        # Cargar revisiones previas para pre-pintar el estado
+        reviews = {
+            (r.field_key): {"status": r.status, "notes": r.notes or ""}
+            for r in ficha.field_reviews.all()
+        }
+
+        return render(request, self.template_name, {
+            "ficha": ficha,
+            "fields": fields,      # lista de tuplas (section, key, label, value)
+            "reviews": reviews,    # dict por key
+        })
+
+
+# ---------- API: marcar un campo (✔/✖ y comentario) ----------
+@method_decorator(login_required, name="dispatch")
+class ReviewFieldAPI(View):
+    def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
+        if request.user.rol != "REVIEWER":
+            return HttpResponseForbidden("No autorizado.")
+        ficha = get_object_or_404(StudentFicha, pk=ficha_id)
+
+        field_key = request.POST.get("field_key", "").strip()
+        section   = request.POST.get("section", "").strip()
+        status    = request.POST.get("status", "").strip()    # REVISADO_OK / REVISADO_NO_OK
+        notes     = request.POST.get("notes", "").strip()
+
+        if not field_key or status not in ("REVISADO_OK", "REVISADO_NO_OK"):
+            return JsonResponse({"ok": False, "error": "Datos inválidos"}, status=400)
+
+        obj, _ = StudentFieldReview.objects.update_or_create(
+            ficha=ficha,
+            field_key=field_key,
+            defaults={
+                "section": section or "",
+                "status": status,
+                "notes": notes or None,
+                "reviewed_by": request.user,
+                "reviewed_at": timezone.now(),
+            }
+        )
+        return JsonResponse({"ok": True, "field_key": field_key, "status": obj.status})
+
+
+# ---------- API: finalizar revisión (setear estado global) ----------
+@method_decorator(login_required, name="dispatch")
+class FinalizeReviewAPI(View):
+    def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
+        if request.user.rol != "REVIEWER":
+            return HttpResponseForbidden("No autorizado.")
+        ficha = get_object_or_404(StudentFicha, pk=ficha_id)
+
+        # Si existe al menos un campo NO_OK -> RECHAZADA; si no, APROBADA
+        exists_no_ok = ficha.field_reviews.filter(status="REVISADO_NO_OK").exists()
+
+        ficha.estado_global = StudentFicha.Estado.RECHAZADA if exists_no_ok else StudentFicha.Estado.APROBADA
+        ficha.revisado_por = request.user
+        ficha.revisado_en = timezone.now()
+        ficha.save(update_fields=["estado_global", "revisado_por", "revisado_en", "updated_at"])
+
+        return JsonResponse({"ok": True, "estado": ficha.estado_global})

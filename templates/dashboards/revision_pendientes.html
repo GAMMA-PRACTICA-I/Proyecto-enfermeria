@@ -24,8 +24,9 @@
     .status{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #e6eaf0;background:#fff}
     .s-warn{background:#fff7ed;border-color:#fed7aa;color:#b45309}
     .s-ok{background:#ecfdf5;border-color:#bbf7d0;color:#059669}
+    .s-bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c} /* NUEVO: badge rojo para RECHAZADA */
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-    .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid #e6eaf0;background:#fff;text-decoration:none;color:#111}
+    .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid #e6eaf0;background:#fff;text-decoration:none;color:#111;cursor:pointer}
     .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
 
     /* Modal mínimo */
@@ -39,7 +40,7 @@
 </head>
 <body>
 
-  <!-- ASIDE: calcado del estudiante, cambiando la etiqueta de rol y los links -->
+  <!-- ASIDE -->
   <aside
     style="
       width:260px;
@@ -86,7 +87,7 @@
     </div>
   </aside>
 
-  <!-- Contenedor desplazado igual que en estudiante -->
+  <!-- Contenedor -->
   <div style="margin-left:260px; min-height:100vh; overflow:auto;">
     <main class="main-content" style="width:100%;">
       <div class="wrap">
@@ -110,7 +111,7 @@
                 <th>Correo</th>
                 <th>Estado</th>
                 <th>Actualizada</th>
-                <th></th>
+                <th style="min-width:320px;"></th>
               </tr>
             </thead>
             <tbody><!-- se llena por JS --></tbody>
@@ -132,8 +133,8 @@
     </div>
   </div>
 
-  <script type="application/javascript">
-  // ========= DATA desde Django (escapado para JS) =========
+<script type="application/javascript">
+  // ========= DATA desde Django =========
   const DATA = [
     {% for f in fichas %}
     {
@@ -145,9 +146,34 @@
       estado_raw: "{{ f.estado_global|escapejs }}",
       fecha: "{{ f.updated_at|date:'Y-m-d H:i'|escapejs }}"
     }{% if not forloop.last %},{% endif %}
-    {% empty %}
-    {% endfor %}
+    {% empty %}{% endfor %}
   ];
+
+  // ====== URLs base (se rellenan con el ID) – NUEVO ======
+  const URL_FIELD_API_BASE   = "{% url 'api_review_field' 0 %}";      // /api/review/field/0/
+  const URL_FINALIZE_API_BASE= "{% url 'api_review_finalize' 0 %}";   // /api/review/finalize/0/
+  const URL_DETALLE_BASE     = "{% url 'revisor_ficha' 0 %}";         // /revisiones/0/
+
+  // ====== Helpers – NUEVO ======
+  function getCookie(name){
+    const v = ("; "+document.cookie).split("; "+name+"=");
+    if(v.length===2) return v.pop().split(";").shift();
+  }
+  async function post(url, data){
+    const form = new URLSearchParams();
+    for(const k in data){ form.append(k, data[k]); }
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {"X-CSRFToken": getCookie("csrftoken"), "X-Requested-With":"XMLHttpRequest"},
+      body: form
+    });
+    return await r.json();
+  }
+  function badgeClass(raw){
+    if(raw === 'APROBADA') return 's-ok';
+    if(raw === 'RECHAZADA') return 's-bad';
+    return 's-warn';
+  }
 
   const tbody = document.querySelector('#tbl tbody');
   const q = document.getElementById('q');
@@ -160,28 +186,66 @@
   let filtro = 'abiertas';
   let currentId = null;
 
+  function isCerrada(raw){
+    // Cerradas = APROBADA o RECHAZADA
+    return raw === 'APROBADA' || raw === 'RECHAZADA';
+  }
+
   function paint(){
     const term = (q.value || '').toLowerCase().trim();
     const rows = DATA.filter(function(x){
-      const cerrada = (x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA');
-      const byTab = (filtro === 'todas') || (filtro === 'cerradas' && cerrada) || (filtro === 'abiertas' && !cerrada);
-      const byText = !term || (String(x.nombre||'').toLowerCase().includes(term) || String(x.email||'').toLowerCase().includes(term));
+      const byTab =
+        (filtro === 'todas') ||
+        (filtro === 'cerradas' && isCerrada(x.estado_raw)) ||
+        (filtro === 'abiertas' && !isCerrada(x.estado_raw));
+      const byText = !term ||
+        String(x.nombre||'').toLowerCase().includes(term) ||
+        String(x.email||'').toLowerCase().includes(term);
       return byTab && byText;
     }).map(function(x){
       const tr = document.createElement('tr');
+      const detalleHref = URL_DETALLE_BASE.replace('/0/', `/${x.id}/`);
       tr.innerHTML =
         '<td>' + (x.nombre || '-') + '</td>' +
         '<td>' + (x.rut || '-') + '</td>' +
         '<td>' + (x.email || '-') + '</td>' +
-        '<td><span class="status ' + ((x.estado_raw === 'APROBADA') ? 's-ok' : 's-warn') + '">' + x.estado + '</span></td>' +
+        '<td><span class="status ' + badgeClass(x.estado_raw) + '">' + x.estado + '</span></td>' +
         '<td>' + (x.fecha || '-') + '</td>' +
         '<td>' +
-          '<a class="btn" href="/accounts/revisar/ficha/' + x.id + '/aprobar/">Aprobar</a> ' +
-          '<button class="btn" onclick="openMotivo(' + x.id + ')">Observar</button>' +
+          `<a class="btn primary" href="${detalleHref}">Revisar campos</a> ` + // NUEVO
+          `<button class="btn js-aprobar" data-id="${x.id}">Aprobar</button> ` +
+          `<button class="btn js-observar" data-id="${x.id}">Observar</button>` +
         '</td>';
       return tr;
     });
     tbody.replaceChildren.apply(tbody, rows);
+
+    // Wire de botones (cada vez que pintamos) – NUEVO
+    tbody.querySelectorAll('.js-aprobar').forEach(btn=>{
+      btn.onclick = async (e)=>{
+        const id = Number(e.currentTarget.dataset.id);
+        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`);
+        const res = await post(urlFinalize, {}); // Finaliza según campos (si no hay NO_OK => APROBADA)
+        if(res.ok){
+          const it = DATA.find(z=>z.id===id);
+          if(it){
+            it.estado_raw = res.estado;
+            it.estado = (res.estado === 'APROBADA') ? 'Aprobada' : (res.estado === 'RECHAZADA' ? 'Rechazada' : it.estado);
+          }
+          paint();
+        }else{
+          alert('No se pudo aprobar: ' + (res.error||'error'));
+        }
+      };
+    });
+
+    tbody.querySelectorAll('.js-observar').forEach(btn=>{
+      btn.onclick = (e)=>{
+        currentId = Number(e.currentTarget.dataset.id);
+        txtMotivo.value = '';
+        mRechazo.classList.add('open');
+      };
+    });
   }
 
   q.addEventListener('input', paint);
@@ -195,11 +259,42 @@
   });
 
   btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
-  btnGuardar.onclick = function(){
-    // POST opcional aquí
-    mRechazo.classList.remove('open');
+
+  // Guardar motivo => crea/actualiza un review "global" NO_OK y finaliza => RECHAZADA – NUEVO
+  btnGuardar.onclick = async function(){
+    if(!currentId) return;
+    const notes = (txtMotivo.value || '').trim();
+
+    try{
+      // 1) marcar un campo sintético "_global" como NO_OK (deja constancia del motivo)
+      const urlField = URL_FIELD_API_BASE.replace('/0/', `/${currentId}/`);
+      const r1 = await post(urlField, {
+        field_key: "_global",
+        section: "Global",
+        status: "REVISADO_NO_OK",
+        notes
+      });
+      if(!r1.ok){ throw new Error('Fallo al registrar observación'); }
+
+      // 2) finalizar => quedará RECHAZADA por existir al menos un NO_OK
+      const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${currentId}/`);
+      const r2 = await post(urlFinalize, {});
+      if(!r2.ok){ throw new Error('Fallo al finalizar revisión'); }
+
+      // Actualizar fila en memoria
+      const it = DATA.find(z=>z.id===currentId);
+      if(it){
+        it.estado_raw = r2.estado;
+        it.estado = (r2.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+      }
+      paint();
+      mRechazo.classList.remove('open');
+    }catch(err){
+      alert(err.message || 'Error inesperado');
+    }
   };
 
+  // Exponer para botón "Observar"
   window.openMotivo = function(id){
     currentId = id;
     txtMotivo.value = '';
@@ -208,3 +303,5 @@
 
   paint();
 </script>
+</body>
+</html>

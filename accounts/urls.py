@@ -39,5 +39,8 @@ urlpatterns = [
     
     # Comentario
     path("documento/<int:id>/", views.detalle_documento, name="detalle_documento"),
-
+    
+    path("revisiones/<int:ficha_id>/", ReviewerFichaDetailView.as_view(), name="revisor_ficha"),
+    path("api/review/field/<int:ficha_id>/", ReviewFieldAPI.as_view(), name="api_review_field"),
+    path("api/review/finalize/<int:ficha_id>/", FinalizeReviewAPI.as_view(), name="api_review_finalize"),
 ]
