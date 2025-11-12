@@ -108,6 +108,45 @@
         <div style="display:flex; flex-direction:column; width:100%;">
           <div style="flex:1; width:100%; box-sizing:border-box;">
             {% include "dashboards/ficha.html" %}
+            <div style="margin-top:40px; width:100%; max-width:900px;">
+              <h2 style="font-size:20px; font-weight:700; color:#003366; margin-bottom:16px;">
+                Comentarios del revisor
+              </h2>
+
+              {% if comentarios_revisor %}
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  {% for c in comentarios_revisor %}
+                    <div style="
+                      border:1px solid #d1d5db;
+                      border-radius:12px;
+                      padding:16px 20px;
+                      background:#f9fafb;
+                      box-shadow:0 1px 2px rgba(0,0,0,0.05);
+                    ">
+                      <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <strong style="color:#0b3a7e;">
+                          {% if c.autor %}
+                            {{ c.autor.get_full_name|default:c.autor.email }}
+                          {% else %}
+                            Revisor
+                          {% endif %}
+                        </strong>
+                        <small style="color:#555;">
+                          {{ c.fecha|date:"d/m/Y H:i" }}
+                        </small>
+                      </div>
+
+                      <p style="margin:8px 0 0; color:#333; white-space:pre-line;">
+                        {{ c.mensaje|linebreaksbr }}
+                      </p>
+
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p style="color:#555;">No hay comentarios del revisor disponibles aún.</p>
+              {% endif %}
+            </div>
           </div>
         </div>
       </section>

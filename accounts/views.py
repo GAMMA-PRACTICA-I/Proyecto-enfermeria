@@ -4,6 +4,12 @@ import hashlib
 from datetime import datetime
 from typing import List, Tuple, Optional
 
+from django.http import JsonResponse
+import json
+from django.views.decorators.csrf import csrf_exempt
+from .models import ComentarioFicha
+
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -430,22 +436,30 @@ class FichaView(View):
         if "comentar" in request.POST:
             form = ComentarioFichaForm(request.POST)
             if form.is_valid():
-                comentario = form.save(commit=False)
-                comentario.autor = request.user
-                comentario.ficha = ficha
-                comentario.save()
+                mensaje = form.cleaned_data.get("mensaje", "").strip()
+                if mensaje:
+                    comentario = form.save(commit=False)
+                    comentario.autor = request.user
+                    comentario.ficha = ficha
+                    comentario.mensaje = mensaje
+                    comentario.save()
+                    messages.success(request, "Comentario enviado correctamente.")
+                else:
+                    messages.error(request, "No puedes enviar un comentario vacío.")
+            else:
+                messages.error(request, "Error al enviar el comentario.")
             return redirect("ficha")
-
         return redirect("dashboard_estudiante")
 
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDashboardView(View):
-    template_name = "dashboards/revision_pendientes.html"  # <- usar el nuevo shell con sidebar
+    template_name = "dashboards/revision_pendientes.html"
 
     def get(self, request: HttpRequest) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
+
         fichas = StudentFicha.objects.filter(
             estado_global__in=[
                 StudentFicha.Estado.ENVIADA,
@@ -453,8 +467,36 @@ class ReviewDashboardView(View):
                 StudentFicha.Estado.OBSERVADA
             ]
         ).order_by("created_at")
-        return render(request, self.template_name, {"fichas": fichas})
 
+        return render(request, self.template_name, {
+            "fichas": fichas,
+            "is_revisor": True,
+        })
+        
+@login_required
+def detalle_ficha_revisor(request, ficha_id):
+    if request.user.rol != "REVIEWER":
+        return HttpResponseForbidden("No autorizado.")
+
+    ficha = get_object_or_404(StudentFicha, id=ficha_id)
+    documentos = ficha.documents.all().order_by("uploaded_at")
+
+    comentarios_ficha = ficha.comentarios_ficha.all().order_by("-fecha")
+    comentarios_documento = ComentarioDocumento.objects.filter(documento__ficha=ficha).order_by("-fecha")
+
+    comentarios_revisor = sorted(
+        list(comentarios_ficha) + list(comentarios_documento),
+        key=lambda c: getattr(c, "fecha", None),
+        reverse=True
+    )
+
+    return render(request, "dashboards/detalle_ficha_revisor.html", {
+        "ficha": ficha,
+        "documentos": documentos,
+        "comentarios_revisor": comentarios_revisor,
+        "comentarios_ficha": comentarios_ficha,
+        "is_revisor": True,
+    })
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDocumentUpdateView(View):
@@ -479,6 +521,13 @@ class ReviewDocumentUpdateView(View):
             doc.reviewed_at = timezone.now()
             doc.save()
 
+            if new_status == DocumentReviewStatus.REVISADO_NO_OK and (notes or "").strip():
+                ComentarioDocumento.objects.create(
+                    documento=doc,
+                    autor=request.user,
+                    mensaje=notes.strip()
+                )
+            
             DocumentReviewLog.objects.create(
                 document=doc,
                 old_status=old_status,
@@ -514,21 +563,69 @@ class ApproveFichaView(View):
 
 @method_decorator(login_required, name="dispatch")
 class ObserveFichaView(View):
-    def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
-        if request.user.rol != "REVIEWER":
-            return HttpResponseForbidden("No autorizado.")
+    def post(self, request, ficha_id):
+        # Solo revisores pueden observar
+        if getattr(request.user, "rol", None) != "REVIEWER":
+            return JsonResponse({"error": "No autorizado."}, status=403)
+
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
-        notes = request.POST.get("notes", "")
+
+        # Soporta JSON (fetch) y formulario tradicional
+        mensaje = ""
+        if request.content_type == "application/json":
+            try:
+                data = json.loads(request.body)
+                mensaje = data.get("mensaje", "").strip() or data.get("comentario", "").strip()
+            except Exception:
+                mensaje = ""
+        else:
+            mensaje = request.POST.get("mensaje", "").strip() or request.POST.get("comentario", "").strip()
+
+        if not mensaje:
+            return JsonResponse({"error": "El comentario no puede estar vacío."}, status=400)
+
+        # Crear comentario
+        ComentarioFicha.objects.create(
+            ficha=ficha,
+            autor=request.user,
+            mensaje=mensaje
+        )
+
+        # Actualizar estado de ficha
         ficha.estado_global = StudentFicha.Estado.OBSERVADA
-        ficha.observaciones_globales = notes or None
+        ficha.observaciones_globales = mensaje
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
         ficha.save()
-        logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
-        return JsonResponse({"ok": True, "estado": ficha.estado_global})
 
+        return JsonResponse({"ok": True, "mensaje": "Comentario guardado correctamente."})
 
+@login_required
+def obtener_comentarios(request, ficha_id):
+    comentarios = (
+        ComentarioFicha.objects
+        .filter(ficha_id=ficha_id)
+        .select_related("autor")
+        .order_by("-fecha")
+    )
+
+    data = []
+    for c in comentarios:
+        autor_display = "Revisor"
+        if getattr(c, "autor", None):
+            name_attr = getattr(c.autor, "get_full_name", None)
+            if callable(name_attr):
+                autor_display = name_attr() or getattr(c.autor, "email", "Revisor")
+            else:
+                autor_display = getattr(c.autor, "email", "Revisor")
+
+        data.append({
+            "mensaje": c.mensaje,
+            "revisor": autor_display,
+            "fecha": c.fecha.strftime("%Y-%m-%d %H:%M"),
+        })
+
+    return JsonResponse(data, safe=False)
 def home(request):
     return redirect('dashboard_estudiante')
 
@@ -542,15 +639,28 @@ def logout_to_login(request):
 def dashboard_estudiante(request):
     ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
     documentos = StudentDocuments.objects.filter(ficha=ficha).order_by("-uploaded_at") if ficha else []
-    
+
+    comentarios_ficha = ficha.comentarios_ficha.all().order_by("-fecha") if ficha else []
+    comentarios_documento = ComentarioDocumento.objects.filter(
+        documento__ficha=ficha
+    ).order_by("-fecha") if ficha else []
+
+    comentarios_revisor = sorted(
+        list(comentarios_ficha) + list(comentarios_documento),
+        key=lambda c: getattr(c, "fecha", None),
+        reverse=True
+    )
+
     ctx = {
         "ficha": ficha,
         "documentos": documentos,
         "ficha_pdf_disponible": bool(ficha),
         "is_revisor": request.user.rol == "REVIEWER",
+
+        "comentarios_ficha": comentarios_ficha,
+        "comentarios_revisor": comentarios_revisor,
     }
     return render(request, 'dashboards/estudiante.html', ctx)
-
 
 @login_required
 def ficha_pdf(request):
@@ -664,7 +774,6 @@ def register(request):
 
     return render(request, "accounts/register.html")
 
-# ✅ ESTA FUNCIÓN VA COMPLETAMENTE FUERA DE OTRAS FUNCIONES
 @login_required
 def detalle_documento(request, id):
     documento = get_object_or_404(StudentDocuments, id=id)
@@ -698,5 +807,4 @@ from django.shortcuts import redirect
 def landing_por_rol(request):
     if getattr(request.user, "rol", "") == "REVIEWER":
         return redirect("revisiones_pendientes")
-    # if request.user.rol == "ADMIN": return redirect("/admin/")
     return dashboard_estudiante(request)

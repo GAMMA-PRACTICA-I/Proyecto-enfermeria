@@ -124,13 +124,20 @@
   <div class="modal" id="mRechazo">
     <div class="box">
       <h3>Motivo de observación / rechazo</h3>
+
+      <div id="oldComments" style="max-height:150px; overflow:auto; border:1px solid #e6eaf0; border-radius:8px; padding:8px; background:#fafbfe; margin-bottom:10px;">
+        <em style="color:#666;">Cargando comentarios...</em>
+      </div>
+
       <textarea id="txtMotivo" placeholder="Escribe el detalle para el estudiante…"></textarea>
+
       <div class="actions">
         <button class="btn" id="btnCancelar">Cancelar</button>
         <button class="btn primary" id="btnGuardar">Guardar</button>
       </div>
     </div>
-  </div>
+
+
 
   <script type="application/javascript">
   // ========= DATA desde Django (escapado para JS) =========
@@ -176,6 +183,7 @@
         '<td><span class="status ' + ((x.estado_raw === 'APROBADA') ? 's-ok' : 's-warn') + '">' + x.estado + '</span></td>' +
         '<td>' + (x.fecha || '-') + '</td>' +
         '<td>' +
+          '<a class="btn" href="/accounts/revisor/ficha/' + x.id + '/">Ver detalles</a> ' +
           '<a class="btn" href="/accounts/revisar/ficha/' + x.id + '/aprobar/">Aprobar</a> ' +
           '<button class="btn" onclick="openMotivo(' + x.id + ')">Observar</button>' +
         '</td>';
@@ -195,15 +203,84 @@
   });
 
   btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
-  btnGuardar.onclick = function(){
-    // POST opcional aquí
-    mRechazo.classList.remove('open');
+  btnGuardar.onclick = async function() {
+    const motivo = txtMotivo.value.trim();
+    if (!motivo) {
+      alert("Por favor, escribe un motivo antes de guardar.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/accounts/revisar/ficha/${currentId}/observar/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ comentario: motivo }),
+      });
+
+      const body = await (async ()=> {
+        try { return await res.json(); } catch(e){ return null; }
+      })();
+
+      if (res.ok) {
+        alert("Comentario enviado correctamente ✅");
+        mRechazo.classList.remove('open');
+        // recargar historial en el modal (llama a openMotivo para refrescar)
+        openMotivo(currentId);
+      } else {
+        const errMsg = (body && (body.error || body.detail)) ? (body.error || body.detail) : "Hubo un error al enviar el comentario.";
+        alert(errMsg);
+      }
+    } catch (err) {
+      alert("Error de conexión: " + err.message);
+    }
   };
 
-  window.openMotivo = function(id){
+  // Función auxiliar para el CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  window.openMotivo = async function(id){
     currentId = id;
     txtMotivo.value = '';
+    const div = document.getElementById('oldComments');
+    div.innerHTML = '<em style="color:#666;">Cargando comentarios...</em>';
     mRechazo.classList.add('open');
+
+    try {
+      const res = await fetch(`/accounts/revisar/ficha/${currentId}/comentarios/`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length === 0) {
+          div.innerHTML = '<em style="color:#666;">No hay comentarios anteriores.</em>';
+        } else {
+          div.innerHTML = '';
+          data.forEach(c => {
+            const p = document.createElement('p');
+            p.innerHTML = `<strong>${c.revisor}</strong> (${c.fecha}): ${c.mensaje}`;
+            div.appendChild(p);
+          });
+        }
+      } else {
+        div.innerHTML = '<em style="color:#c00;">Error al cargar comentarios.</em>';
+      }
+    } catch (err) {
+    div.innerHTML = '<em style="color:#c00;">Error de conexión.</em>';
+    }
   };
 
   paint();

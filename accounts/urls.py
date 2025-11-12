@@ -11,6 +11,7 @@ from .views import (
     ApproveFichaView,
     ObserveFichaView,
     ficha_pdf,
+    obtener_comentarios,
 )
 from . import views
 
@@ -20,6 +21,11 @@ urlpatterns = [
 
     # Mantengo tu redirect de login
     path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
+    
+    path("revisar/ficha/<int:ficha_id>/comentarios/", obtener_comentarios, name="obtener_comentarios"),
+    path("revisar/ficha/<int:ficha_id>/observar/", ObserveFichaView.as_view(), name="observar_ficha"),
+    
+    path("revisor/ficha/<int:ficha_id>/", views.detalle_ficha_revisor, name="detalle_ficha_revisor"),
 
     # Raíz: decide según rol (REVIEWER -> revisiones; otros -> estudiante)
     path("", landing_por_rol, name="landing_por_rol"),
@@ -35,7 +41,6 @@ urlpatterns = [
     path("revisiones/pendientes/", ReviewDashboardView.as_view(), name="revisiones_pendientes"),
     path("revisar/documento/<int:doc_id>/", ReviewDocumentUpdateView.as_view(), name="revisar_documento"),
     path("revisar/ficha/<int:ficha_id>/aprobar/", ApproveFichaView.as_view(), name="aprobar_ficha"),
-    path("revisar/ficha/<int:ficha_id>/observar/", ObserveFichaView.as_view(), name="observar_ficha"),
     
     # Comentario
     path("documento/<int:id>/", views.detalle_documento, name="detalle_documento"),
