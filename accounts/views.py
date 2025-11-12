@@ -1,70 +1,54 @@
 from __future__ import annotations
 
 import hashlib
+import base64
+import logging
 from datetime import datetime
 from typing import List, Tuple, Optional
+from io import BytesIO
 
+# === Imports de Django ===
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import (
-    HttpRequest, HttpResponse, JsonResponse, HttpResponseForbidden
+    HttpRequest, HttpResponse, JsonResponse, HttpResponseForbidden, FileResponse
 )
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.text import slugify
 from django.views import View
 
-# === MODELOS ===
-from .models import (
-    StudentFicha, StudentDocuments, ComentarioDocumento, StudentGeneralPhotoBlob,
-    User, StudentGeneral, StudentAcademic, StudentMedicalBackground,
-    VaccineDose, SerologyResult, VaccineType, SerologyResultType,
-    StudentDocumentBlob, DocumentSection, DocumentItem,
-    DocumentReviewStatus, DocumentReviewLog, StudentDeclaration
-)
-
-# === FORMULARIOS ===
-from .forms import ComentarioDocumentoForm, ComentarioFichaForm
-
-
-
-from .forms import (
-    StudentGeneralForm, StudentAcademicForm, StudentMedicalForm,
-    StudentVaccinesForm, StudentDeclarationForm
-)
+# === Modelos de la App ===
 from .models import (
     User, StudentFicha, StudentGeneral, StudentAcademic, StudentMedicalBackground,
     VaccineDose, SerologyResult, VaccineType, SerologyResultType,
     StudentDocuments, StudentDocumentBlob, DocumentSection, DocumentItem,
-    DocumentReviewStatus, DocumentReviewLog, StudentDeclaration
+    DocumentReviewStatus, DocumentReviewLog, StudentDeclaration,
+    ComentarioDocumento, StudentGeneralPhotoBlob
 )
 
-from django.conf import settings
-from django.contrib.auth import logout
-from django.shortcuts import redirect, resolve_url
+# === Formularios de la App ===
+from .forms import (
+    ComentarioDocumentoForm, ComentarioFichaForm,
+    StudentGeneralForm, StudentAcademicForm, StudentMedicalForm,
+    StudentVaccinesForm, StudentDeclarationForm
+)
+
+# === Serializers y Utils ===
 from accounts.serializers import FichaDTO
-from django.contrib.auth import get_user_model
-
-#------------------------ informes pdf
-from django.http import FileResponse
-from io import BytesIO
-
-# from .utils.pdf import (
-#     render_html_to_pdf_bytes,
-#     merge_pdf_streams,
-#     image_bytes_to_singlepage_pdf_bytes,
-#     classify_attachment,
-#     title_page_pdf_bytes
-# )
 from .utils import pdf as pdf_utils
 
-from django.utils.text import slugify
+# === Configuración de Logging ===
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%(lineno)d] %(message)s')
 
-import base64
 
-
+# === Constantes ===
 SECTION_ORDER = [
     "Certificado de Alumno Regular",
     "Carnet - Anverso",
@@ -80,11 +64,7 @@ SECTION_ORDER = [
 ORDER_IDX = {name: i for i, name in enumerate(SECTION_ORDER)}
 
 
-#-----------------------------------
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s accounts.views:%(lineno)d] %(message)s')
-
+# === Funciones de Ayuda ===
 
 def _get_or_create_active_ficha(user: User) -> StudentFicha:
     ficha, _ = StudentFicha.objects.get_or_create(
@@ -93,7 +73,6 @@ def _get_or_create_active_ficha(user: User) -> StudentFicha:
         defaults={"estado_global": StudentFicha.Estado.DRAFT},
     )
     return ficha
-
 
 
 def _parse_date_safe(s: Optional[str]) -> Optional[datetime.date]:
@@ -178,7 +157,6 @@ def _save_ci_rule_guard(ficha: StudentFicha):
         raise ValueError("Existen más de dos adjuntos de CI (frente/reverso) para esta ficha.")
 
 
-# === CAMBIO MÍNIMO: eliminar adjuntos previos del mismo item antes de crear nuevos ===
 def _delete_existing_docs(ficha: StudentFicha, items: List[str]) -> None:
     """
     Borra (storage + BD) todos los adjuntos de la ficha cuyo item esté en 'items'.
@@ -194,8 +172,9 @@ def _delete_existing_docs(ficha: StudentFicha, items: List[str]) -> None:
             pass
         # 2) borrar registro (el blob se elimina por cascade)
         d.delete()
-# =============================================================================
 
+
+# === Vistas Principales (Clases) ===
 
 @method_decorator(login_required, name="dispatch")
 class FichaView(View):
@@ -271,8 +250,6 @@ class FichaView(View):
                 g.foto_ficha.delete(save=False)
                 g.foto_ficha = None
                 g.save(update_fields=["foto_ficha"])
-
-            
 
         # II. Académicos
         acad_form = StudentAcademicForm(request.POST)
@@ -352,7 +329,6 @@ class FichaView(View):
             logger.warning("Vacunas/Serología inválidas")
 
         # V. Documentos (adjuntos)
-        # names EXACTOS del HTML: todos con [] cuando corresponde
         file_map = {
             # Identificación
             "ci_archivos[]": (DocumentSection.GENERALES, DocumentItem.CI_FRENTE),  # alternamos frente/reverso por orden
@@ -385,12 +361,10 @@ class FichaView(View):
             if not files:
                 continue
 
-            # === CAMBIO: borrar existentes del/los mismo(s) item(s) antes de crear nuevos ===
             if input_name == "ci_archivos[]":
                 _delete_existing_docs(ficha, [DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO])
             else:
                 _delete_existing_docs(ficha, [item])
-            # ===============================================================================
 
             for idx, f in enumerate(files):
                 actual_item = item
@@ -423,7 +397,6 @@ class FichaView(View):
             ficha.estado_global = StudentFicha.Estado.ENVIADA if finalizar else StudentFicha.Estado.DRAFT
             ficha.save()
             logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-            logger.info(f"Académicos guardados ficha={ficha.id}")
 
         messages.success(request, "Ficha guardada correctamente.")
         
@@ -441,7 +414,7 @@ class FichaView(View):
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDashboardView(View):
-    template_name = "dashboards/revision_pendientes.html"  # <- usar el nuevo shell con sidebar
+    template_name = "dashboards/revision_pendientes.html"
 
     def get(self, request: HttpRequest) -> HttpResponse:
         if request.user.rol != "REVIEWER":
@@ -508,7 +481,6 @@ class ApproveFichaView(View):
         ficha.revisado_en = timezone.now()
         ficha.save()
         logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
 
 
@@ -525,9 +497,10 @@ class ObserveFichaView(View):
         ficha.revisado_en = timezone.now()
         ficha.save()
         logger.info(f"Estado final de la ficha={ficha.id} estado={ficha.estado_global}")
-        logger.info(f"Académicos guardados ficha={ficha.id}")
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
 
+
+# === Vistas de Autenticación y Dashboards (Funciones) ===
 
 def home(request):
     return redirect('dashboard_estudiante')
@@ -571,40 +544,41 @@ def ficha_pdf(request):
     if generales:
         if getattr(generales, "photo_blob", None) and generales.photo_blob.data:
             try:
+                # Prioridad 1: Usar el blob de la base de datos
                 foto_b64 = base64.b64encode(bytes(generales.photo_blob.data)).decode("ascii")
             except Exception:
                 foto_b64 = None
         elif generales.foto_ficha:
+            # Fallback: Intentar leer del sistema de archivos (ImageField)
+            try:
+                with generales.foto_ficha.open("rb") as f:
+                    foto_b64 = base64.b64encode(f.read()).decode("ascii")
+            except Exception:
+                pass
+            
+            # (Los intentos de 'path' y 'url' son menos fiables para PDF, pero los dejamos)
             try:
                 foto_path = f"file://{generales.foto_ficha.path}"
             except:
                 foto_path = None
-
             try:
                 foto_url = request.build_absolute_uri(generales.foto_ficha.url)
             except:
                 foto_url = None
 
-            try:
-                with generales.foto_ficha.open("rb") as f:
-                    foto_b64 = base64.b64encode(f.read()).decode("ascii")
-            except:
-                pass
 
     dto.setdefault("generales", {})
     dto["generales"]["foto_ficha_path"] = foto_path
     dto["generales"]["foto_ficha_url"] = foto_url
     dto["generales"]["foto_ficha_b64"] = foto_b64
 
-    # -------- PDF de la ficha (portada + contenido) --------
-    base_pdf = pdf_utils.render_html_to_pdf_bytes("pdf/ficha_pdf.html", {
-        "ficha": ficha,
-        "data": dto,
-        "comentarios": ficha.comentarios_ficha.all().order_by("-fecha"),
-    })
-
-    streams = [base_pdf]
-
+    # --- ANEXOS (NUEVO) ---
+    # Aquí preparamos la lista 'data.anexos' para el HTML
+    # Esto es para que los ANEXOS se muestren DENTRO del HTML principal
+    
+    anexos_para_html = []
+    streams_separados = [] # Para PDFs o archivos que irán al final
+    
     docs_qs = ficha.documents.select_related("blob").order_by("uploaded_at", "id")
 
     for doc in docs_qs:
@@ -622,25 +596,47 @@ def ficha_pdf(request):
 
         mime = (doc.file_mime or getattr(doc.file, "content_type", "") or "").lower()
         is_pdf, is_img = pdf_utils.classify_attachment(doc.file_name or "", mime)
+        
+        titulo = f"{doc.section} — {doc.item}" if doc.section and doc.item else "Documento adjunto"
+        
+        if is_img:
+            # Si es IMAGEN, la pasamos al HTML como Base64
+            try:
+                b64_data = base64.b64encode(raw).decode('ascii')
+                anexos_para_html.append({
+                    "titulo": titulo,
+                    "b64": b64_data,
+                    "mime": mime or "image/png", # El HTML lo usará en src="data:{{mime}}..."
+                })
+            except Exception:
+                pass # No se pudo encodear
+        
+        elif is_pdf:
+            # Si es PDF, lo agregamos para unirlo al final
+            subtitle = f"Alumno: {ficha.user.email}  |  Ficha #{ficha.id}"
+            if doc.file_name:
+                subtitle += f"  | archivo: {doc.file_name}"
+                
+            streams_separados.append(pdf_utils.title_page_pdf_bytes(titulo, subtitle))
+            streams_separados.append(raw)
 
-        title = f"{doc.section} — {doc.item}" if doc.section and doc.item else "Documento adjunto"
-        subtitle = f"Alumno: {ficha.user.email}  |  Ficha #{ficha.id}"
+    # Inyectamos los anexos de IMAGEN en el DTO
+    dto["anexos"] = anexos_para_html
 
-        if doc.file_name:
-            subtitle += f"  | archivo: {doc.file_name}"
+    # -------- PDF de la ficha (portada + contenido + imágenes) --------
+    base_pdf = pdf_utils.render_html_to_pdf_bytes("pdf/ficha_pdf.html", {
+        "ficha": ficha,
+        "data": dto, # 'dto' AHORA CONTIENE la data.anexos
+        "comentarios": ficha.comentarios_ficha.all().order_by("-fecha"),
+    })
 
-        streams.append(pdf_utils.title_page_pdf_bytes(title, subtitle))
+    # Lista final de PDFs a unir: El HTML principal + los PDFs separados
+    final_streams = [base_pdf] + streams_separados
 
-        if is_pdf:
-            streams.append(raw)
-        elif is_img:
-            streams.append(pdf_utils.image_bytes_to_singlepage_pdf_bytes(raw, mime=mime or "image/png"))
-
-    merged = pdf_utils.merge_pdf_streams(streams)
+    merged = pdf_utils.merge_pdf_streams(final_streams)
 
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
 
-User = get_user_model()
 
 def register(request):
     if request.method == "POST":
@@ -656,7 +652,7 @@ def register(request):
         try:
             User.objects.create_user(email=email, password=password1, rol=rol)
             messages.success(request, "Usuario creado correctamente.")
-            return redirect("login")  # login ya existe en el proyecto
+            return redirect("login")
 
         except Exception as e:
             messages.error(request, f"Error al crear usuario: {e}")
@@ -664,7 +660,7 @@ def register(request):
 
     return render(request, "accounts/register.html")
 
-# ✅ ESTA FUNCIÓN VA COMPLETAMENTE FUERA DE OTRAS FUNCIONES
+
 @login_required
 def detalle_documento(request, id):
     documento = get_object_or_404(StudentDocuments, id=id)
@@ -691,8 +687,6 @@ def detalle_documento(request, id):
         "puede_comentar": puede_comentar
     })
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
 
 @login_required
 def landing_por_rol(request):

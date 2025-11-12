@@ -15,12 +15,47 @@
     th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
     .kv td { border: none; padding: 2px 0; }
 
-    /* Foto arriba-derecha (versión única y funcional en xhtml2pdf) */
-    .foto-wrap { text-align: right; }
-    .foto-ficha { width: 400px; height: auto; display: inline-block; border: 1px solid #ddd; padding: 3px; background: #fff; }
-    .header-grid { width:100%; border-collapse:collapse; border:none; table-layout:fixed; }
+    /* --- ESTILOS DE CABECERA (CON TABLA) --- */
+    .header-grid { 
+        width:100%; 
+        border-collapse:collapse; 
+        border:none; 
+        table-layout:fixed; 
+        margin-top: 8px; /* Pequeño espacio bajo el H1 */
+    }
     .header-grid td { border:none; vertical-align:top; padding:0; }
-    .header-meta p { margin:0 0 2px 0; line-height:1.2; color:#555; font-size:12pt; }
+    .header-meta p { 
+        margin:0 0 2px 0; 
+        line-height:1.2; 
+        color:#555; 
+        font-size:12pt; 
+    }
+    
+    .foto-wrap { 
+        text-align: right; 
+    }
+    .foto-ficha {
+      width: 120px;       /* Ancho de foto carnet */
+      height: auto;       /* <-- Alto automático para NO ESTIRAR */
+      display: inline-block;
+      border: 1px solid #ddd;
+      padding: 3px;
+      background: #fff;
+    }
+
+    /* --- ESTILOS PARA ANEXOS --- */
+    .anexos-container {
+      page-break-inside: avoid;
+      margin-top: 10px;
+    }
+    .anexo-imagen {
+      max-width: 500px; /* Máximo 500px de ancho */
+      width: auto;      
+      height: auto;     /* Alto automático para NO ESTIRAR */
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -29,14 +64,13 @@
 
   <table class="header-grid">
     <tr>
-      <!-- Columna 1: datos -->
       <td class="header-meta">
         <p><b>ID Ficha:</b> {{ ficha.id }}</p>
         <p><b>Email:</b> {{ data.user_email }}</p>
         <p><b>Estado:</b> {{ ficha.get_estado_global_display }}</p>
       </td>
-      <!-- Columna 2: foto (derecha) -->
-      <td style="width:450px; text-align:right;">
+      
+      <td style="width: 130px; text-align:right; vertical-align:top;">
         {% if data.generales %}
           {% if data.generales.foto_ficha_path %}
             <div class="foto-wrap">
@@ -141,8 +175,25 @@
   </table>
   {% endif %}
 
+  {% if data.anexos %}
+  <h2>VII. Anexos</h2>
+  <p class="muted">Imágenes y documentos adjuntos.</p>
+  {% for anexo in data.anexos %}
+  <div class="anexos-container">
+    {% if anexo.titulo %}
+      <p style="margin-bottom: 4px;"><b>{{ anexo.titulo }}</b></p>
+    {% endif %}
+
+    {% if anexo.b64 %}
+      <img class="anexo-imagen" src="data:{{ anexo.mime|default:'image/png' }};base64,{{ anexo.b64 }}" alt="Anexo"/>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+
   <p class="muted" style="margin-top: 20px;">
-    — Fin de la ficha. A continuación se adjuntan los anexos (PDFs e imágenes) —
+    — Fin de la ficha —
   </p>
 </body>
 </html>
