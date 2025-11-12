@@ -26,6 +26,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 from django.views import View
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 
 # === MODELOS ===
 from .models import (
@@ -62,6 +63,7 @@ from .forms import (
 
 from accounts.serializers import FichaDTO
 from .utils import pdf as pdf_utils
+from .utils.review_map import build_prev_map
 
 SECTION_ORDER = [
     "Certificado de Alumno Regular",
@@ -657,20 +659,21 @@ def landing_por_rol(request):
 
 # ---------- Vista detalle para REVISOR con controles de revisión ----------
 @method_decorator(login_required, name="dispatch")
+
 class ReviewerFichaDetailView(View):
     """
-    Preview con radios ✓/✗ por campo y notas por cada rechazado.
-    Template: 'accounts/revisor_ficha.html'
-    AJAX:
-      - POST a 'api_review_field' para marcar campos
-      - POST a 'api_review_finalize' para finalizar y consolidar notas
+    Vista de detalle para revisor con radios ✓/✗ por campo y notas.
     """
     template_name = "accounts/revisor_ficha.html"
 
     def get(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
-        ficha = get_object_or_404(StudentFicha, pk=ficha_id)
+
+        ficha = get_object_or_404(
+            StudentFicha.objects.select_related("user", "generales", "academicos", "medicos", "declaracion"),
+            pk=ficha_id,
+        )
 
         sections = {
             "Antecedentes Generales": {
@@ -679,25 +682,39 @@ class ReviewerFichaDetailView(View):
                 "genero": getattr(ficha.generales, "genero", "") if hasattr(ficha, "generales") else "",
                 "telefono_celular": getattr(ficha.generales, "telefono_celular", "") if hasattr(ficha, "generales") else "",
                 "direccion_actual": getattr(ficha.generales, "direccion_actual", "") if hasattr(ficha, "generales") else "",
+                "direccion_origen": getattr(ficha.generales, "direccion_origen", "") if hasattr(ficha, "generales") else "",
+                "contacto_emergencia_nombre": getattr(ficha.generales, "contacto_emergencia_nombre", "") if hasattr(ficha, "generales") else "",
+                "contacto_emergencia_parentesco": getattr(ficha.generales, "contacto_emergencia_parentesco", "") if hasattr(ficha, "generales") else "",
+                "contacto_emergencia_telefono": getattr(ficha.generales, "contacto_emergencia_telefono", "") if hasattr(ficha, "generales") else "",
+                "centro_salud": getattr(ficha.generales, "centro_salud", "") if hasattr(ficha, "generales") else "",
+                "seguro": getattr(ficha.generales, "seguro", "") if hasattr(ficha, "generales") else "",
+                "seguro_detalle": getattr(ficha.generales, "seguro_detalle", "") if hasattr(ficha, "generales") else "",
             },
             "Antecedentes Académicos": {
+                "nombre_social": getattr(ficha.academicos, "nombre_social", "") if hasattr(ficha, "academicos") else "",
                 "carrera": getattr(ficha.academicos, "carrera", "") if hasattr(ficha, "academicos") else "",
                 "anio_cursa": getattr(ficha.academicos, "anio_cursa", "") if hasattr(ficha, "academicos") else "",
                 "estado": getattr(ficha.academicos, "estado", "") if hasattr(ficha, "academicos") else "",
                 "asignatura": getattr(ficha.academicos, "asignatura", "") if hasattr(ficha, "academicos") else "",
+                "correo_institucional": getattr(ficha.academicos, "correo_institucional", "") if hasattr(ficha, "academicos") else "",
+                "correo_personal": getattr(ficha.academicos, "correo_personal", "") if hasattr(ficha, "academicos") else "",
             },
             "Antecedentes Mórbidos": {
-                "grupo_sanguineo": getattr(ficha.medicos, "grupo_sanguineo", "") if hasattr(ficha, "medicos") else "",
                 "alergias_detalle": getattr(ficha.medicos, "alergias_detalle", "") if hasattr(ficha, "medicos") else "",
+                "grupo_sanguineo": getattr(ficha.medicos, "grupo_sanguineo", "") if hasattr(ficha, "medicos") else "",
                 "cronicas_detalle": getattr(ficha.medicos, "cronicas_detalle", "") if hasattr(ficha, "medicos") else "",
                 "medicamentos_detalle": getattr(ficha.medicos, "medicamentos_detalle", "") if hasattr(ficha, "medicos") else "",
+                "otros_antecedentes": getattr(ficha.medicos, "otros_antecedentes", "") if hasattr(ficha, "medicos") else "",
             },
         }
 
-        prev = {
-            fr.field_key: {"status": fr.status, "notes": fr.notes or ""}
-            for fr in ficha.field_reviews.all()
-        }
+        docs = (
+            StudentDocuments.objects.filter(ficha=ficha)
+            .only("id", "section", "item", "file_name", "file_mime", "review_status", "uploaded_at")
+            .order_by("section", "item", "-uploaded_at")
+        )
+
+        prev = build_prev_map(ficha)
 
         return render(
             request,
@@ -705,12 +722,10 @@ class ReviewerFichaDetailView(View):
             {
                 "ficha": ficha,
                 "sections": sections,
+                "docs": docs,
                 "prev": prev,
             },
         )
-
-
-# ---------- API: marcar un campo (✔/✖ y comentario) ----------
 @method_decorator(login_required, name="dispatch")
 class FieldReviewAPI(View):
     def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
@@ -746,7 +761,6 @@ class FinalizeReviewAPI(View):
     def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
-
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
         exists_no_ok = ficha.field_reviews.filter(status="REVISADO_NO_OK").exists()
@@ -785,3 +799,4 @@ class FinalizeReviewAPI(View):
         )
 
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
+    

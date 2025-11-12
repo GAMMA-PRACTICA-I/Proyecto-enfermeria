@@ -1,0 +1,113 @@
+diff --git a/accounts/utils/review_map.py b/accounts/utils/review_map.py
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/accounts/utils/review_map.py
+@@ -0,0 +1,25 @@
++from typing import Dict
++
++def build_prev_map(ficha) -> Dict[str, Dict[str, dict]]:
++    """
++    Devuelve un dict por sección->campo con 'status' y 'notes'
++    a partir de StudentFieldReview (ficha.field_reviews).
++    Formato esperado por la plantilla:
++      {
++        "Antecedentes Generales": {
++            "rut": {"status": "REVISADO_OK", "notes": "..."},
++            ...
++        },
++        ...
++      }
++    """
++    out: Dict[str, Dict[str, dict]] = {}
++    for fr in ficha.field_reviews.all():
++        sec = (fr.section or "").strip()
++        key = (fr.field_key or "").strip()
++        if not sec or not key:
++            continue
++        out.setdefault(sec, {})[key] = {
++            "status": fr.status,
++            "notes": fr.notes or "",
++        }
++    return out
+diff --git a/accounts/views.py b/accounts/views.py
+index 3d4b0c1..7f2f0aa 100644
+--- a/accounts/views.py
++++ b/accounts/views.py
+@@ -57,6 +57,8 @@ from accounts.serializers import FichaDTO
+ from .utils import pdf as pdf_utils
++# mapa de revisión por secciones/campos
++from .utils.review_map import build_prev_map
+ 
+ SECTION_ORDER = [
+     "Certificado de Alumno Regular",
+@@ -676,37 +678,63 @@ class ReviewerFichaDetailView(View):
+     template_name = "accounts/revisor_ficha.html"
+ 
+     def get(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
+         if request.user.rol != "REVIEWER":
+             return HttpResponseForbidden("No autorizado.")
+-        ficha = get_object_or_404(
+-        StudentFicha.objects.select_related(
+-                "user", "generales", "academicos", "medicos", "declaracion"
+-            ),
+-            pk=ficha_id,
+-        )
++        ficha = get_object_or_404(
++            StudentFicha.objects.select_related(
++                "user", "generales", "academicos", "medicos", "declaracion"
++            ),
++            pk=ficha_id,
++        )
+ 
+         # Documentos ordenados (se usan en la sección IV de la plantilla)
+         docs = (
+             StudentDocuments.objects.filter(ficha=ficha)
+             .only("id", "section", "item", "file_name", "file_mime", "review_status", "uploaded_at")
+             .order_by("section", "item", "-uploaded_at")
+         )
+ 
+-        # Mapa por secciones/campos con 'status' esperado por la plantilla:
+-        # {'GENERALES': {'rut': {'status': 'REVISADO_OK'}, ...}, ...}
+-        prev = build_prev_map(ficha)
+-        return render(
++        # Diccionario que la plantilla usa para pintar las filas por sección
++        sections = {
++            "Antecedentes Generales": {
++                "nombre_legal": getattr(ficha.generales, "nombre_legal", "") if hasattr(ficha, "generales") else "",
++                "rut": getattr(ficha.generales, "rut", "") if hasattr(ficha, "generales") else "",
++                "genero": getattr(ficha.generales, "genero", "") if hasattr(ficha, "generales") else "",
++                "telefono_celular": getattr(ficha.generales, "telefono_celular", "") if hasattr(ficha, "generales") else "",
++                "direccion_actual": getattr(ficha.generales, "direccion_actual", "") if hasattr(ficha, "generales") else "",
++            },
++            "Antecedentes Académicos": {
++                "carrera": getattr(ficha.academicos, "carrera", "") if hasattr(ficha, "academicos") else "",
++                "anio_cursa": getattr(ficha.academicos, "anio_cursa", "") if hasattr(ficha, "academicos") else "",
++                "estado": getattr(ficha.academicos, "estado", "") if hasattr(ficha, "academicos") else "",
++                "asignatura": getattr(ficha.academicos, "asignatura", "") if hasattr(ficha, "academicos") else "",
++            },
++            "Antecedentes Mórbidos": {
++                "grupo_sanguineo": getattr(ficha.medicos, "grupo_sanguineo", "") if hasattr(ficha, "medicos") else "",
++                "alergias_detalle": getattr(ficha.medicos, "alergias_detalle", "") if hasattr(ficha, "medicos") else "",
++                "cronicas_detalle": getattr(ficha.medicos, "cronicas_detalle", "") if hasattr(ficha, "medicos") else "",
++                "medicamentos_detalle": getattr(ficha.medicos, "medicamentos_detalle", "") if hasattr(ficha, "medicos") else "",
++            },
++        }
++
++        # Mapa por secciones/campos con 'status' y 'notes'
++        prev = build_prev_map(ficha)
++
++        return render(
+             request,
+             self.template_name,
+             {
+                 "ficha": ficha,
+-                "sections": sections,
+-                "prev": prev,
+-            },
+-        )
++                "sections": sections,
++                "docs": docs,
++                "prev": prev,
++            },
++        )
