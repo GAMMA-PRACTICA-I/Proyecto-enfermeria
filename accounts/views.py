@@ -659,62 +659,90 @@ def landing_por_rol(request):
 
 # ---------- Vista detalle para REVISOR con controles de revisión ----------
 @method_decorator(login_required, name="dispatch")
-
 class ReviewerFichaDetailView(View):
-    """
-    Vista de detalle para revisor con radios ✓/✗ por campo y notas.
-    """
     template_name = "accounts/revisor_ficha.html"
 
     def get(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
 
+        # Traemos todo lo necesario de una
         ficha = get_object_or_404(
-            StudentFicha.objects.select_related("user", "generales", "academicos", "medicos", "declaracion"),
+            StudentFicha.objects.select_related(
+                "user", "generales", "academicos", "medicos", "declaracion"
+            ),
             pk=ficha_id,
         )
 
+        # Helper para formatear valores vacíos
+        def V(x, default="-"):
+            if x is None:
+                return default
+            if isinstance(x, str):
+                x = x.strip()
+                return x if x else default
+            return x
+
+        def Vdate(d):
+            return d.strftime("%Y-%m-%d") if d else "-"
+
+        g = getattr(ficha, "generales", None)
+        a = getattr(ficha, "academicos", None)
+        m = getattr(ficha, "medicos", None)
+
+        # Secciones que la plantilla itera (Campo / Valor / Revisión)
         sections = {
             "Antecedentes Generales": {
-                "nombre_legal": getattr(ficha.generales, "nombre_legal", "") if hasattr(ficha, "generales") else "",
-                "rut": getattr(ficha.generales, "rut", "") if hasattr(ficha, "generales") else "",
-                "genero": getattr(ficha.generales, "genero", "") if hasattr(ficha, "generales") else "",
-                "telefono_celular": getattr(ficha.generales, "telefono_celular", "") if hasattr(ficha, "generales") else "",
-                "direccion_actual": getattr(ficha.generales, "direccion_actual", "") if hasattr(ficha, "generales") else "",
-                "direccion_origen": getattr(ficha.generales, "direccion_origen", "") if hasattr(ficha, "generales") else "",
-                "contacto_emergencia_nombre": getattr(ficha.generales, "contacto_emergencia_nombre", "") if hasattr(ficha, "generales") else "",
-                "contacto_emergencia_parentesco": getattr(ficha.generales, "contacto_emergencia_parentesco", "") if hasattr(ficha, "generales") else "",
-                "contacto_emergencia_telefono": getattr(ficha.generales, "contacto_emergencia_telefono", "") if hasattr(ficha, "generales") else "",
-                "centro_salud": getattr(ficha.generales, "centro_salud", "") if hasattr(ficha, "generales") else "",
-                "seguro": getattr(ficha.generales, "seguro", "") if hasattr(ficha, "generales") else "",
-                "seguro_detalle": getattr(ficha.generales, "seguro_detalle", "") if hasattr(ficha, "generales") else "",
+                "Nombre legal": V(getattr(g, "nombre_legal", "")),
+                "RUT": V(getattr(g, "rut", "")),
+                "Género": V(getattr(g, "genero", "")),
+                "Fecha de nacimiento": Vdate(getattr(g, "fecha_nacimiento", None)),
+                "Teléfono": V(getattr(g, "telefono_celular", "")),
+                "Dirección actual": V(getattr(g, "direccion_actual", "")),
+                "Dirección de origen": V(getattr(g, "direccion_origen", "")),
+                "Contacto emergencia": V(
+                    " / ".join(
+                        [
+                            s for s in [
+                                V(getattr(g, "contacto_emergencia_nombre", ""), ""),
+                                V(getattr(g, "contacto_emergencia_parentesco", ""), ""),
+                                V(getattr(g, "contacto_emergencia_telefono", ""), ""),
+                            ] if s
+                        ]
+                    )
+                ),
+                "Centro de salud": V(getattr(g, "centro_salud", "")),
+                "Seguro": V(getattr(g, "seguro", "")),
+                "Detalle seguro": V(getattr(g, "seguro_detalle", "")),
+                "Foto ficha (PNG)": ("Archivo presente" if getattr(g, "photo_blob", None) and g.photo_blob.data else "-"),
             },
             "Antecedentes Académicos": {
-                "nombre_social": getattr(ficha.academicos, "nombre_social", "") if hasattr(ficha, "academicos") else "",
-                "carrera": getattr(ficha.academicos, "carrera", "") if hasattr(ficha, "academicos") else "",
-                "anio_cursa": getattr(ficha.academicos, "anio_cursa", "") if hasattr(ficha, "academicos") else "",
-                "estado": getattr(ficha.academicos, "estado", "") if hasattr(ficha, "academicos") else "",
-                "asignatura": getattr(ficha.academicos, "asignatura", "") if hasattr(ficha, "academicos") else "",
-                "correo_institucional": getattr(ficha.academicos, "correo_institucional", "") if hasattr(ficha, "academicos") else "",
-                "correo_personal": getattr(ficha.academicos, "correo_personal", "") if hasattr(ficha, "academicos") else "",
+                "Nombre social": V(getattr(a, "nombre_social", "")),
+                "Carrera": V(getattr(a, "carrera", "")),
+                "Año que cursa": V(getattr(a, "anio_cursa", "")),
+                "Estado": V(getattr(a, "estado", "")),
+                "Asignatura": V(getattr(a, "asignatura", "")),
+                "Correo institucional": V(getattr(a, "correo_institucional", "")),
+                "Correo personal": V(getattr(a, "correo_personal", "")),
             },
             "Antecedentes Mórbidos": {
-                "alergias_detalle": getattr(ficha.medicos, "alergias_detalle", "") if hasattr(ficha, "medicos") else "",
-                "grupo_sanguineo": getattr(ficha.medicos, "grupo_sanguineo", "") if hasattr(ficha, "medicos") else "",
-                "cronicas_detalle": getattr(ficha.medicos, "cronicas_detalle", "") if hasattr(ficha, "medicos") else "",
-                "medicamentos_detalle": getattr(ficha.medicos, "medicamentos_detalle", "") if hasattr(ficha, "medicos") else "",
-                "otros_antecedentes": getattr(ficha.medicos, "otros_antecedentes", "") if hasattr(ficha, "medicos") else "",
+                "Alergias (detalle)": V(getattr(m, "alergias_detalle", "")),
+                "Grupo sanguíneo": V(getattr(m, "grupo_sanguineo", "")),
+                "Enfermedades crónicas": V(getattr(m, "cronicas_detalle", "")),
+                "Medicamentos diarios": V(getattr(m, "medicamentos_detalle", "")),
+                "Otros antecedentes": V(getattr(m, "otros_antecedentes", "")),
             },
         }
 
+        # Documentos (la plantilla tiene su sección)
         docs = (
             StudentDocuments.objects.filter(ficha=ficha)
             .only("id", "section", "item", "file_name", "file_mime", "review_status", "uploaded_at")
             .order_by("section", "item", "-uploaded_at")
         )
 
-        prev = build_prev_map(ficha)
+        # Mapa de estado previo por campo (para los pills ✓/✗)
+        prev = build_prev_map(ficha)  # accounts/utils/review_map.py
 
         return render(
             request,
@@ -726,6 +754,7 @@ class ReviewerFichaDetailView(View):
                 "prev": prev,
             },
         )
+
 @method_decorator(login_required, name="dispatch")
 class FieldReviewAPI(View):
     def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
