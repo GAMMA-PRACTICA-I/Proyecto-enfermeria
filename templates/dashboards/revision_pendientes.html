@@ -24,11 +24,12 @@
     .status{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #e6eaf0;background:#fff}
     .s-warn{background:#fff7ed;border-color:#fed7aa;color:#b45309}
     .s-ok{background:#ecfdf5;border-color:#bbf7d0;color:#059669}
+    .s-bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c} /* NUEVO: badge rojo para RECHAZADA */
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-    .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid #e6eaf0;background:#fff;text-decoration:none;color:#111}
+    .btn{display:inline-block;padding:8px 12px;border-radius:10px;border:1px solid #e6eaf0;background:#fff;text-decoration:none;color:#111;cursor:pointer}
     .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
 
-    /* Modal mínimo */
+    /* Modal mínimo (se mantiene aunque ya no se usa en esta lista) */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center}
     .modal.open{display:flex}
     .modal .box{width:520px;max-width:92vw;background:#fff;border-radius:12px;padding:16px;border:1px solid #e6eaf0}
@@ -39,7 +40,7 @@
 </head>
 <body>
 
-  <!-- ASIDE: calcado del estudiante, cambiando la etiqueta de rol y los links -->
+  <!-- ASIDE -->
   <aside
     style="
       width:260px;
@@ -86,7 +87,7 @@
     </div>
   </aside>
 
-  <!-- Contenedor desplazado igual que en estudiante -->
+  <!-- Contenedor -->
   <div style="margin-left:260px; min-height:100vh; overflow:auto;">
     <main class="main-content" style="width:100%;">
       <div class="wrap">
@@ -110,7 +111,7 @@
                 <th>Correo</th>
                 <th>Estado</th>
                 <th>Actualizada</th>
-                <th></th>
+                <th style="min-width:320px;"></th>
               </tr>
             </thead>
             <tbody><!-- se llena por JS --></tbody>
@@ -120,27 +121,20 @@
     </main>
   </div>
 
-  <!-- Modal motivo de rechazo -->
+  <!-- Modal motivo de rechazo (se conserva, ya no se dispara desde aquí) -->
   <div class="modal" id="mRechazo">
     <div class="box">
       <h3>Motivo de observación / rechazo</h3>
-
-      <div id="oldComments" style="max-height:150px; overflow:auto; border:1px solid #e6eaf0; border-radius:8px; padding:8px; background:#fafbfe; margin-bottom:10px;">
-        <em style="color:#666;">Cargando comentarios...</em>
-      </div>
-
       <textarea id="txtMotivo" placeholder="Escribe el detalle para el estudiante…"></textarea>
-
       <div class="actions">
         <button class="btn" id="btnCancelar">Cancelar</button>
         <button class="btn primary" id="btnGuardar">Guardar</button>
       </div>
     </div>
+  </div>
 
-
-
-  <script type="application/javascript">
-  // ========= DATA desde Django (escapado para JS) =========
+<script type="application/javascript">
+  // ========= DATA desde Django =========
   const DATA = [
     {% for f in fichas %}
     {
@@ -152,9 +146,34 @@
       estado_raw: "{{ f.estado_global|escapejs }}",
       fecha: "{{ f.updated_at|date:'Y-m-d H:i'|escapejs }}"
     }{% if not forloop.last %},{% endif %}
-    {% empty %}
-    {% endfor %}
+    {% empty %}{% endfor %}
   ];
+
+  // ====== URLs base (se rellenan con el ID) – se mantienen ======
+  const URL_FIELD_API_BASE   = "{% url 'api_review_field' 0 %}";
+  const URL_FINALIZE_API_BASE= "{% url 'api_review_finalize' 0 %}";
+  const URL_DETALLE_BASE     = "{% url 'revisor_ficha' 0 %}";
+
+  // ====== Helpers – se mantienen ======
+  function getCookie(name){
+    const v = ("; "+document.cookie).split("; "+name+"=");
+    if(v.length===2) return v.pop().split(";").shift();
+  }
+  async function post(url, data){
+    const form = new URLSearchParams();
+    for(const k in data){ form.append(k, data[k]); }
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {"X-CSRFToken": getCookie("csrftoken"), "X-Requested-With":"XMLHttpRequest"},
+      body: form
+    });
+    return await r.json();
+  }
+  function badgeClass(raw){
+    if(raw === 'APROBADA') return 's-ok';
+    if(raw === 'RECHAZADA') return 's-bad';
+    return 's-warn';
+  }
 
   const tbody = document.querySelector('#tbl tbody');
   const q = document.getElementById('q');
@@ -167,29 +186,86 @@
   let filtro = 'abiertas';
   let currentId = null;
 
+  function isCerrada(raw){
+    return raw === 'APROBADA' || raw === 'RECHAZADA';
+  }
+
   function paint(){
     const term = (q.value || '').toLowerCase().trim();
     const rows = DATA.filter(function(x){
-      const cerrada = (x.estado_raw === 'APROBADA' || x.estado_raw === 'CERRADA');
-      const byTab = (filtro === 'todas') || (filtro === 'cerradas' && cerrada) || (filtro === 'abiertas' && !cerrada);
-      const byText = !term || (String(x.nombre||'').toLowerCase().includes(term) || String(x.email||'').toLowerCase().includes(term));
+      const byTab =
+        (filtro === 'todas') ||
+        (filtro === 'cerradas' && isCerrada(x.estado_raw)) ||
+        (filtro === 'abiertas' && !isCerrada(x.estado_raw));
+      const byText = !term ||
+        String(x.nombre||'').toLowerCase().includes(term) ||
+        String(x.email||'').toLowerCase().includes(term);
       return byTab && byText;
     }).map(function(x){
       const tr = document.createElement('tr');
+      const detalleHref = URL_DETALLE_BASE.replace('/0/', `/${x.id}/`);
       tr.innerHTML =
         '<td>' + (x.nombre || '-') + '</td>' +
         '<td>' + (x.rut || '-') + '</td>' +
         '<td>' + (x.email || '-') + '</td>' +
-        '<td><span class="status ' + ((x.estado_raw === 'APROBADA') ? 's-ok' : 's-warn') + '">' + x.estado + '</span></td>' +
+        '<td><span class="status ' + badgeClass(x.estado_raw) + '">' + x.estado + '</span></td>' +
         '<td>' + (x.fecha || '-') + '</td>' +
         '<td>' +
-          '<a class="btn" href="/accounts/revisor/ficha/' + x.id + '/">Ver detalles</a> ' +
-          '<a class="btn" href="/accounts/revisar/ficha/' + x.id + '/aprobar/">Aprobar</a> ' +
-          '<button class="btn" onclick="openMotivo(' + x.id + ')">Observar</button>' +
+          `<a class="btn primary" href="${detalleHref}">Revisar</a> ` +
+          `<button class="btn js-finalizar" data-id="${x.id}">Finalizar revisión</button>` +
         '</td>';
       return tr;
     });
     tbody.replaceChildren.apply(tbody, rows);
+
+    // Wire de "Finalizar revisión" (llama finalize: si hay NO_OK => RECHAZADA; si no => APROBADA)
+    tbody.querySelectorAll('.js-finalizar').forEach(btn=>{
+      btn.onclick = async (e)=>{
+        const id = Number(e.currentTarget.dataset.id);
+        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`);
+        const res = await post(urlFinalize, {});
+        if(res.ok){
+          const it = DATA.find(z=>z.id===id);
+          if(it){
+            it.estado_raw = res.estado;
+            it.estado = (res.estado === 'APROBADA') ? 'Aprobada' :
+                        (res.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+          }
+          paint();
+        }else{
+          alert('No se pudo finalizar: ' + (res.error||'error'));
+        }
+      };
+    });
+
+    // Handlers del modal se conservan pero no se usan desde aquí
+    btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
+    btnGuardar.onclick = async function(){
+      if(!currentId) return;
+      const notes = (txtMotivo.value || '').trim();
+      try{
+        const urlField = URL_FIELD_API_BASE.replace('/0/', `/${currentId}/`);
+        const r1 = await post(urlField, {
+          field_key: "_global",
+          section: "Global",
+          status: "REVISADO_NO_OK",
+          notes
+        });
+        if(!r1.ok){ throw new Error('Fallo al registrar observación'); }
+        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${currentId}/`);
+        const r2 = await post(urlFinalize, {});
+        if(!r2.ok){ throw new Error('Fallo al finalizar revisión'); }
+        const it = DATA.find(z=>z.id===currentId);
+        if(it){
+          it.estado_raw = r2.estado;
+          it.estado = (r2.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+        }
+        paint();
+        mRechazo.classList.remove('open');
+      }catch(err){
+        alert(err.message || 'Error inesperado');
+      }
+    };
   }
 
   q.addEventListener('input', paint);
@@ -202,86 +278,14 @@
     });
   });
 
-  btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
-  btnGuardar.onclick = async function() {
-    const motivo = txtMotivo.value.trim();
-    if (!motivo) {
-      alert("Por favor, escribe un motivo antes de guardar.");
-      return;
-    }
-
-    try {
-      const res = await fetch(`/accounts/revisar/ficha/${currentId}/observar/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCookie('csrftoken'),
-        },
-        body: JSON.stringify({ comentario: motivo }),
-      });
-
-      const body = await (async ()=> {
-        try { return await res.json(); } catch(e){ return null; }
-      })();
-
-      if (res.ok) {
-        alert("Comentario enviado correctamente ✅");
-        mRechazo.classList.remove('open');
-        // recargar historial en el modal (llama a openMotivo para refrescar)
-        openMotivo(currentId);
-      } else {
-        const errMsg = (body && (body.error || body.detail)) ? (body.error || body.detail) : "Hubo un error al enviar el comentario.";
-        alert(errMsg);
-      }
-    } catch (err) {
-      alert("Error de conexión: " + err.message);
-    }
-  };
-
-  // Función auxiliar para el CSRF
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        cookie = cookie.trim();
-        if (cookie.startsWith(name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
-
-  window.openMotivo = async function(id){
+  // Exponer para potencial uso futuro del modal
+  window.openMotivo = function(id){
     currentId = id;
     txtMotivo.value = '';
-    const div = document.getElementById('oldComments');
-    div.innerHTML = '<em style="color:#666;">Cargando comentarios...</em>';
     mRechazo.classList.add('open');
-
-    try {
-      const res = await fetch(`/accounts/revisar/ficha/${currentId}/comentarios/`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.length === 0) {
-          div.innerHTML = '<em style="color:#666;">No hay comentarios anteriores.</em>';
-        } else {
-          div.innerHTML = '';
-          data.forEach(c => {
-            const p = document.createElement('p');
-            p.innerHTML = `<strong>${c.revisor}</strong> (${c.fecha}): ${c.mensaje}`;
-            div.appendChild(p);
-          });
-        }
-      } else {
-        div.innerHTML = '<em style="color:#c00;">Error al cargar comentarios.</em>';
-      }
-    } catch (err) {
-    div.innerHTML = '<em style="color:#c00;">Error de conexión.</em>';
-    }
   };
 
   paint();
 </script>
+</body>
+</html>

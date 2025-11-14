@@ -2,10 +2,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
-from accounts.views import home, logout_to_login
+from accounts.views import home, logout_to_login, ReviewerFichaDetailView, FieldReviewAPI, FinalizeReviewAPI
 from django.conf import settings
 
+
 urlpatterns = [
+    path("accounts/revisiones/<int:ficha_id>/", ReviewerFichaDetailView.as_view(), name="revisar_ficha"),
+    path("accounts/api/review/field/<int:ficha_id>/", FieldReviewAPI.as_view(), name="api_review_field"),
+    path("accounts/api/review/finalize/<int:ficha_id>/", FinalizeReviewAPI.as_view(), name="api_review_finalize"),
+
     # Admin
     path("admin/", admin.site.urls),
 

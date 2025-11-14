@@ -6,6 +6,8 @@ from django.db import models
 from django.utils import timezone
 from django.core.validators import FileExtensionValidator
 from django.db.models import Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 # =========================
 #  Usuarios / Roles
 # =========================
@@ -100,6 +102,7 @@ class StudentFicha(models.Model):
                 condition=Q(is_activa=True),
                 name="uniq_ficha_activa_por_usuario",
             )]
+    
     def save(self, *args, **kwargs):
         """Si esta ficha queda activa, desactiva cualquier otra activa del mismo usuario."""
         becoming_active = self.is_activa
@@ -111,6 +114,38 @@ class StudentFicha(models.Model):
             
     def __str__(self):
         return f"Ficha #{self.id} de {self.user.email} ({self.get_estado_global_display()})"
+
+
+
+
+
+#revision
+class StudentFieldReview(models.Model):
+    class Status(models.TextChoices):
+        OK = "REVISADO_OK", "Revisado OK"
+        NO_OK = "REVISADO_NO_OK", "Revisado NO OK"
+
+    ficha = models.ForeignKey("StudentFicha", on_delete=models.CASCADE, related_name="field_reviews")
+    section = models.CharField(max_length=80, db_index=True)     # p.ej. "Antecedentes Generales"
+    field_key = models.CharField(max_length=120, db_index=True)  # p.ej. "nombre_legal"
+    status = models.CharField(max_length=20, choices=Status.choices, db_index=True)
+    notes = models.TextField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="field_reviews_done"
+    )
+    reviewed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "student_field_review"
+        unique_together = [("ficha", "field_key")]
+        indexes = [
+            models.Index(fields=["ficha", "field_key"], name="idx_field_ficha_key"),
+            models.Index(fields=["ficha", "status"], name="idx_field_ficha_status"),
+        ]
+
+    def __str__(self):
+        return f"{self.ficha_id} • {self.section} • {self.field_key} → {self.status}"
 
 # =========================
 #  Comentarios
@@ -411,6 +446,21 @@ class StudentDocuments(models.Model):
             models.Index(fields=["ficha", "section", "item"], name="idx_doc_ficha_section_item"),
             models.Index(fields=["review_status"], name="idx_doc_review_status"),
         ]
+    def save(self, *args, **kwargs):
+        """
+        Reemplaza automáticamente documentos previos del mismo (ficha, item).
+        Queda solo el más reciente. Los blobs asociados se eliminan por CASCADE.
+        """
+        is_creating = self.pk is None
+        if is_creating and self.ficha_id and self.item:
+            siblings = type(self).objects.filter(
+                ficha_id=self.ficha_id,
+                item=self.item,)
+            for d in siblings:
+                d.delete()
+
+        super().save(*args, **kwargs)
+
 
     def clean(self):
         if self.item in (DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO):
@@ -496,20 +546,22 @@ class StudentDeclaration(models.Model):
     def __str__(self):
         return f"Declaración Ficha {self.ficha_id} - {self.nombre_estudiante}"
 
-def _delete_old_pdf_when_replacing(sender, instance: StudentFicha, **kwargs):
+@receiver(post_save, sender=StudentDocuments)
+def _replace_old_blobs_same_item(sender, instance: StudentDocuments, created: bool, **kwargs):
     """
-    Si la ficha ya existe y se va a reemplazar el FileField 'pdf',
-    eliminamos el archivo anterior del storage para no acumular PDFs viejos.
+    Cada vez que se crea un nuevo StudentDocuments para el mismo (ficha, item),
+    borra los documentos anteriores; por on_delete=CASCADE esto elimina también
+    sus StudentDocumentBlob asociados. No toca storage de archivos porque no se usan.
     """
-    if not instance.pk:
-        return
-    try:
-        old = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist:
+    if not created:
         return
 
-    # Si el nombre de archivo cambia (vamos a subir uno nuevo), borra el antiguo
-    old_file = getattr(old, "pdf", None)
-    new_file = getattr(instance, "pdf", None)
-    if old_file and old_file.name and (not new_file or old_file.name != new_file.name):
-        old_file.delete(save=False)
+    # Permite CI_FRENTE y CI_REVERSO coexistir; cada item es independiente
+    siblings_qs = sender.objects.filter(
+        ficha=instance.ficha,
+        item=instance.item,
+    ).exclude(pk=instance.pk).select_related("blob")
+
+    # delete() en StudentDocuments elimina también el OneToOne blob (CASCADE)
+    for old_doc in siblings_qs:
+        old_doc.delete()

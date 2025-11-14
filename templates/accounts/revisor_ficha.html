@@ -1,0 +1,147 @@
+{% load static %}{% load review_tags %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Ficha – Revisión</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,Arial,sans-serif;margin:0;color:#0b0b0b}
+    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    h1{margin:0 0 8px}
+    .meta{font-size:.9rem;color:#5b6a7a;margin-bottom:18px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid rgba(0,0,0,.12);padding:10px;vertical-align:top}
+    th{background:#f1f5f9;text-align:left}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.8rem;border:1px solid rgba(0,0,0,.2)}
+    .ok{background:#ecfdf5;border-color:#10b981}
+    .bad{background:#fff7ed;border-color:#f59e0b}
+    .muted{color:#64748b}
+    .row-actions{display:flex;gap:10px;align-items:center}
+    .radio{display:inline-flex;gap:6px;align-items:center;margin-right:12px}
+    textarea{width:100%;min-height:70px}
+    .section-title{margin:26px 0 8px;font-size:1.15rem}
+    .footer{margin:20px 0;display:flex;gap:12px}
+    button{cursor:pointer;border:1px solid rgba(0,0,0,.25);background:#fff;padding:8px 14px;border-radius:10px}
+    button.primary{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ficha Estudiante – Revisión</h1>
+  <div class="meta">
+    Ficha #{{ ficha.id }} • Usuario: {{ ficha.user.email }} • Estado Global: {{ ficha.estado_global|default:"-" }} •
+    Actualizada: {{ ficha.updated_at|date:"Y-m-d H:i" }}
+  </div>
+
+  {% for section_name, fields in sections.items %}
+    <div class="section-title">{{ forloop.counter }}. {{ section_name }}</div>
+    <table>
+      <thead>
+      <tr>
+        <th style="width:30%">Campo</th>
+        <th style="width:40%">Valor</th>
+        <th style="width:30%">Revisión</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for field_key, field_value in fields.items %}
+        {% with cur=prev|get_item:field_key %}
+        <tr data-section="{{ section_name }}" data-field="{{ field_key }}">
+          <td><strong>{{ field_key }}</strong></td>
+          <td class="muted">{{ field_value|default:"-" }}</td>
+          <td>
+            <div class="row-actions">
+              <label class="radio">
+                <input type="radio"
+                       name="r_{{ section_name|slugify }}_{{ field_key|slugify }}"
+                       value="REVISADO_OK"
+                       {% if cur and cur.status == "REVISADO_OK" %}checked{% endif %}
+                       onchange="markField('{{ ficha.id }}','{{ section_name|escapejs }}','{{ field_key|escapejs }}','REVISADO_OK', this)">
+                ✓ OK
+              </label>
+              <label class="radio">
+                <input type="radio"
+                       name="r_{{ section_name|slugify }}_{{ field_key|slugify }}"
+                       value="REVISADO_NO_OK"
+                       {% if cur and cur.status == "REVISADO_NO_OK" %}checked{% endif %}
+                       onchange="toggleNotes(this); markField('{{ ficha.id }}','{{ section_name|escapejs }}','{{ field_key|escapejs }}','REVISADO_NO_OK', this)">
+                ✗ No OK
+              </label>
+              <span class="pill {% if cur and cur.status == 'REVISADO_OK' %}ok{% else %}bad{% endif %}">
+                {% if cur and cur.status == 'REVISADO_OK' %}Revisado{% else %}Pendiente{% endif %}
+              </span>
+            </div>
+            <div class="notes" style="{% if cur and cur.status == 'REVISADO_NO_OK' %}{% else %}display:none{% endif %};margin-top:8px">
+              <textarea placeholder="Motivo del rechazo (visible al estudiante)" onblur="markField('{{ ficha.id }}','{{ section_name|escapejs }}','{{ field_key|escapejs }}', 'REVISADO_NO_OK', this)">{% if cur %}{{ cur.notes }}{% endif %}</textarea>
+            </div>
+          </td>
+        </tr>
+        {% endwith %}
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+
+  <div class="footer">
+    <button class="primary" onclick="finalizeReview('{{ ficha.id }}')">Finalizar revisión</button>
+  </div>
+</div>
+
+<script>
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  function closestTr(input){
+    let el = input;
+    while (el && el.tagName !== 'TR') el = el.parentElement;
+    return el;
+  }
+
+  function toggleNotes(input){
+    const tr = closestTr(input);
+    const notes = tr.querySelector('.notes');
+    if (!notes) return;
+    notes.style.display = input.value === 'REVISADO_NO_OK' && input.checked ? '' : 'none';
+  }
+
+  async function markField(fichaId, section, fieldKey, status, inputEl){
+    const tr = closestTr(inputEl);
+    const notesBox = tr.querySelector('.notes textarea');
+    const notes = (status === 'REVISADO_NO_OK' && notesBox) ? notesBox.value.trim() : '';
+
+    const res = await fetch(`/accounts/api/review/field/${fichaId}/`, {
+      method: 'POST',
+      headers: {'X-CSRFToken': csrftoken},
+      body: new URLSearchParams({section, field_key: fieldKey, status, notes})
+    });
+    if (!res.ok) { alert('No se pudo guardar el estado.'); return; }
+    const pill = tr.querySelector('.pill');
+    if (status === 'REVISADO_OK'){
+      pill.textContent = 'Revisado';
+      pill.classList.add('ok'); pill.classList.remove('bad');
+    } else {
+      pill.textContent = 'Pendiente';
+      pill.classList.add('bad'); pill.classList.remove('ok');
+    }
+  }
+
+  async function finalizeReview(fichaId){
+    const global_notes = prompt('Comentario general (opcional, se anexará a los rechazados):', '') || '';
+    const res = await fetch(`/accounts/api/review/finalize/${fichaId}/`, {
+      method: 'POST',
+      headers: {'X-CSRFToken': csrftoken},
+      body: new URLSearchParams({global_notes})
+    });
+    if (!res.ok){ alert('No se pudo finalizar la revisión.'); return; }
+    const data = await res.json();
+    alert('Revisión finalizada. Estado: ' + data.estado);
+    window.location.href = '/accounts/revisiones/';
+  }
+</script>
+</body>
+</html>
