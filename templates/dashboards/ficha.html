@@ -622,6 +622,29 @@
         </div>
         <hr>
 
+        <h3>📝 Comentario del Revisor</h3>
+
+        {% for c in comentarios_ficha %}
+        <div class="alert alert-secondary" style="margin-bottom:10px;">
+            <strong>{{ c.autor.get_full_name|default:c.autor.username }}</strong>
+            <small>({{ c.fecha|date:"d/m/Y H:i" }})</small>
+            <br>
+            {{ c.mensaje }}
+        </div>
+        {% empty %}
+        <p>No hay comentarios del revisor en esta ficha.</p>
+        {% endfor %}
+
+        {% if is_revisor %}
+        <form method="POST">
+            {% csrf_token %}
+            {{ form_comentario.as_p }}
+            <button type="submit" name="comentar" class="btn btn-warning">
+                Enviar comentario
+            </button>
+        </form>
+        {% endif %}
+
         </section>
         <input type="hidden" name="finalizar" value="1">
 </form>
