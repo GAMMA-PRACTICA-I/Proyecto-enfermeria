@@ -1,0 +1,52 @@
+{% extends './base.html' %}
+{% block title %}Resumen de antecedentes{% endblock %}
+{% block content %}
+  <h2>Resumen de antecedentes</h2>
+  <p class="muted">Documentos cargados por la estudiante y su estado de validación.</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Documento</th>
+        <th>Subido el</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Documento">Vacuna_influenza_2025.pdf</td>
+        <td data-label="Subido el">06/11/2025</td>
+        <td data-label="Estado"><span class="badge ok">Validado</span></td>
+        <td data-label="Acciones">
+          <div class="row-actions">
+            <button class="btn-sm btn-danger" onclick="alert('Eliminar vacuna (demo)')">Eliminar</button>
+            <button class="btn-sm" onclick="alert('Compartir vacuna (demo)')">Compartir</button>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td data-label="Documento">Hepatitis_B.pdf</td>
+        <td data-label="Subido el">05/11/2025</td>
+        <td data-label="Estado"><span class="badge pend">Pendiente</span></td>
+        <td data-label="Acciones">
+          <div class="row-actions">
+            <button class="btn-sm btn-danger" onclick="alert('Eliminar hepatitis (demo)')">Eliminar</button>
+            <button class="btn-sm" onclick="alert('Compartir hepatitis (demo)')">Compartir</button>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td data-label="Documento">PPD.pdf</td>
+        <td data-label="Subido el">04/11/2025</td>
+        <td data-label="Estado"><span class="badge ok">Validado</span></td>
+        <td data-label="Acciones">
+          <div class="row-actions">
+            <button class="btn-sm btn-danger" onclick="alert('Eliminar PPD (demo)')">Eliminar</button>
+            <button class="btn-sm" onclick="alert('Compartir PPD (demo)')">Compartir</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+{% endblock %}

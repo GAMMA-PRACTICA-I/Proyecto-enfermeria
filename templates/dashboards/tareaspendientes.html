@@ -1,0 +1,59 @@
+{% extends './base.html' %}
+{% block title %}Gestor de documentación{% endblock %}
+{% block content %}
+  <div class="alert">⚠️ Tienes documentación pendiente o próxima a vencer. Sube el PDF actualizado.</div>
+
+  <section style="margin-top:14px">
+    <h2>Subir nuevo certificado (PDF)</h2>
+    <p class="muted">Selecciona el archivo .pdf y luego presiona subir.</p>
+    <form onsubmit="event.preventDefault(); alert('PDF subido (demo)');" class="upload">
+      <label class="file">
+        <input type="file" id="pdf-file-input" accept="application/pdf" onchange="updateFileName(this)">
+        <span id="file-name-display">Seleccionar archivo...</span>
+      </label>
+      <button type="submit" class="btn-sm">Subir PDF</button>
+    </form>
+  </section>
+
+  <section style="margin-top:10px">
+    <h2>Certificados subidos</h2>
+    <p class="muted">Documentos registrados en la plataforma.</p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Nombre">Vacuna.pdf</td>
+          <td data-label="Fecha">06 nov 2025</td>
+          <td data-label="Estado"><span class="badge ok">Validado</span></td>
+          <td data-label="Acciones">
+            <button class="btn-sm" onclick="alert('Actualizar Vacuna.pdf')">Actualizar</button>
+          </td>
+        </tr>
+        <tr>
+          <td data-label="Nombre">HepatitisB.pdf</td>
+          <td data-label="Fecha">05 nov 2025</td>
+          <td data-label="Estado"><span class="badge pend">Pendiente</span></td>
+          <td data-label="Acciones">
+            <button class="btn-sm" onclick="alert('Actualizar HepatitisB.pdf')">Actualizar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateFileName(input){
+  const display = document.getElementById('file-name-display');
+  display.textContent = (input.files && input.files.length) ? input.files[0].name : 'Seleccionar archivo...';
+}
+</script>
+{% endblock %}

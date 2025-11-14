@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Portal Enfermería{% endblock %}</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+  @font-face{font-family:InterVar;src:local("Arial");font-weight:100 900}
+  </style>
+  <link rel="stylesheet" href="./styles.css">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <div class="title">UNAB · Enfermería</div>
+        <div class="subtitle">Panel del estudiante</div>
+        <nav class="nav" style="margin-top:10px">
+          <a href="./index.html">Inicio</a>
+          <a href="./resumen.html">Resumen de antecedentes</a>
+          <a href="./tareaspendientes.html">Gestor de documentación</a>
+        </nav>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" href="#" onclick="window.print()">🖨️ Imprimir</a>
+        <a class="btn primary" href="#">👤 Ana Pérez</a>
+      </div>
+    </header>
+
+    <main class="main-card">
+      {% block content %}{% endblock %}
+    </main>
+
+    <p class="footer">© 2025 UNAB · Proyecto académico (demo)</p>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
