@@ -1,107 +1,289 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Soporte · Proyecto Enfermería</title>
+<style>
+  .support-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);
+    gap:20px;
+    align-items:flex-start;
+  }
 
-  <!-- (opcional) Tailwind solo para utilidades rápidas -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <style>
-    :root{
-      --unab-black:#000000; --unab-red:#d71920;
-      --bg:#f6f7f9; --line:rgba(0,0,0,.12); --card:#ffffff; --radius:16px;
+  @media (max-width: 900px){
+    .support-layout{
+      grid-template-columns:minmax(0,1fr);
     }
-    body{background:var(--bg); color:#111827; font-family:system-ui,Segoe UI,Roboto,Arial}
-    .shell{max-width:980px;margin:28px auto;padding:0 16px}
-    .topnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .brand{display:flex;gap:10px;align-items:center}
-    .brand img{height:40px}
-    .nav a{padding:8px 12px;border-radius:10px;text-decoration:none;color:#111}
-    .nav a.active{background:var(--unab-red);color:#fff}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 2px 8px rgba(0,0,0,.05);padding:16px}
-    .row{display:grid;gap:12px;grid-template-columns:1fr}
-    @media (min-width:720px){.row{grid-template-columns:1fr 1fr}}
-    .input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
-    .btn{background:var(--unab-red);color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn.secondary{background:#fff;color:#111;border:1px solid var(--line)}
-  </style>
-</head>
-<body>
-  <div class="shell">
-    <!-- Barra superior -->
-    <header class="topnav">
-      <div class="brand">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Logo_Universidad_Andr%C3%A9s_Bello.svg/512px-Logo_Universidad_Andr%C3%A9s_Bello.svg.png" alt="UNAB">
-        <div>
-          <div class="font-extrabold leading-tight">Proyecto Enfermería</div>
-          <div class="text-sm text-slate-500">Universidad Andrés Bello</div>
-        </div>
+  }
+
+  .support-title{
+    font-size:1.1rem;
+    font-weight:600;
+    color:#0b3a7e;
+    margin:0 0 4px;
+  }
+
+  .support-subtitle{
+    margin:0 0 12px;
+    font-size:.9rem;
+    color:#6b7280;
+  }
+
+  .support-tags,
+  .support-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:10px;
+  }
+
+  .support-tag-pill{
+    display:inline-flex;
+    align-items:center;
+    padding:4px 9px;
+    border-radius:999px;
+    font-size:.75rem;
+    background:#0b3a7e;
+    color:#f9fafb;
+  }
+
+  .support-chip{
+    display:inline-flex;
+    align-items:center;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:.78rem;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+    color:#374151;
+  }
+
+  /* CARD FORMULARIO */
+
+  .support-form-card{
+    background:#ffffff;
+    border-radius:16px;
+    border:1px solid #dde3f0;
+    box-shadow:0 10px 28px rgba(15,23,42,.08);
+    padding:16px 18px 18px;
+  }
+
+  .support-form-card h3{
+    margin:0 0 6px;
+    font-size:1rem;
+    color:#0b3a7e;
+  }
+
+  .support-form-card p{
+    margin:0 0 12px;
+    font-size:.86rem;
+    color:#6b7280;
+  }
+
+  .support-form-group{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    margin-bottom:10px;
+    font-size:.85rem;
+  }
+
+  .support-form-group label{
+    color:#374151;
+  }
+
+  .support-input,
+  .support-select,
+  .support-textarea{
+    border-radius:10px;
+    border:1px solid #d1d5db;
+    padding:7px 9px;
+    font-size:.86rem;
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+    font-family:inherit;
+    background:#f9fafb;
+  }
+
+  .support-input:focus,
+  .support-select:focus,
+  .support-textarea:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 1px rgba(37,99,235,.25);
+    background:#ffffff;
+  }
+
+  .support-textarea{
+    min-height:90px;
+    resize:vertical;
+  }
+
+  .support-form-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:6px;
+  }
+
+  .btn-support{
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:.85rem;
+    border:1px solid transparent;
+    cursor:pointer;
+    font-family:inherit;
+    transition:background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease;
+  }
+
+  .btn-support-secondary{
+    background:#ffffff;
+    border-color:#d1d5db;
+    color:#374151;
+  }
+
+  .btn-support-secondary:hover{
+    background:#f3f4f6;
+  }
+
+  .btn-support-primary{
+    background:#2563eb;
+    border-color:#2563eb;
+    color:#f9fafb;
+    box-shadow:0 8px 18px rgba(37,99,235,.35);
+  }
+
+  .btn-support-primary:hover{
+    background:#1d4ed8;
+    border-color:#1d4ed8;
+    transform:translateY(-1px);
+  }
+
+  /* FAQ ABAJO */
+
+  .support-faq-row{
+    margin-top:18px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:14px;
+  }
+
+  .support-faq-card{
+    background:#ffffff;
+    border-radius:14px;
+    border:1px solid #e5e7eb;
+    padding:11px 13px 12px;
+    font-size:.82rem;
+    box-shadow:0 8px 20px rgba(15,23,42,.04);
+  }
+
+  .support-faq-card strong{
+    display:block;
+    margin-bottom:4px;
+    color:#111827;
+  }
+
+  .support-faq-card p{
+    margin:0;
+    color:#6b7280;
+  }
+</style>
+
+<div class="support-layout">
+
+  <!-- COLUMNA IZQUIERDA: INFO -->
+  <section>
+    <h2 class="support-title">Soporte y ayuda</h2>
+    <p class="support-subtitle">
+      Si tienes dudas sobre tu ficha, certificados o el proceso de campo clínico,
+      puedes enviar una solicitud al equipo de coordinación o revisar las preguntas frecuentes.
+    </p>
+
+    <div class="support-tags">
+      <span class="support-tag-pill">Enfermería · UNAB</span>
+      <span class="support-tag-pill">Campos clínicos</span>
+      <span class="support-tag-pill">Soporte estudiantil</span>
+    </div>
+
+    <div class="support-chips">
+      <span class="support-chip">
+        <strong style="margin-right:4px;">Correo coordinación:</strong>
+        campo.clinico@uandresbello.edu
+      </span>
+      <span class="support-chip">
+        <strong style="margin-right:4px;">Horario atención:</strong>
+        Lunes a viernes, 09:00–17:00 hrs.
+      </span>
+      <span class="support-chip">
+        <strong style="margin-right:4px;">Canal oficial:</strong>
+        Anuncios en Canvas / correo institucional.
+      </span>
+    </div>
+  </section>
+
+  <!-- COLUMNA DERECHA: FORMULARIO -->
+  <section class="support-form-card">
+    <h3>Enviar solicitud de soporte</h3>
+    <p>
+      Este formulario permite registrar consultas relacionadas con tu documentación.
+      En el proyecto real se asociaría a tu usuario y se notificaría al equipo correspondiente.
+    </p>
+
+    <form>
+      <div class="support-form-group">
+        <label for="tipo-consulta">Tipo de consulta</label>
+        <select id="tipo-consulta" class="support-select">
+          <option>Duda sobre ficha</option>
+          <option>Problema al subir certificado</option>
+          <option>Actualización de datos</option>
+          <option>Otra consulta</option>
+        </select>
       </div>
-      <nav class="nav">
-        <a href="soporte.html" class="active">Soporte</a>
-        <a href="tablero.html">Tablero de certificados</a>
-      </nav>
-    </header>
 
-    <!-- Contenido -->
-    <main>
-      <h1 class="text-2xl font-bold mb-2">Soporte</h1>
-      <p class="text-slate-600 mb-3">Crea un ticket de ayuda (demo front; luego se conecta a backend/Django).</p>
+      <div class="support-form-group">
+        <label for="asunto">Asunto</label>
+        <input
+          id="asunto"
+          class="support-input"
+          type="text"
+          placeholder="Ej: Error al subir certificado de vacunas">
+      </div>
 
-      <form class="card" id="formSupport">
-        <div class="row">
-          <div>
-            <label class="font-medium">Categoría</label>
-            <select class="input" name="categoria" required>
-              <option value="general">General</option>
-              <option value="tecnico">Problema técnico</option>
-              <option value="certificados">Certificados</option>
-              <option value="ficha">Ficha estudiantil</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-medium">Prioridad</label>
-            <select class="input" name="prioridad" required>
-              <option>Baja</option><option>Media</option><option>Alta</option>
-            </select>
-          </div>
-        </div>
+      <div class="support-form-group">
+        <label for="detalle">Detalle de la consulta</label>
+        <textarea
+          id="detalle"
+          class="support-textarea"
+          placeholder="Describe brevemente lo que sucede, indicando asignatura, campus y cualquier dato relevante."></textarea>
+      </div>
 
-        <div class="mt-3">
-          <label class="font-medium">Asunto</label>
-          <input class="input" name="asunto" placeholder="Describe brevemente tu problema" required>
-        </div>
+      <div class="support-form-actions">
+        <button type="reset" class="btn-support btn-support-secondary">Limpiar</button>
+        <button type="button" class="btn-support btn-support-primary">Enviar solicitud</button>
+      </div>
+    </form>
+  </section>
 
-        <div class="mt-3">
-          <label class="font-medium">Detalle</label>
-          <textarea class="input" name="detalle" rows="5" placeholder="Pasos para reproducir, mensajes de error, capturas, etc." required></textarea>
-        </div>
+</div>
 
-        <div class="row mt-3">
-          <div><label class="font-medium">Adjunto (opcional)</label><input class="input" type="file" name="file"></div>
-          <div><label class="font-medium">Correo de contacto</label><input class="input" type="email" name="correo" placeholder="tucorreo@unab.cl" required></div>
-        </div>
+<!-- FAQ ABAJO -->
+<section class="support-faq-row">
+  <article class="support-faq-card">
+    <strong>No veo mis certificados cargados</strong>
+    <p>
+      Verifica que el archivo se haya subido correctamente y actualiza la página.
+      Si el problema persiste, envía una captura de pantalla a soporte.
+    </p>
+  </article>
 
-        <div class="mt-3 flex gap-2">
-          <button class="btn" type="submit">Enviar ticket</button>
-          <button class="btn secondary" type="reset">Limpiar</button>
-        </div>
-      </form>
-    </main>
-  </div>
+  <article class="support-faq-card">
+    <strong>Mi ficha aparece como “observada”</strong>
+    <p>
+      Revisa los comentarios del revisor en la sección de certificados o ficha.
+      Una vez corregido el detalle, vuelve a subir el documento solicitado.
+    </p>
+  </article>
 
-  <script>
-    // Demo de envío (front-end)
-    document.getElementById('formSupport')?.addEventListener('submit', e=>{
-      e.preventDefault();
-      const f = new FormData(e.target);
-      alert('✅ Ticket enviado.\n\nCategoría: '+f.get('categoria')+
-            '\nPrioridad: '+f.get('prioridad')+
-            '\nAsunto: '+f.get('asunto'));
-      e.target.reset();
-    });
-  </script>
-</body>
-</html>
+  <article class="support-faq-card">
+    <strong>Cambio de campus o sección</strong>
+    <p>
+      Los cambios administrativos deben gestionarse con Secretaría de Estudios.
+      Luego puedes informar el cambio a coordinación de campo clínico.
+    </p>
+  </article>
+</section>
