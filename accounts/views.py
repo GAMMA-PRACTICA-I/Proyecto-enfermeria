@@ -180,9 +180,60 @@ def _delete_existing_docs(ficha: StudentFicha, items: List[str]) -> None:
         except Exception:
             pass
         d.delete()
-
-
+        
 @method_decorator(login_required, name="dispatch")
+class UpdateUserNameAPI(View):
+    """
+    API para que un REVIEWER pueda insertar el nombre (first_name/last_name)
+    a una cuenta de usuario usando el correo como identificador.
+    """
+    def post(self, request: HttpRequest) -> HttpResponse:
+        # 1. Validación de Rol
+        if request.user.rol not in ["REVIEWER", "ADMIN"]:
+            # CAMBIO: Devolver solo JsonResponse con el status code
+            return JsonResponse({"ok": False, "error": "No autorizado. Rol insuficiente."}, status=403)
+
+        # 2. Obtención y saneamiento de datos
+        email = (request.POST.get("email") or "").strip()
+        first_name = (request.POST.get("first_name") or "").strip()
+        last_name = (request.POST.get("last_name") or "").strip()
+
+        if not email or (not first_name and not last_name):
+            # CAMBIO: Devolver solo JsonResponse con el status code
+            return JsonResponse({"ok": False, "error": "Faltan email y/o nombres."}, status=400)
+
+        # 3. Búsqueda de Usuario
+        try:
+            User = get_user_model()
+            # Búsqueda case-insensitive por email
+            user_to_update = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return JsonResponse({"ok": False, "error": f"Usuario con email '{email}' no encontrado."}, status=404)
+        
+# 4. Realizamos la actualización
+        fields_to_update = []
+        if first_name:
+            user_to_update.first_name = first_name
+            fields_to_update.append("first_name")
+        if last_name:
+            user_to_update.last_name = last_name
+            fields_to_update.append("last_name")
+
+        # fields_to_update.append("updated_at") # <-- ELIMINADO/COMENTADO.
+
+        try:
+            if fields_to_update: # Solo guardar si hay algo que actualizar
+                user_to_update.save(update_fields=fields_to_update)
+        except Exception as e:
+            # Capturar cualquier error de base de datos o interno
+            return JsonResponse({"ok": False, "error": f"Error al guardar: {str(e)}"}, status=500)
+        
+        return JsonResponse({
+            "ok": True, 
+            "message": f"Nombre actualizado para el correo {email}.",
+            "new_name": user_to_update.get_full_name()
+        })
+
 class FichaView(View):
     template_name = "dashboards/estudiante.html"
 
@@ -516,12 +567,29 @@ def dashboard_estudiante(request):
 
 
 @login_required
-def ficha_pdf(request):
-    ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
-    if not ficha:
-        return redirect("ficha")
+def ficha_pdf(request: HttpRequest) -> HttpResponse:
+    ficha_id = request.GET.get("ficha_id")
 
+    if ficha_id and request.user.rol == "REVIEWER":
+        # Opción para REVISOR: busca la ficha por ID
+        try:
+            # Usar int(ficha_id) para garantizar que el valor es numérico
+            ficha = StudentFicha.objects.get(pk=int(ficha_id))
+        except (ValueError, StudentFicha.DoesNotExist):
+            return HttpResponseBadRequest("Ficha no encontrada o ID inválido.")
+    else:
+        # Opción por defecto (ESTUDIANTE o REVISOR sin ID): usa la ficha activa del usuario
+        ficha = StudentFicha.objects.filter(user=request.user, is_activa=True).first()
+        if not ficha:
+            # Si no es revisor y no tiene ficha activa, redirige al formulario
+            if request.user.rol != "REVIEWER":
+                return redirect("ficha")
+            # Si es revisor y no hay ficha activa propia, da error
+            return HttpResponseBadRequest("No hay ficha activa para previsualizar.")
+        
     dto = FichaDTO.from_model(ficha).to_dict()
+    # ... (el resto de la función se mantiene)
+    
     generales = getattr(ficha, "generales", None)
 
     foto_path = foto_url = foto_b64 = None
@@ -594,6 +662,63 @@ def ficha_pdf(request):
     merged = pdf_utils.merge_pdf_streams(streams)
     return FileResponse(BytesIO(merged), content_type="application/pdf", filename=f"ficha_{ficha.id}.pdf")
 
+@login_required
+def delete_account_tool_view(request: HttpRequest) -> HttpResponse:
+    """
+    Renderiza la herramienta de eliminación de cuentas.
+    Solo accesible para Revisores y Administradores.
+    """
+    if request.user.rol not in ["REVIEWER", "ADMIN"]:
+        return HttpResponseForbidden("No autorizado. Esta herramienta es solo para Revisores o Administradores.")
+    return render(request, "accounts/delete_account_tool.html")
+
+@method_decorator(login_required, name="dispatch")
+class DeleteUserAPI(View):
+    """
+    API para eliminar una cuenta de usuario usando el correo.
+    Restringida a rol REVIEWER o ADMIN.
+    """
+    def post(self, request: HttpRequest) -> HttpResponse:
+        # 1. Validación de Rol
+        if request.user.rol not in ["REVIEWER", "ADMIN"]:
+            return JsonResponse({"ok": False, "error": "No autorizado. Rol insuficiente."}, status=403)
+
+        # 2. Obtención y saneamiento de datos
+        email_to_delete = (request.POST.get("email") or "").strip()
+
+        if not email_to_delete:
+            return JsonResponse({"ok": False, "error": "El campo de email no puede estar vacío."}, status=400)
+
+        # 3. Búsqueda y eliminación
+        try:
+            User = get_user_model()
+            user_to_delete = User.objects.get(email__iexact=email_to_delete)
+        except User.DoesNotExist:
+            return JsonResponse({"ok": False, "error": f"Usuario con email '{email_to_delete}' no encontrado."}, status=404)
+
+        # 4. Evitar que un usuario se borre a sí mismo
+        if user_to_delete.pk == request.user.pk:
+            return JsonResponse({"ok": False, "error": "No puedes eliminar tu propia cuenta."}, status=400)
+
+        # 5. Eliminación (CASCADE eliminará fichas y documentos asociados)
+        user_to_delete.delete()
+
+        return JsonResponse({
+            "ok": True,
+            "message": f"Cuenta y datos asociados de {email_to_delete} eliminados exitosamente."
+        })
+
+User = get_user_model()
+
+@login_required
+def update_name_tool_view(request: HttpRequest) -> HttpResponse:
+    """
+    Renderiza la herramienta de actualización de nombre para el revisor.
+    """
+    # Restringe el acceso solo a Revisores y Administradores
+    if request.user.rol not in ["REVIEWER", "ADMIN"]:
+        return HttpResponseForbidden("No autorizado. Esta herramienta es solo para Revisores.")
+    return render(request, "accounts/update_name_tool.html")
 
 User = get_user_model()
 
@@ -602,15 +727,28 @@ def register(request):
     if request.method == "POST":
         email = request.POST.get("email")
         rol = request.POST.get("rol")
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
         password1 = request.POST.get("password1")
         password2 = request.POST.get("password2")
 
         if password1 != password2:
             messages.error(request, "Las contraseñas no coinciden.")
             return redirect("register")
+        
+        if not first_name or not last_name:
+            messages.error(request, "El nombre de pila y el apellido son obligatorios.")
+            return redirect("register")
 
         try:
-            User.objects.create_user(email=email, password=password1, rol=rol)
+            # Crear usuario, pasando los campos de nombre/apellido como argumentos
+            User.objects.create_user(
+                email=email, 
+                password=password1, 
+                rol=rol,
+                first_name=first_name,  # <--- Usando la variable local leída de POST
+                last_name=last_name     # <--- Usando la variable local leída de POST
+            )
             messages.success(request, "Usuario creado correctamente.")
             return redirect("login")
         except Exception as e:

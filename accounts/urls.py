@@ -1,4 +1,3 @@
-# accounts/urls.py
 from django.urls import path
 from django.views.generic.base import RedirectView
 
@@ -14,14 +13,22 @@ from .views import (
     ObserveFichaView,
     FieldReviewAPI,         # <- OJO: FieldReviewAPI (no ReviewFieldAPI)
     FinalizeReviewAPI,
+    UpdateUserNameAPI,
+    delete_account_tool_view,
+    DeleteUserAPI,
     ficha_pdf,
     detalle_documento,
+    update_name_tool_view,
 )
 
 urlpatterns = [
+    
     # Inicio según rol
     path("", landing_por_rol, name="landing_por_rol"),
-
+    
+    #Herramientas para administrador (despues quitar permiso a revisor)
+    path("revisiones/herramientas/nombre/", update_name_tool_view, name="update_name_tool"),
+    path("revisiones/herramientas/eliminar-cuenta/", delete_account_tool_view, name="delete_account_tool"),
     # Auth/registro
     path("register/", register, name="register"),
     path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
@@ -43,7 +50,9 @@ urlpatterns = [
     # APIs que consume el JS del panel
     path("api/review/field/<int:ficha_id>/", FieldReviewAPI.as_view(), name="api_review_field"),
     path("api/review/finalize/<int:ficha_id>/", FinalizeReviewAPI.as_view(), name="api_review_finalize"),
-
+    path("api/user/update-name/", UpdateUserNameAPI.as_view(), name="api_update_user_name"),
+    path("api/user/delete/", DeleteUserAPI.as_view(), name="api_delete_user"),
+    
     # Detalle de documento
     path("documento/<int:id>/", detalle_documento, name="detalle_documento"),
 ]

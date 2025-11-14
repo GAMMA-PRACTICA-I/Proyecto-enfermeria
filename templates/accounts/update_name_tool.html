@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <title>Herramienta – Asignar Nombre a Cuenta</title>
+    <style>
+        /* Estilos básicos para la herramienta */
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
+        .box { width: 400px; max-width: 95%; margin: 20px auto; background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { font-size: 22px; margin-top: 0; }
+        p.muted { color: #555; font-size: 14px; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
+        input[type="email"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 4px; }
+        .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid #e6eaf0; background: #fff; text-decoration: none; cursor: pointer; }
+        .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .message-box { padding: 10px; margin-top: 15px; border-radius: 6px; }
+        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h1>✏️ Herramienta: Asignar Nombre a Cuenta</h1>
+    <p class="muted">
+        Ingresa el correo del usuario y su nombre y/o apellido para actualizar su registro de usuario.
+    </p>
+
+    <form id="frmNameUpdate">
+        {% csrf_token %}
+        <label for="updEmail">Correo del usuario (identificador)</label>
+        <input type="email" id="updEmail" name="email" placeholder="ejemplo@unab.cl" required>
+
+        <label for="updFirstName">Nombre de pila (first_name)</label>
+        <input type="text" id="updFirstName" name="first_name" placeholder="Juan">
+
+        <label for="updLastName">Apellido (last_name)</label>
+        <input type="text" id="updLastName" name="last_name" placeholder="Pérez">
+        
+        <div id="messageBox" class="message-box" style="display:none;"></div>
+
+        <div class="actions">
+            <a class="btn" href="{% url 'revisiones_pendientes' %}">Volver al Panel</a> 
+            <button type="submit" class="btn primary" id="btnUpdateName">Guardar Nombre</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // URL de la API que acabamos de crear
+    const URL_UPDATE_NAME_API = "{% url 'api_update_user_name' %}";
+
+    // Elementos DOM
+    const frmNameUpdate = document.getElementById('frmNameUpdate');
+    const updEmail = document.getElementById('updEmail');
+    const updFirstName = document.getElementById('updFirstName');
+    const updLastName = document.getElementById('updLastName');
+    const btnUpdateName = document.getElementById('btnUpdateName');
+    const messageBox = document.getElementById('messageBox');
+
+    // Helper para mostrar mensajes
+    function showMessage(type, content) {
+        messageBox.style.display = 'block';
+        messageBox.className = 'message-box ' + type;
+        messageBox.textContent = content;
+    }
+
+    // Helper para obtener el CSRF token (esencial para peticiones POST en Django)
+    function getCookie(name) {
+        const v = ("; " + document.cookie).split("; " + name + "=");
+        if (v.length === 2) return v.pop().split(";").shift();
+    }
+
+    // Helper para realizar la petición POST
+    async function post(url, data) {
+        const form = new URLSearchParams();
+        for (const k in data) { form.append(k, data[k]); }
+        const r = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: form
+        });
+        
+        let json_data;
+        try {
+            json_data = await r.json();
+        } catch (e) {
+            return { ok: false, error: "Error de servidor (respuesta no JSON)." };
+        }
+        
+        return json_data;
+    }
+
+    frmNameUpdate.onsubmit = async function(e) {
+        e.preventDefault();
+        messageBox.style.display = 'none'; // Limpiar mensaje anterior
+
+        const email = (updEmail.value || '').trim();
+        const firstName = (updFirstName.value || '').trim();
+        const lastName = (updLastName.value || '').trim();
+
+        if (!email || (!firstName && !lastName)) {
+            showMessage('error', "Debe ingresar un email y al menos un nombre o apellido.");
+            return;
+        }
+
+        const dataToSend = {
+            email: email,
+            first_name: firstName,
+            last_name: lastName
+        };
+
+        btnUpdateName.disabled = true;
+        btnUpdateName.textContent = 'Guardando...';
+
+        try {
+            const res = await post(URL_UPDATE_NAME_API, dataToSend);
+
+            if (res.ok) {
+                showMessage('success', `✅ Éxito: ${res.message} Nombre completo actual: ${res.new_name}`);
+                // Limpiar campos para otra entrada
+                updEmail.value = '';
+                updFirstName.value = '';
+                updLastName.value = '';
+            } else {
+                showMessage('error', `❌ Fallo: ${res.error || 'Error desconocido al actualizar.'}`);
+            }
+        } catch (err) {
+            showMessage('error', "⚠️ Error de conexión/servidor. Revisa la consola.");
+            console.error(err);
+        } finally {
+            btnUpdateName.disabled = false;
+            btnUpdateName.textContent = 'Guardar Nombre';
+        }
+    };
+</script>
+
+</body>
+</html>

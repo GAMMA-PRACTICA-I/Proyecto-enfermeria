@@ -149,6 +149,8 @@
     {% empty %}{% endfor %}
   ];
 
+  const URL_PDF_BASE         = "{% url 'ficha_pdf' %}".replace('/ficha/pdf/', '/ficha/pdf/?ficha_id=0');
+
   // ====== URLs base (se rellenan con el ID) – se mantienen ======
   const URL_FIELD_API_BASE   = "{% url 'api_review_field' 0 %}";
   const URL_FINALIZE_API_BASE= "{% url 'api_review_finalize' 0 %}";
@@ -201,9 +203,12 @@
         String(x.nombre||'').toLowerCase().includes(term) ||
         String(x.email||'').toLowerCase().includes(term);
       return byTab && byText;
+// revision_pendientes.html (NUEVO CÓDIGO)
     }).map(function(x){
       const tr = document.createElement('tr');
       const detalleHref = URL_DETALLE_BASE.replace('/0/', `/${x.id}/`);
+      const pdfHref = URL_PDF_BASE.replace('ficha_id=0', `ficha_id=${x.id}`); // Añadir esta línea
+
       tr.innerHTML =
         '<td>' + (x.nombre || '-') + '</td>' +
         '<td>' + (x.rut || '-') + '</td>' +
@@ -211,8 +216,9 @@
         '<td><span class="status ' + badgeClass(x.estado_raw) + '">' + x.estado + '</span></td>' +
         '<td>' + (x.fecha || '-') + '</td>' +
         '<td>' +
-          `<a class="btn primary" href="${detalleHref}">Revisar</a> ` +
-          `<button class="btn js-finalizar" data-id="${x.id}">Finalizar revisión</button>` +
+        `<a class="btn" href="${pdfHref}" target="_blank">Ficha</a> ` + // Usar la variable calculada
+        `<a class="btn primary" href="${detalleHref}">Revisar</a> ` +
+        `<button class="btn js-finalizar" data-id="${x.id}">Finalizar revisión</button>` +
         '</td>';
       return tr;
     });

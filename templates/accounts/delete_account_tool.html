@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <title>Herramienta – Eliminar Cuenta</title>
+    <style>
+        /* Estilos base */
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
+        .box { width: 400px; max-width: 95%; margin: 20px auto; background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { font-size: 22px; margin-top: 0; color: #dc3545; }
+        p.muted { color: #555; font-size: 14px; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
+        input[type="email"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 4px; border-color: #dc3545; }
+        .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid #e6eaf0; background: #fff; text-decoration: none; cursor: pointer; }
+        .btn.danger { background: #dc3545; border-color: #dc3545; color: #fff; }
+        .message-box { padding: 10px; margin-top: 15px; border-radius: 6px; }
+        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h1>🗑️ Eliminar Cuenta de Usuario</h1>
+    <p class="muted" style="color: #dc3545;">
+        ⚠️ **ADVERTENCIA:** Esta acción es irreversible y eliminará el usuario y todos los datos asociados (fichas, documentos, comentarios).
+    </p>
+
+    <form id="frmDeleteUser">
+        {% csrf_token %}
+        <label for="delEmail">Correo del usuario a eliminar</label>
+        <input type="email" id="delEmail" name="email" placeholder="ejemplo@unab.cl" required>
+
+        <div id="messageBox" class="message-box" style="display:none;"></div>
+
+        <div class="actions">
+            <a class="btn" href="{% url 'revisiones_pendientes' %}">Volver al Panel</a>
+            <button type="submit" class="btn danger" id="btnDeleteUser">ELIMINAR PERMANENTEMENTE</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const URL_DELETE_API = "{% url 'api_delete_user' %}";
+    const frmDeleteUser = document.getElementById('frmDeleteUser');
+    const delEmail = document.getElementById('delEmail');
+    const btnDeleteUser = document.getElementById('btnDeleteUser');
+    const messageBox = document.getElementById('messageBox');
+
+    function showMessage(type, content) {
+        messageBox.style.display = 'block';
+        messageBox.className = 'message-box ' + type;
+        messageBox.textContent = content;
+    }
+
+    function getCookie(name) {
+        const v = ("; " + document.cookie).split("; " + name + "=");
+        if (v.length === 2) return v.pop().split(";").shift();
+    }
+
+    async function post(url, data) {
+        const form = new URLSearchParams();
+        for (const k in data) { form.append(k, data[k]); }
+        const r = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: form
+        });
+
+        let json_data;
+        try {
+            json_data = await r.json();
+        } catch (e) {
+            return { ok: false, error: "Error de servidor (respuesta no JSON)." };
+        }
+
+        return json_data;
+    }
+
+    frmDeleteUser.onsubmit = async function(e) {
+        e.preventDefault();
+        messageBox.style.display = 'none';
+
+        const email = (delEmail.value || '').trim();
+
+        if (!confirm(`¿Estás seguro de que deseas ELIMINAR permanentemente la cuenta de usuario con el email: ${email}? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        btnDeleteUser.disabled = true;
+        btnDeleteUser.textContent = 'Eliminando...';
+
+        try {
+            const res = await post(URL_DELETE_API, { email: email });
+
+            if (res.ok) {
+                showMessage('success', `✅ Éxito: ${res.message}`);
+                delEmail.value = ''; // Limpiar campo tras éxito
+            } else {
+                showMessage('error', `❌ Fallo: ${res.error || 'Error desconocido.'}`);
+            }
+        } catch (err) {
+            showMessage('error', "⚠️ Error de conexión/servidor. Revisa la consola.");
+            console.error(err);
+        } finally {
+            btnDeleteUser.disabled = false;
+            btnDeleteUser.textContent = 'ELIMINAR PERMANENTEMENTE';
+        }
+    };
+</script>
+
+</body>
+</html>
