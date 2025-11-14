@@ -13,15 +13,26 @@
 
     table { width: 100%; border-collapse: collapse; margin: 8px 0; }
     th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
-    .kv td { border: none; padding: 2px 0; }
+    
+    /* Estilo de tablas .kv (Key-Value) */
+    .kv {
+        border-top: 1px solid #ccc; 
+        margin-top: 4px;
+        margin-bottom: 12px;
+    }
+    .kv td { 
+      border: none; 
+      padding: 5px 0; 
+      border-bottom: 1px solid #f0f0f0; 
+    }
 
-    /* --- ESTILOS DE CABECERA (CON TABLA) --- */
+    /* ESTILOS DE CABECERA (CON TABLA) */
     .header-grid { 
         width:100%; 
         border-collapse:collapse; 
         border:none; 
         table-layout:fixed; 
-        margin-top: 8px; /* Pequeño espacio bajo el H1 */
+        margin-top: 8px; 
     }
     .header-grid td { border:none; vertical-align:top; padding:0; }
     .header-meta p { 
@@ -35,32 +46,37 @@
         text-align: right; 
     }
     .foto-ficha {
-      width: 120px;       /* Ancho de foto carnet */
-      height: auto;       /* <-- Alto automático para NO ESTIRAR */
+      width: 120px;       
+      height: auto;       
       display: inline-block;
       border: 1px solid #ddd;
       padding: 3px;
       background: #fff;
     }
 
-    /* --- ESTILOS PARA ANEXOS --- */
+    /* ESTILOS PARA ANEXOS (IMÁGENES MUY PEQUEÑAS) */
     .anexos-container {
       page-break-inside: avoid;
       margin-top: 10px;
+      display: inline-block; 
+      vertical-align: top; 
+      margin-right: 15px; 
     }
     .anexo-imagen {
-      max-width: 500px; /* Máximo 500px de ancho */
+      max-width: 100px; /* Ancho máximo 100px */
+      max-height: 100px; /* Alto máximo 100px */
       width: auto;      
-      height: auto;     /* Alto automático para NO ESTIRAR */
+      height: auto;     
+      
       border: 1px solid #ccc;
-      margin-bottom: 10px;
-      display: block;
+      margin-bottom: 5px; 
     }
   </style>
 </head>
 <body>
 
-  <h1>Ficha Estudiantil – Campos Clínicos</h1>
+  <h1 style="text-align: center; margin-bottom: 0;">FICHA ESTUDIANTE PREGRADO</h1>
+  <h3 style="text-align: center; color: #555; margin-top: 4px; margin-bottom: 15px; font-weight: normal;">CAMPOS CLÍNICOS</h3>
 
   <table class="header-grid">
     <tr>
@@ -152,7 +168,7 @@
   {% if data.serologies %}
   <h2>V. Serologías</h2>
   <table>
-    <thead><tr><th>Patógeno</th><th>Resultado</th><th>Fecha</th></tr></thead>
+    <thead><tr><th>Patrógeno</th><th>Resultado</th><th>Fecha</th></tr></thead>
     <tbody>
       {% for s in data.serologies %}
       <tr>
@@ -176,7 +192,7 @@
   {% endif %}
 
   {% if data.anexos %}
-  <h2>VII. Anexos</h2>
+  <h2>VII. Documentación Adjunta</h2>
   <p class="muted">Imágenes y documentos adjuntos.</p>
   {% for anexo in data.anexos %}
   <div class="anexos-container">
