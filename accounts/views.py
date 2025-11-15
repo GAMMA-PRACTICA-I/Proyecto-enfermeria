@@ -268,23 +268,37 @@ class FichaView(View):
         if gen_form.is_valid():
             g = getattr(ficha, "generales", None) or StudentGeneral(ficha=ficha)
 
-            g.nombre_legal = gen_form.cleaned_data.get("nombre_legal") or None
-            g.genero = gen_form.cleaned_data.get("genero") or None
-            g.rut = gen_form.cleaned_data.get("rut") or None
-            g.fecha_nacimiento = gen_form.cleaned_data.get("fecha_nacimiento")
-            g.telefono_celular = gen_form.cleaned_data.get("telefono_celular") or None
-            g.direccion_actual = gen_form.cleaned_data.get("direccion_actual") or None
-            g.direccion_origen = gen_form.cleaned_data.get("direccion_origen") or None
-            g.contacto_emergencia_nombre = gen_form.cleaned_data.get("contacto_emergencia_nombre") or None
-            g.contacto_emergencia_parentesco = gen_form.cleaned_data.get("contacto_emergencia_parentesco") or None
-            g.contacto_emergencia_telefono = gen_form.cleaned_data.get("contacto_emergencia_telefono") or None
-            g.centro_salud = gen_form.cleaned_data.get("centro_salud") or None
-            g.seguro = gen_form.cleaned_data.get("prevision") or None
-            g.seguro_detalle = gen_form.cleaned_data.get("prevision_detalle") or None
-            g.correo_institucional = gen_form.cleaned_data.get("correo_institucional") or None
+            general_updates = {
+                "nombre_legal": gen_form.cleaned_data.get("nombre_legal"),
+                "genero": gen_form.cleaned_data.get("genero"),
+                "rut": gen_form.cleaned_data.get("rut"),
+                "fecha_nacimiento": gen_form.cleaned_data.get("fecha_nacimiento"),
+                "telefono_celular": gen_form.cleaned_data.get("telefono_celular"),
+                "direccion_actual": gen_form.cleaned_data.get("direccion_actual"),
+                "direccion_origen": gen_form.cleaned_data.get("direccion_origen"),
+                "contacto_emergencia_nombre": gen_form.cleaned_data.get("contacto_emergencia_nombre"),
+                "contacto_emergencia_parentesco": gen_form.cleaned_data.get("contacto_emergencia_parentesco"),
+                "contacto_emergencia_telefono": gen_form.cleaned_data.get("contacto_emergencia_telefono"),
+                "centro_salud": gen_form.cleaned_data.get("centro_salud"),
+                "seguro": gen_form.cleaned_data.get("prevision"),
+                "seguro_detalle": gen_form.cleaned_data.get("prevision_detalle"),
+                "correo_institucional": gen_form.cleaned_data.get("correo_institucional"),
+            }
 
-            g.save()
+            fields_to_update = []
 
+            for field_name, value in general_updates.items():
+                if value is not None and value != "":
+                    setattr(g, field_name, value)
+                    fields_to_update.append(field_name)
+
+            # Primero, guardamos la instancia de StudentGeneral con los campos actualizados/creados.
+            if fields_to_update:
+                g.save(update_fields=fields_to_update)
+            else:
+                g.save()
+
+            # Lógica de la foto - AHORA CON LA INDENTACIÓN CORRECTA.
             foto = gen_form.cleaned_data.get("foto_ficha")
             if foto:
                 sha, size, data = _compute_sha256(foto)
@@ -303,6 +317,7 @@ class FichaView(View):
                         size_bytes=size,
                         sha256=sha,
                     )
+                # Después de crear/actualizar el blob, se limpia el campo FileField
                 g.foto_ficha.delete(save=False)
                 g.foto_ficha = None
                 g.save(update_fields=["foto_ficha"])
@@ -311,14 +326,35 @@ class FichaView(View):
         acad_form = StudentAcademicForm(request.POST)
         if acad_form.is_valid():
             a = getattr(ficha, "academicos", None) or StudentAcademic(ficha=ficha)
-            a.nombre_social = acad_form.cleaned_data.get("nombre_social") or None
-            a.carrera = acad_form.cleaned_data.get("carrera") or None
-            a.anio_cursa = acad_form.cleaned_data.get("anio_cursa")
-            a.estado = acad_form.cleaned_data.get("estado") or None
-            a.asignatura = acad_form.cleaned_data.get("asignatura") or None
-            a.correo_institucional = gen_form.cleaned_data.get("correo_institucional") if gen_form.is_valid() else None
-            a.correo_personal = acad_form.cleaned_data.get("correo_personal") or None
-            a.save()
+
+            academic_updates = {
+                "nombre_social": acad_form.cleaned_data.get("nombre_social"),
+                "carrera": acad_form.cleaned_data.get("carrera"),
+                "anio_cursa": acad_form.cleaned_data.get("anio_cursa"),
+                "estado": acad_form.cleaned_data.get("estado"),
+                "asignatura": acad_form.cleaned_data.get("asignatura"),
+                "correo_personal": acad_form.cleaned_data.get("correo_personal"),
+            }
+
+            # Inicialización de fields_to_update
+            fields_to_update = [] 
+
+            # Correo institucional (viene del form de generales si es válido)
+            if gen_form.is_valid() and gen_form.cleaned_data.get("correo_institucional") is not None and gen_form.cleaned_data.get("correo_institucional") != "":
+                a.correo_institucional = gen_form.cleaned_data.get("correo_institucional")
+                fields_to_update.append("correo_institucional")
+
+            # Actualización de otros campos académicos
+            for field_name, value in academic_updates.items():
+                if value is not None and value != "":
+                    setattr(a, field_name, value)
+                    fields_to_update.append(field_name)
+
+            if fields_to_update:
+                a.save(update_fields=fields_to_update)
+            else:
+                a.save() # Guarda si es nuevo.
+
             logger.info(f"Académicos guardados ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Antecedentes Académicos.")
@@ -328,12 +364,27 @@ class FichaView(View):
         med_form = StudentMedicalForm(request.POST)
         if med_form.is_valid():
             m = getattr(ficha, "medicos", None) or StudentMedicalBackground(ficha=ficha)
-            m.alergias_detalle = med_form.cleaned_data.get("alergias") or None
-            m.grupo_sanguineo = med_form.cleaned_data.get("grupo_sanguineo") or None
-            m.cronicas_detalle = med_form.cleaned_data.get("enfermedades_cronicas") or None
-            m.medicamentos_detalle = med_form.cleaned_data.get("medicamentos_diarios") or None
-            m.otros_antecedentes = med_form.cleaned_data.get("otros_antecedentes") or None
-            m.save()
+            
+            medical_updates = {
+                "alergias_detalle": med_form.cleaned_data.get("alergias"),
+                "grupo_sanguineo": med_form.cleaned_data.get("grupo_sanguineo"),
+                "cronicas_detalle": med_form.cleaned_data.get("enfermedades_cronicas"),
+                "medicamentos_detalle": med_form.cleaned_data.get("medicamentos_diarios"),
+                "otros_antecedentes": med_form.cleaned_data.get("otros_antecedentes"),
+            }
+            
+            fields_to_update = []
+            
+            for field_name, value in medical_updates.items():
+                if value is not None and value != "":
+                    setattr(m, field_name, value)
+                    fields_to_update.append(field_name)
+
+            if fields_to_update:
+                m.save(update_fields=fields_to_update)
+            else:
+                m.save() # Guarda si es nuevo.
+                
             logger.info(f"Mórbidos guardados ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Antecedentes Mórbidos.")
@@ -342,6 +393,8 @@ class FichaView(View):
         # IV. Vacunas / Serología
         vac_form = StudentVaccinesForm(request.POST)
         if vac_form.is_valid():
+            # La lógica de vacunas/serología es inherentemente de 'borrar y recrear' 
+            # ya que la presencia de fechas en POST implica que se envió la sección completa.
             ficha.vaccine_doses.all().delete()
             ficha.serologies.all().delete()
 
@@ -378,6 +431,8 @@ class FichaView(View):
                 )
             logger.info(f"Vacunas/Serología guardadas ficha={ficha.id}")
         else:
+            # Aunque la validación fallara, si es una actualización parcial, no queremos
+            # borrar las vacunas existentes si la sección no se envió intencionalmente.
             messages.error(request, "Revise los campos de Vacunas/Serología.")
             logger.warning("Vacunas/Serología inválidas")
 
@@ -402,9 +457,12 @@ class FichaView(View):
 
         for input_name, (section, item) in file_map.items():
             files = request.FILES.getlist(input_name)
+            
+            # Borrar/Reemplazar solo si se subieron nuevos archivos
             if not files:
                 continue
 
+            # La lógica original de borrado es correcta para documentos
             if input_name == "ci_archivos[]":
                 _delete_existing_docs(ficha, [DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO])
             else:
@@ -418,18 +476,30 @@ class FichaView(View):
 
         _save_ci_rule_guard(ficha)
         logger.info(f"Documentos procesados ficha={ficha.id}")
-
         # VI. Declaración
         dec_form = StudentDeclarationForm(request.POST)
         if dec_form.is_valid():
             d = getattr(ficha, "declaracion", None) or StudentDeclaration(ficha=ficha)
-            d.nombre_estudiante = dec_form.cleaned_data.get("decl_nombre") or ""
-            d.rut = dec_form.cleaned_data.get("decl_rut") or ""
-            fecha_manual = dec_form.cleaned_data.get("decl_fecha")
-            if fecha_manual:
-                d.fecha = fecha_manual
-            d.firma = dec_form.cleaned_data.get("decl_firma") or None
-            d.save()
+
+            declaration_updates = {
+                "nombre_estudiante": dec_form.cleaned_data.get("decl_nombre"),
+                "rut": dec_form.cleaned_data.get("decl_rut"),
+                "fecha": dec_form.cleaned_data.get("decl_fecha"),
+                "firma": dec_form.cleaned_data.get("decl_firma"),
+            }
+            
+            fields_to_update = []
+            
+            for field_name, value in declaration_updates.items():
+                if value is not None and value != "":
+                    setattr(d, field_name, value)
+                    fields_to_update.append(field_name)
+            
+            if fields_to_update:
+                d.save(update_fields=fields_to_update)
+            else:
+                d.save() # Guarda si es nuevo.
+
             logger.info(f"Declaración guardada ficha={ficha.id}")
         else:
             messages.error(request, "Revise los campos de Declaración.")
@@ -453,7 +523,6 @@ class FichaView(View):
             return redirect("ficha")
 
         return redirect("dashboard_estudiante")
-
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDashboardView(View):
