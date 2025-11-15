@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+  <body style="font-family: Arial, sans-serif; color:#111;">
+    <p>
+      Hola
+      {{ estudiante.get_full_name|default:estudiante.username }},
+    </p>
+
+    <p>
+      Tu ficha ha sido revisada y <strong>tiene observaciones.</strong>
+    </p>
+
+    {% if rechazados %}
+      <p>Los siguientes campos se rechazaron:</p>
+      <ul>
+        {% for r in rechazados %}
+          <li>
+            <strong>{{ r.label }}</strong>
+            se rechazó por esto:
+            {{ r.notes }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if global_notes %}
+      <p>
+        <strong>Comentario general del revisor:</strong><br>
+        {{ global_notes|linebreaksbr }}
+      </p>
+    {% endif %}
+
+    {% if base_url %}
+      <p>
+        Puedes ver el detalle ingresando al sistema:
+        <a href="{{ base_url }}">{{ base_url }}</a>
+      </p>
+    {% endif %}
+
+    <p>Saludos,<br>Equipo de Campos Clínicos</p>
+  </body>
+</html>

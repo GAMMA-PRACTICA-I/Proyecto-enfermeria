@@ -1,0 +1,22 @@
+Hola {{ estudiante.get_full_name|default:estudiante.username }},
+
+Tu ficha ha sido revisada y tiene observaciones.
+
+Los siguientes campos se rechazaron:
+
+{% for r in rechazados %}
+- {{ r.label }} se rechazó por esto: {{ r.notes }}
+{% endfor %}
+
+{% if global_notes %}
+Comentario general del revisor:
+{{ global_notes }}
+{% endif %}
+
+{% if base_url %}
+Puedes ver el detalle ingresando al sistema:
+{{ base_url }}
+{% endif %}
+
+Saludos,
+Equipo de Campos Clínicos
