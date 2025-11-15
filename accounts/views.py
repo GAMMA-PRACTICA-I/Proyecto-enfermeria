@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import List, Tuple, Optional
-
+from .utils.review_email import send_revision_result_email
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model, logout
@@ -930,7 +930,14 @@ class FinalizeReviewAPI(View):
             return HttpResponseForbidden("No autorizado.")
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
+        # ¿Algún campo revisado como NO OK?
         exists_no_ok = ficha.field_reviews.filter(status="REVISADO_NO_OK").exists()
+
+        # Comentario general que viene del modal (puede venir vacío)
+        global_notes = (request.POST.get("global_notes") or "").strip()
+
+        # Lista de campos rechazados (para correo y para notas globales)
+        rechazados: List[dict] = []
 
         combined_notes = None
         if exists_no_ok:
@@ -939,19 +946,22 @@ class FinalizeReviewAPI(View):
             )
             detalles: List[str] = []
             for r in rechazados:
+                # Esto es solo para guardar un resumen en observaciones_globales
                 linea = f"- {r['section']} • {r['field_key']}"
                 if r.get("notes"):
                     linea += f": {r['notes']}"
                 detalles.append(linea)
 
-            global_notes = (request.POST.get("global_notes") or "").strip()
             if global_notes:
                 detalles.append("")
                 detalles.append(f"Comentario general del revisor: {global_notes}")
 
             combined_notes = "\n".join(detalles)
 
-        ficha.estado_global = StudentFicha.Estado.RECHAZADA if exists_no_ok else StudentFicha.Estado.APROBADA
+        # Estado global: RECHAZADA si hay campos NO OK, si no APROBADA
+        ficha.estado_global = (
+            StudentFicha.Estado.RECHAZADA if exists_no_ok else StudentFicha.Estado.APROBADA
+        )
         ficha.observaciones_globales = combined_notes
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
@@ -965,5 +975,15 @@ class FinalizeReviewAPI(View):
             ]
         )
 
+        # ----- Enviar correo al estudiante automáticamente -----
+        base_url = request.build_absolute_uri(reverse("dashboard_estudiante"))
+
+        send_revision_result_email(
+            ficha=ficha,
+            rechazados=rechazados,
+            global_notes=global_notes,
+            aprobado=not exists_no_ok,
+            base_url=base_url,
+        )
+
         return JsonResponse({"ok": True, "estado": ficha.estado_global})
-    
