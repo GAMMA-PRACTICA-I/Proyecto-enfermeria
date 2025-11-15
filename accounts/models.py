@@ -152,10 +152,12 @@ class StudentFieldReview(models.Model):
 # =========================
 
 class ComentarioDocumento(models.Model):
+    order = models.IntegerField(default=0, db_index=True)
     documento = models.ForeignKey(
         'StudentDocuments',
         on_delete=models.CASCADE,
         related_name="comentarios"
+    
     )
     autor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -428,6 +430,8 @@ class StudentDocuments(models.Model):
     file_name = models.CharField(max_length=255)
     file_mime = models.CharField(max_length=100, blank=True, null=True)
     descripcion = models.TextField(null=True, blank=True)
+    
+    order = models.IntegerField(default=0, db_index=True)
 
     review_status = models.CharField(
         max_length=20, choices=DocumentReviewStatus.choices, default=DocumentReviewStatus.ADJUNTADO, db_index=True

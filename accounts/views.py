@@ -150,6 +150,7 @@ def _doc_create_with_blob(
         file_name=canon_name,
         file_mime=content_type or None,
         review_status=DocumentReviewStatus.ADJUNTADO,
+        order=0,
     )
 
     StudentDocumentBlob.objects.create(
@@ -282,7 +283,7 @@ class FichaView(View):
                 "centro_salud": gen_form.cleaned_data.get("centro_salud"),
                 "seguro": gen_form.cleaned_data.get("prevision"),
                 "seguro_detalle": gen_form.cleaned_data.get("prevision_detalle"),
-                "correo_institucional": gen_form.cleaned_data.get("correo_institucional"),
+                # "correo_institucional": gen_form.cleaned_data.get("correo_institucional"),
             }
 
             fields_to_update = []
@@ -340,9 +341,12 @@ class FichaView(View):
             fields_to_update = [] 
 
             # Correo institucional (viene del form de generales si es válido)
-            if gen_form.is_valid() and gen_form.cleaned_data.get("correo_institucional") is not None and gen_form.cleaned_data.get("correo_institucional") != "":
-                a.correo_institucional = gen_form.cleaned_data.get("correo_institucional")
-                fields_to_update.append("correo_institucional")
+            if gen_form.is_valid(): # Aseguramos que los datos del formulario de generales son válidos
+                correo_inst = gen_form.cleaned_data.get("correo_institucional")
+                # Solo actualizamos si el campo fue llenado (no None y no vacío)
+                if correo_inst is not None and correo_inst != "":
+                    a.correo_institucional = correo_inst
+                    fields_to_update.append("correo_institucional")
 
             # Actualización de otros campos académicos
             for field_name, value in academic_updates.items():
