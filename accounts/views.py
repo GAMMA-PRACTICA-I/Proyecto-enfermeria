@@ -319,9 +319,8 @@ class FichaView(View):
                         sha256=sha,
                     )
                 # Después de crear/actualizar el blob, se limpia el campo FileField
-                g.foto_ficha.delete(save=False)
-                g.foto_ficha = None
-                g.save(update_fields=["foto_ficha"])
+                g.foto_ficha = foto # Asignar el archivo subido al FileField
+                g.save(update_fields=["foto_ficha"]) # Guardar la referencia al FileField
 
         # II. Académicos
         acad_form = StudentAcademicForm(request.POST)
@@ -668,30 +667,29 @@ def ficha_pdf(request: HttpRequest) -> HttpResponse:
     foto_path = foto_url = foto_b64 = None
 
     if generales:
-        if getattr(generales, "photo_blob", None) and generales.photo_blob.data:
+        # 1. Intentar cargar desde FileField (si existe), priorizando la ruta
+        if generales.foto_ficha:
+            try:
+                # Usar la ruta absoluta del archivo en el servidor. 
+                # ESTA ES LA RUTA MÁS ESTABLE para xhtml2pdf.
+                foto_path = f"file://{generales.foto_ficha.path}"
+            except Exception:
+                foto_path = None
+            # Ya no intentaremos Base64 desde FileField aquí.
+            
+        # 2. Si no hay FileField, revisar el Blob de la BD (que solo da Base64)
+        elif getattr(generales, "photo_blob", None) and generales.photo_blob.data:
             try:
                 foto_b64 = base64.b64encode(bytes(generales.photo_blob.data)).decode("ascii")
             except Exception:
                 foto_b64 = None
-        elif generales.foto_ficha:
-            try:
-                foto_path = f"file://{generales.foto_ficha.path}"
-            except Exception:
-                foto_path = None
-            try:
-                foto_url = request.build_absolute_uri(generales.foto_ficha.url)
-            except Exception:
-                foto_url = None
-            try:
-                with generales.foto_ficha.open("rb") as f:
-                    foto_b64 = base64.b64encode(f.read()).decode("ascii")
-            except Exception:
-                pass
+        
+        # Eliminamos la obtención de foto_url ya que no se usa en el PDF principal
 
     dto.setdefault("generales", {})
-    dto["generales"]["foto_ficha_path"] = foto_path
-    dto["generales"]["foto_ficha_url"] = foto_url
-    dto["generales"]["foto_ficha_b64"] = foto_b64
+    dto["generales"]["foto_ficha_path"] = foto_path # Si esto está seteado, la plantilla lo usará
+    dto["generales"]["foto_ficha_url"] = foto_url   # Se mantiene en None
+    dto["generales"]["foto_ficha_b64"] = foto_b64   # Se usará si no hay foto_path
 
     base_pdf = pdf_utils.render_html_to_pdf_bytes(
         "pdf/ficha_pdf.html",

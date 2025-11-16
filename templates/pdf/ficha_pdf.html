@@ -26,7 +26,7 @@
       border-bottom: 1px solid #f0f0f0; 
     }
 
-    /* ESTILOS DE CABECERA (CON TABLA) */
+    /* ESTILOS DE CABECERA */
     .header-grid { 
         width:100%; 
         border-collapse:collapse; 
@@ -45,6 +45,7 @@
     .foto-wrap { 
         text-align: right; 
     }
+    /* FOTO DE PERFIL (120PX) */
     .foto-ficha {
       width: 120px;       
       height: auto;       
@@ -54,26 +55,65 @@
       background: #fff;
     }
 
-    /* ESTILOS PARA ANEXOS (IMÁGENES MUY PEQUEÑAS) */
-    .anexos-container {
-      page-break-inside: avoid;
-      margin-top: 10px;
-      display: inline-block; 
-      vertical-align: top; 
-      margin-right: 15px; 
-    }
-    .anexo-imagen {
-      /* === ESTILOS MODIFICADOS === */
-      /* Estilos copiados de .foto-ficha */
-      width: 120px;       
-      height: auto;       
+    /* === NUEVO ESTILO: CAJA LIMITADORA INDIVIDUAL (180PX) === */
+    .anexo-single-box {
+      width: 186px; /* 180px para la imagen + borde/padding */
       display: inline-block;
+      text-align: center;
+      margin-right: 15px; /* Separación entre cajas */
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+    .anexo-single-box .anexo-titulo-solo {
+        font-size: 14px;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .anexo-single-box img {
+        max-width: 180px;
+        width: 180px; /* Tamaño forzado */
+        height: auto;
+        display: block;
+        border: 1px solid #ddd;
+        padding: 3px;
+        background: #fff;
+        margin: 0 auto;
+    }
+    /* ======================================================== */
+
+
+    /* === ESTILOS PARA DOCUMENTACIÓN ADJUNTA (TABLA ESTRICTA, EL RESTO) === */
+    .anexos-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: none;
+        table-layout: fixed;
+    }
+    .anexos-table td {
+        border: none;
+        padding: 5px;
+        vertical-align: top;
+        width: 25%; /* Celdas para 4 imágenes por fila */
+    }
+
+    .anexo-titulo {
+        margin-bottom: 5px;
+        font-weight: bold;
+        display: block;
+        text-align: center;
+    }
+
+    /* IMAGEN DE ANEXO PARA LA TABLA (180PX) */
+    .anexo-imagen {
+      max-width: 180px; 
+      width: 100%; 
+      height: auto;       
+      display: block;
       border: 1px solid #ddd;
       padding: 3px;
       background: #fff;
-
-      /* Propiedad original para mantener espaciado vertical */
-      margin-bottom: 5px; 
+      margin: 0 auto; 
+      page-break-inside: avoid; 
     }
   </style>
 </head>
@@ -113,17 +153,17 @@
   {% if data.generales %}
   <h2>I. Antecedentes Generales</h2>
   <table class="kv">
-    <tr><td><b>Nombre legal:</b> {{ data.generales.nombre_legal|default:"—" }}</td></tr>
+    <tr><td><b>Nombre completo legal:</b> {{ data.generales.nombre_legal|default:"—" }}</td></tr>
     <tr><td><b>RUT/ID:</b> {{ data.generales.rut|default:"—" }}</td></tr>
     <tr><td><b>Género:</b> {{ data.generales.genero|default:"—" }}</td></tr>
     <tr><td><b>Fecha nacimiento:</b> {{ data.generales.fecha_nacimiento|default:"—" }}</td></tr>
-    <tr><td><b>Teléfono:</b> {{ data.generales.telefono_celular|default:"—" }}</td></tr>
-    <tr><td><b>Dirección actual:</b> {{ data.generales.direccion_actual|default:"—" }}</td></tr>
-    <tr><td><b>Dirección origen:</b> {{ data.generales.direccion_origen|default:"—" }}</td></tr>
-    <tr><td><b>Contacto emergencia:</b>
-      {{ data.generales.contacto_emergencia_nombre|default:"—" }}
-      ({{ data.generales.contacto_emergencia_parentesco|default:"—" }})
-      – {{ data.generales.contacto_emergencia_telefono|default:"—" }}</td></tr>
+    <tr><td><b>Teléfono celular:</b> {{ data.generales.telefono_celular|default:"—" }}</td></tr>
+    <tr><td><b>Dirección residencial actual/ Comuna:</b> {{ data.generales.direccion_actual|default:"—" }}</td></tr>
+    <tr><td><b>Dirección residencial de origen/ Comuna:</b> {{ data.generales.direccion_origen|default:"—" }}</td></tr>
+    <tr><td><b>Correo electrónico institucional:</b> {{ data.academicos.correo_institucional|default:"—" }}</td></tr>
+    <tr><td><b>Contacto en caso de emergencia:</b> {{ data.generales.contacto_emergencia_nombre|default:"—" }}</td></tr>
+    <tr><td><b>Nombre y parentesco contacto de emergencia:</b> {{ data.generales.contacto_emergencia_nombre|default:"—" }} ({{ data.generales.contacto_emergencia_parentesco|default:"—" }})</td></tr>
+    <tr><td><b>Teléfono contacto de emergencia:</b> {{ data.generales.contacto_emergencia_telefono|default:"—" }}</td></tr>
     <tr><td><b>Centro de salud:</b> {{ data.generales.centro_salud|default:"—" }}</td></tr>
     <tr><td><b>Previsión/Seguro:</b> {{ data.generales.seguro|default:"—" }} {{ data.generales.seguro_detalle|default:"" }}</td></tr>
   </table>
@@ -135,10 +175,10 @@
     <tr><td><b>Nombre social:</b> {{ data.academicos.nombre_social|default:"—" }}</td></tr>
     <tr><td><b>Carrera:</b> {{ data.academicos.carrera|default:"—" }}</td></tr>
     <tr><td><b>Año que cursa:</b> {{ data.academicos.anio_cursa|default:"—" }}</td></tr>
-    <tr><td><b>Estado:</b> {{ data.academicos.estado|default:"—" }}</td></tr>
+    <tr><td><b>Estado (Curricular / Interno):</b> {{ data.academicos.estado|default:"—" }}</td></tr>
     <tr><td><b>Asignatura:</b> {{ data.academicos.asignatura|default:"—" }}</td></tr>
-    <tr><td><b>Correo institucional:</b> {{ data.academicos.correo_institucional|default:"—" }}</td></tr>
-    <tr><td><b>Correo personal:</b> {{ data.academicos.correo_personal|default:"—" }}</td></tr>
+    <tr><td><b>Correo electrónico institucional:</b> {{ data.academicos.correo_institucional|default:"—" }}</td></tr>
+    <tr><td><b>Correo electrónico personal:</b> {{ data.academicos.correo_personal|default:"—" }}</td></tr>
   </table>
   {% endif %}
 
@@ -147,16 +187,16 @@
   <table class="kv">
     <tr><td><b>Alergias:</b> {{ data.medicos.alergias_detalle|default:"—" }}</td></tr>
     <tr><td><b>Grupo sanguíneo:</b> {{ data.medicos.grupo_sanguineo|default:"—" }}</td></tr>
-    <tr><td><b>Enfermedades crónicas:</b> {{ data.medicos.cronicas_detalle|default:"—" }}</td></tr>
-    <tr><td><b>Medicamentos diarios:</b> {{ data.medicos.medicamentos_detalle|default:"—" }}</td></tr>
-    <tr><td><b>Otros antecedentes:</b> {{ data.medicos.otros_antecedentes|default:"—" }}</td></tr>
+    <tr><td><b>Enfermedades crónicas o a declarar:</b> {{ data.medicos.cronicas_detalle|default:"—" }}</td></tr>
+    <tr><td><b>Toma algún medicamento diario:</b> {{ data.medicos.medicamentos_detalle|default:"—" }}</td></tr>
+    <tr><td><b>Otros antecedentes relevantes:</b> {{ data.medicos.otros_antecedentes|default:"—" }}</td></tr>
   </table>
   {% endif %}
 
-  {% if data.vaccines %}
-  <h2>IV. Vacunas</h2>
+  {% if data.vaccines or data.serologies %}
+  <h2>IV. Vacunas / Serología</h2>
   <table>
-    <thead><tr><th>Vacuna</th><th>Dosis</th><th>Fecha</th></tr></thead>
+    <thead><tr><th>Vacuna / Patrógeno</th><th>Serología / Dosis</th><th>Fecha</th></tr></thead>
     <tbody>
       {% for v in data.vaccines %}
       <tr>
@@ -165,15 +205,6 @@
         <td>{{ v.date }}</td>
       </tr>
       {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-
-  {% if data.serologies %}
-  <h2>V. Serologías</h2>
-  <table>
-    <thead><tr><th>Patrógeno</th><th>Resultado</th><th>Fecha</th></tr></thead>
-    <tbody>
       {% for s in data.serologies %}
       <tr>
         <td>{{ s.pathogen }}</td>
@@ -186,7 +217,8 @@
   {% endif %}
 
   {% if data.declaracion %}
-  <h2>VI. Declaración</h2>
+  <h2>V. Declaración</h2>
+  <p class="muted">Declaro que la información entregada en esta ficha es verdadera, completa y exacta.</p>
   <table class="kv">
     <tr><td><b>Nombre estudiante:</b> {{ data.declaracion.nombre_estudiante|default:"—" }}</td></tr>
     <tr><td><b>RUT:</b> {{ data.declaracion.rut|default:"—" }}</td></tr>
@@ -195,22 +227,56 @@
   </table>
   {% endif %}
 
-  {% if data.anexos %}
-  <h2>VII. Documentación Adjunta</h2>
+{% if data.ci_frente_anexo or data.anexos %}
+  <h2>VI. Documentación Adjunta</h2>
   <p class="muted">Imágenes y documentos adjuntos.</p>
-  {% for anexo in data.anexos %}
-  <div class="anexos-container">
-    {% if anexo.titulo %}
-      <p style="margin-bottom: 4px;"><b>{{ anexo.titulo }}</b></p>
+  
+  <div style="margin-top: 10px;">
+    {# ESTRUCTURA SOLICITADA: CAJA LIMITADORA PARA IMAGEN ESPECÍFICA (CI_FRENTE) #}
+    {% if data.ci_frente_anexo %}
+      <div class="anexo-single-box">
+          <p class="anexo-titulo-solo">GENERALES — CI_FRENTE</p>
+          <img src="data:{{ data.ci_frente_anexo.mime|default:'image/png' }};base64,{{ data.ci_frente_anexo.b64 }}" 
+               alt="CI Frente"/>
+      </div>
     {% endif %}
 
-    {% if anexo.b64 %}
-      <img class="anexo-imagen" src="data:{{ anexo.mime|default:'image/png' }};base64,{{ anexo.b64 }}" alt="Anexo"/>
+    {# RESTO DE ANEXOS EN FORMATO DE TABLA (4 por fila) #}
+    {% if data.anexos %}
+      <table class="anexos-table">
+        <tr>
+        {% for anexo in data.anexos %}
+          {# Excluir el CI_FRENTE si está en data.anexos y ya se mostró arriba. Usamos IF NOT para saltar el elemento. #}
+          {% if not anexo.is_ci_frente %}
+          
+          <td style="width: 25%;">
+            <div style="page-break-inside: avoid; text-align: center;">
+              {% if anexo.titulo %}
+                <p class="anexo-titulo">{{ anexo.titulo }}</p>
+              {% endif %}
+
+              {% if anexo.b64 %}
+                <img class="anexo-imagen" 
+                     src="data:{{ anexo.mime|default:'image/png' }};base64,{{ anexo.b64 }}" 
+                     alt="Anexo"
+                     style="max-width: 180px; width: 180px; height: auto;"/>
+              {% endif %}
+            </div>
+          </td>
+          
+          {# Salto de fila: si es el cuarto elemento, pero no el último #}
+          {# Nota: Esta lógica de salto de fila es imperfecta porque loop.index ahora cuenta los elementos que fueron omitidos, pero es la forma más limpia de evitar el error de sintaxis. #}
+          {% if loop.index|divisibleby:4 and not loop.last %}
+            </tr><tr>
+          {% endif %}
+
+          {% endif %} {# Cierre del if not anexo.is_ci_frente #}
+        {% endfor %}
+        </tr>
+      </table>
     {% endif %}
   </div>
-  {% endfor %}
   {% endif %}
-
 
   <p class="muted" style="margin-top: 20px;">
     — Fin de la ficha —

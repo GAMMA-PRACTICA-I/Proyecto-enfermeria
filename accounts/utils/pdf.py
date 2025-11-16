@@ -54,10 +54,12 @@ def title_page_pdf_bytes(title: str, subtitle: Optional[str] = None) -> bytes:
 
 
 
+# pdf.py
+
 def image_bytes_to_singlepage_pdf_bytes(img_bytes: bytes, mime: str = "image/png") -> bytes:
     """
     Convierte bytes de imagen a un PDF A4 de 1 página, centrado y con márgenes.
-    (Usa xhtml2pdf para evitar PDFs gigantes del tamaño de la imagen.)
+    (Ajustado para evitar estiramiento)
     """
     b64 = base64.b64encode(img_bytes).decode("ascii")
     html = f"""
@@ -68,10 +70,17 @@ def image_bytes_to_singlepage_pdf_bytes(img_bytes: bytes, mime: str = "image/png
           @page {{ size: A4; margin: 2cm; }}
           body {{ margin:0; padding:0; }}
           .frame {{
-            width: 100%; height: 27.7cm;  /* área útil aproximada */
+            width: 100%; height: 27.7cm;
             display: flex; align-items: center; justify-content: center;
           }}
-          img {{ max-width: 100%; max-height: 100%; }}
+          /* === CAMBIO CLAVE: Reducir el tamaño para que no ocupe el 100% === */
+          img {{ 
+            max-width: 50%; /* Ocupa como máximo la mitad del ancho de la página */
+            max-height: 50%; /* Ocupa como máximo la mitad del alto de la página */
+            width: auto; /* Evita forzar el estiramiento */
+            height: auto;
+            border: 1px solid #ccc; /* Borde opcional para visualización */
+          }}
         </style>
       </head>
       <body>
