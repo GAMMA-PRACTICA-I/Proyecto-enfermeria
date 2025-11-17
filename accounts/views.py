@@ -48,6 +48,7 @@ from .models import (
     StudentDeclaration,
     StudentGeneralPhotoBlob,
     StudentFieldReview,
+    SupportTicket,
 )
 
 # === FORMULARIOS ===
@@ -638,6 +639,27 @@ def dashboard_estudiante(request):
     }
     return render(request, "dashboards/estudiante.html", ctx)
 
+@login_required
+def dashboard_admin_soporte(request: HttpRequest) -> HttpResponse:
+    """
+    Panel de administrador para ver los mensajes de soporte.
+    Muestra los SupportTicket que ya se guardan desde la vista de soporte.
+    """
+    # Restringir solo a ADMIN (ajusta si tu rol se llama distinto)
+    if getattr(request.user, "rol", "") != "ADMIN":
+        return HttpResponseForbidden("No autorizado.")
+
+    tickets = (
+        SupportTicket.objects
+        .select_related("user")
+        .order_by("-created_at")
+    )
+
+    ctx = {
+        "tickets": tickets,
+    }
+    return render(request, "dashboards/admin.html", ctx)
+
 
 @login_required
 def ficha_pdf(request: HttpRequest) -> HttpResponse:
@@ -863,9 +885,18 @@ def detalle_documento(request, id):
 
 @login_required
 def landing_por_rol(request):
-    if getattr(request.user, "rol", "") == "REVIEWER":
+    rol = getattr(request.user, "rol", "")
+
+    if rol == "ADMIN":
+        # Panel de soporte/admin
+        return redirect("dashboard_admin_soporte")
+
+    if rol == "REVIEWER":
+        # Panel de revisor
         return redirect("revisiones_pendientes")
-    return dashboard_estudiante(request)
+
+    # Por defecto, estudiante
+    return redirect("dashboard_estudiante")
 
 
 # ---------- Vista detalle para REVISOR con controles de revisión ----------

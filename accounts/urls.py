@@ -19,6 +19,7 @@ from .views import (
     ficha_pdf,
     detalle_documento,
     update_name_tool_view,
+    dashboard_admin_soporte,   # <<< NUEVO
 )
 
 urlpatterns = [
@@ -26,9 +27,10 @@ urlpatterns = [
     # Inicio según rol
     path("", landing_por_rol, name="landing_por_rol"),
     
-    #Herramientas para administrador (despues quitar permiso a revisor)
+    # Herramientas para administrador (despues quitar permiso a revisor)
     path("revisiones/herramientas/nombre/", update_name_tool_view, name="update_name_tool"),
     path("revisiones/herramientas/eliminar-cuenta/", delete_account_tool_view, name="delete_account_tool"),
+
     # Auth/registro
     path("register/", register, name="register"),
     path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
@@ -41,6 +43,13 @@ urlpatterns = [
     # Panel revisor
     path("revisiones/", ReviewDashboardView.as_view(), name="revisiones_pendientes"),
     path("revisiones/<int:ficha_id>/", ReviewerFichaDetailView.as_view(), name="revisor_ficha"),
+
+    # Panel admin soporte  <<< NUEVO
+    path(
+        "dashboard/admin/",
+        dashboard_admin_soporte,
+        name="dashboard_admin_soporte",
+    ),
 
     # Acciones revisor sobre ficha/documentos
     path("revisar/documento/<int:doc_id>/", ReviewDocumentUpdateView.as_view(), name="revisar_documento"),

@@ -569,3 +569,33 @@ def _replace_old_blobs_same_item(sender, instance: StudentDocuments, created: bo
     # delete() en StudentDocuments elimina también el OneToOne blob (CASCADE)
     for old_doc in siblings_qs:
         old_doc.delete()
+
+class SupportTicket(models.Model):
+    class Estado(models.TextChoices):
+        NUEVA = "NUEVA", "Nueva"
+        EN_PROCESO = "EN_PROCESO", "En proceso"
+        CERRADA = "CERRADA", "Cerrada"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="support_tickets",
+    )
+    tipo_consulta = models.CharField(max_length=80)
+    asunto = models.CharField(max_length=200)
+    detalle = models.TextField()
+
+    estado = models.CharField(
+        max_length=20,
+        choices=Estado.choices,
+        default=Estado.NUEVA,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"[{self.get_estado_display()}] {self.asunto} ({self.user})"

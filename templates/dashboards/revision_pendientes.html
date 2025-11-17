@@ -463,6 +463,26 @@
       margin-top:12px;
     }
 
+    /* NUEVO: estilo para el textarea de comentarios generales */
+    .textarea-notes{
+      width:100%;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #d1d5db;
+      font-size:0.85rem;
+      resize:vertical;
+      font-family:inherit;
+      background:#f9fafb;
+      outline:none;
+      transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .textarea-notes:focus{
+      border-color:#2563eb;
+      background:#ffffff;
+      box-shadow:0 0 0 1px rgba(37,99,235,.25);
+    }
+
     @keyframes fadeIn{
       from{ opacity:0; transform:translateY(4px); }
       to{ opacity:1; transform:none; }
@@ -564,6 +584,21 @@
           </div>
           <input class="search" id="q" placeholder="Buscar por nombre o correo…" />
         </div>
+
+        <!-- NUEVO: comentarios generales del revisor -->
+        <section class="table-card" style="margin-bottom:12px;">
+          <h2 style="margin:0 0 6px;font-size:0.98rem;">Comentarios generales de la revisión</h2>
+          <p style="margin:0 0 8px;font-size:0.84rem;color:var(--text-muted);">
+            Este comentario se utilizará como observación global al finalizar la revisión
+            de una ficha y será enviado al estudiante en el correo.
+          </p>
+          <textarea
+            id="globalNotes"
+            rows="3"
+            class="textarea-notes"
+            placeholder="Escribe aquí los comentarios generales sobre la ficha antes de pulsar “Finalizar revisión”…"
+          ></textarea>
+        </section>
 
         <section class="table-card">
           <table class="table" id="tbl">
@@ -677,13 +712,14 @@
     return 's-warn';
   }
 
-  const tbody      = document.querySelector('#tbl tbody');
-  const q          = document.getElementById('q');
-  const tabs       = Array.from(document.querySelectorAll('.tab'));
-  const mRechazo   = document.getElementById('mRechazo');
-  const txtMotivo  = document.getElementById('txtMotivo');
-  const btnCancelar= document.getElementById('btnCancelar');
-  const btnGuardar = document.getElementById('btnGuardar');
+  const tbody       = document.querySelector('#tbl tbody');
+  const q           = document.getElementById('q');
+  const tabs        = Array.from(document.querySelectorAll('.tab'));
+  const mRechazo    = document.getElementById('mRechazo');
+  const txtMotivo   = document.getElementById('txtMotivo');
+  const btnCancelar = document.getElementById('btnCancelar');
+  const btnGuardar  = document.getElementById('btnGuardar');
+  const txtGlobalNotes = document.getElementById('globalNotes'); // NUEVO
 
   let filtro    = 'abiertas';
   let currentId = null;
@@ -732,7 +768,13 @@
       btn.onclick = async (e)=>{
         const id = Number(e.currentTarget.dataset.id);
         const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`);
-        const res = await post(urlFinalize, {});
+
+        // NUEVO: tomar el comentario general desde el textarea
+        const globalNotes = (txtGlobalNotes && txtGlobalNotes.value)
+          ? txtGlobalNotes.value
+          : '';
+
+        const res = await post(urlFinalize, { global_notes: globalNotes });
         if(res.ok){
           const it = DATA.find(z=>z.id===id);
           if(it){
@@ -740,6 +782,8 @@
             it.estado = (res.estado === 'APROBADA') ? 'Aprobada' :
                         (res.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
           }
+          // si quieres limpiar el comentario al terminar una ficha, descomenta:
+          // txtGlobalNotes.value = '';
           paint();
         }else{
           alert('No se pudo finalizar: ' + (res.error||'error'));
