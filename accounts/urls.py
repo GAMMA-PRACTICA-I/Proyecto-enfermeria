@@ -19,7 +19,8 @@ from .views import (
     ficha_pdf,
     detalle_documento,
     update_name_tool_view,
-    dashboard_admin_soporte,   # <<< NUEVO
+    dashboard_admin_soporte, 
+    soporte_estudiante,     # <<< NUEVO
 )
 
 urlpatterns = [
@@ -39,6 +40,7 @@ urlpatterns = [
     path("estudiante/", dashboard_estudiante, name="dashboard_estudiante"),
     path("ficha/", FichaView.as_view(), name="ficha"),
     path("ficha/pdf/", ficha_pdf, name="ficha_pdf"),
+    path("soporte/", soporte_estudiante, name="soporte_estudiante"),
 
     # Panel revisor
     path("revisiones/", ReviewDashboardView.as_view(), name="revisiones_pendientes"),

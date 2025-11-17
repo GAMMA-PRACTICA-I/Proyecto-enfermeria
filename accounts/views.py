@@ -638,7 +638,39 @@ def dashboard_estudiante(request):
         "is_revisor": request.user.rol == "REVIEWER",
     }
     return render(request, "dashboards/estudiante.html", ctx)
+def soporte_estudiante(request: HttpRequest) -> HttpResponse:
+    """
+    Vista de soporte para el ESTUDIANTE:
+    - GET  -> muestra el formulario de soporte.
+    - POST -> crea un SupportTicket asociado al usuario logueado.
+    """
+    if request.method == "POST":
+        tipo = (request.POST.get("tipo_consulta") or "").strip()
+        asunto = (request.POST.get("asunto") or "").strip()
+        detalle = (request.POST.get("detalle") or "").strip()
 
+        # Pequeña validación básica
+        if not asunto or not detalle:
+            messages.error(request, "Debes completar el asunto y el detalle de la consulta.")
+            return redirect("soporte_estudiante")
+
+        # Si por alguna razón el tipo viene vacío, lo dejamos como "Otra consulta"
+        if not tipo:
+            tipo = "Otra consulta"
+
+        SupportTicket.objects.create(
+            user=request.user,
+            tipo_consulta=tipo,
+            asunto=asunto,
+            detalle=detalle,
+            # estado = 'NUEVA' ya lo pone el default del modelo
+        )
+
+        messages.success(request, "Tu solicitud de soporte fue enviada correctamente.")
+        return redirect("soporte_estudiante")
+
+    # GET: solo mostrar la página de soporte
+    return render(request, "dashboards/soporte.html")
 @login_required
 def dashboard_admin_soporte(request: HttpRequest) -> HttpResponse:
     """

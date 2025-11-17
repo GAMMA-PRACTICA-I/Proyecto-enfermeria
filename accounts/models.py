@@ -571,6 +571,12 @@ def _replace_old_blobs_same_item(sender, instance: StudentDocuments, created: bo
         old_doc.delete()
 
 class SupportTicket(models.Model):
+    class TipoConsulta(models.TextChoices):
+        DUDA_FICHA = "Duda sobre ficha", "Duda sobre ficha"
+        PROBLEMA_CERT = "Problema al subir certificado", "Problema al subir certificado"
+        ACTUALIZACION_DATOS = "Actualización de datos", "Actualización de datos"
+        OTRA = "Otra consulta", "Otra consulta"
+
     class Estado(models.TextChoices):
         NUEVA = "NUEVA", "Nueva"
         EN_PROCESO = "EN_PROCESO", "En proceso"
@@ -581,7 +587,13 @@ class SupportTicket(models.Model):
         on_delete=models.CASCADE,
         related_name="support_tickets",
     )
-    tipo_consulta = models.CharField(max_length=80)
+
+    # ⬇⬇⬇ aquí es donde usamos las categorías del combo
+    tipo_consulta = models.CharField(
+        max_length=80,
+        choices=TipoConsulta.choices,
+    )
+
     asunto = models.CharField(max_length=200)
     detalle = models.TextField()
 
@@ -598,4 +610,4 @@ class SupportTicket(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"[{self.get_estado_display()}] {self.asunto} ({self.user})"
+        return f"[{self.get_estado_display()}] {self.asunto}"

@@ -51,6 +51,14 @@
       padding:18px 20px 22px;
     }
 
+    .header-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
     h1{
       margin:0 0 4px;
       font-size:1.3rem;
@@ -58,9 +66,28 @@
     }
 
     .subtitle{
-      margin:0 0 14px;
+      margin:0;
       font-size:0.9rem;
       color:var(--text-muted);
+    }
+
+    .logout-btn{
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid #111827;
+      background:#0f172a;
+      color:#f9fafb;
+      cursor:pointer;
+      font-size:0.8rem;
+      font-family:inherit;
+      white-space:nowrap;
+      transition:background .15s ease, box-shadow .15s ease, transform .08s ease;
+    }
+
+    .logout-btn:hover{
+      background:#111827;
+      box-shadow:0 10px 20px rgba(15,23,42,.45);
+      transform:translateY(-1px);
     }
 
     .filter-row{
@@ -68,7 +95,7 @@
       gap:10px;
       align-items:center;
       flex-wrap:wrap;
-      margin-bottom:10px;
+      margin:10px 0;
     }
 
     .filter-row input{
@@ -146,16 +173,29 @@
       th,td{
         padding:6px 6px;
       }
+      .header-row{
+        flex-direction:column;
+        align-items:flex-start;
+      }
     }
   </style>
 </head>
 <body>
 <div class="page">
   <div class="dashboard-container">
-    <h1>Panel de Administrador – Soporte</h1>
-    <p class="subtitle">
-      Aquí se muestran los mensajes de soporte enviados por los estudiantes desde la ficha.
-    </p>
+
+    <div class="header-row">
+      <div>
+        <h1>Panel de Administrador – Soporte</h1>
+        <p class="subtitle">
+          Aquí se muestran los mensajes de soporte enviados por los estudiantes desde la ficha.
+        </p>
+      </div>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="logout-btn">Cerrar sesión</button>
+      </form>
+    </div>
 
     <div class="filter-row">
       <input id="filtro" type="text" placeholder="Filtrar por nombre, correo o asunto…">
