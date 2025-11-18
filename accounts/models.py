@@ -571,37 +571,31 @@ def _replace_old_blobs_same_item(sender, instance: StudentDocuments, created: bo
         old_doc.delete()
 
 class SupportTicket(models.Model):
-    class TipoConsulta(models.TextChoices):
-        DUDA_FICHA = "Duda sobre ficha", "Duda sobre ficha"
-        PROBLEMA_CERT = "Problema al subir certificado", "Problema al subir certificado"
-        ACTUALIZACION_DATOS = "Actualización de datos", "Actualización de datos"
-        OTRA = "Otra consulta", "Otra consulta"
+    TIPO_CONSULTA_CHOICES = [
+        ("Duda sobre ficha", "Duda sobre ficha"),
+        ("Problema al subir certificado", "Problema al subir certificado"),
+        ("Actualización de datos", "Actualización de datos"),
+        ("Otra consulta", "Otra consulta"),
+    ]
 
-    class Estado(models.TextChoices):
-        NUEVA = "NUEVA", "Nueva"
-        EN_PROCESO = "EN_PROCESO", "En proceso"
-        CERRADA = "CERRADA", "Cerrada"
+    ESTADO_CHOICES = [
+        ("NUEVA", "Nueva"),
+        ("CERRADA", "Cerrada"),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="support_tickets",
     )
-
-    # ⬇⬇⬇ aquí es donde usamos las categorías del combo
-    tipo_consulta = models.CharField(
-        max_length=80,
-        choices=TipoConsulta.choices,
-    )
-
+    tipo_consulta = models.CharField(max_length=80, choices=TIPO_CONSULTA_CHOICES)
     asunto = models.CharField(max_length=200)
     detalle = models.TextField()
 
-    estado = models.CharField(
-        max_length=20,
-        choices=Estado.choices,
-        default=Estado.NUEVA,
-    )
+    # NUEVOS CAMPOS
+    respuesta_admin = models.TextField(blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="NUEVA")
+    responded_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -610,4 +604,4 @@ class SupportTicket(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"[{self.get_estado_display()}] {self.asunto}"
+        return f"#{self.pk} - {self.asunto}"
