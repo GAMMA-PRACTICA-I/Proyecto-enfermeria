@@ -1,143 +1,156 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8"/>
-    <title>Herramienta – Asignar Nombre a Cuenta</title>
-    <style>
-        /* Estilos básicos para la herramienta */
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
-        .box { width: 400px; max-width: 95%; margin: 20px auto; background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h1 { font-size: 22px; margin-top: 0; }
-        p.muted { color: #555; font-size: 14px; }
-        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
-        input[type="email"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 4px; }
-        .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid #e6eaf0; background: #fff; text-decoration: none; cursor: pointer; }
-        .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
-        .message-box { padding: 10px; margin-top: 15px; border-radius: 6px; }
-        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
-        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
-    </style>
+  <meta charset="utf-8"/>
+  <title>Corregir Datos – Admin UNAB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+  <style>
+    :root{
+      --navy:#022a66; --blue:#0b60c5; --text:#0f172a; --muted:#64748b;
+      --card-bg:#ffffff; --radius:16px;
+    }
+
+    body {
+      margin: 0; font-family: 'Inter', sans-serif; color: var(--text);
+      background: linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.8)),
+                  url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
+      background-size: cover; background-attachment: fixed;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+
+    .tool-card {
+      width: 100%; max-width: 450px; background: var(--card-bg);
+      border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden; border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .header {
+      background: linear-gradient(90deg, var(--navy), var(--blue));
+      padding: 20px; text-align: center; color: #fff;
+    }
+    .header h1 { margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+
+    .body { padding: 30px; }
+    .description { font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; text-align: center; line-height: 1.5; }
+
+    .form-group { margin-bottom: 15px; }
+    .label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text); }
+    .input {
+      width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px;
+      font-size: 0.95rem; transition: 0.2s; outline: none;
+    }
+    .input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(11, 96, 197, 0.15); }
+
+    .actions { margin-top: 25px; display: flex; gap: 10px; }
+    .btn {
+      flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+      font-weight: 600; font-size: 0.9rem; text-decoration: none; text-align: center;
+      display: flex; align-items: center; justify-content: center; transition: 0.2s;
+    }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-primary:hover { background: #0f172a; transform: translateY(-1px); }
+    
+    .btn-secondary { background: #fff; border: 1px solid #cbd5e1; color: var(--muted); }
+    .btn-secondary:hover { background: #f1f5f9; color: var(--text); }
+
+    /* Mensajes */
+    .msg-box { margin-top: 20px; padding: 12px; border-radius: 8px; font-size: 0.85rem; display: none; text-align: center; }
+    .msg-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .msg-err { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  </style>
 </head>
 <body>
 
-<div class="box">
-    <h1>✏️ Herramienta: Asignar Nombre a Cuenta</h1>
-    <p class="muted">
-        Ingresa el correo del usuario y su nombre y/o apellido para actualizar su registro de usuario.
+<div class="tool-card">
+  <div class="header">
+    <h1>✏️ Corregir Datos</h1>
+  </div>
+  <div class="body">
+    <p class="description">
+      Actualiza el nombre y apellido de un usuario utilizando su correo electrónico como identificador.
     </p>
 
     <form id="frmNameUpdate">
-        {% csrf_token %}
-        <label for="updEmail">Correo del usuario (identificador)</label>
-        <input type="email" id="updEmail" name="email" placeholder="ejemplo@unab.cl" required>
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label class="label">Correo del usuario</label>
+        <input type="email" id="updEmail" class="input" placeholder="ejemplo@unab.cl" required>
+      </div>
 
-        <label for="updFirstName">Nombre de pila (first_name)</label>
-        <input type="text" id="updFirstName" name="first_name" placeholder="Juan">
+      <div class="form-group">
+        <label class="label">Nombre (First Name)</label>
+        <input type="text" id="updFirstName" class="input" placeholder="Ej: Juan">
+      </div>
 
-        <label for="updLastName">Apellido (last_name)</label>
-        <input type="text" id="updLastName" name="last_name" placeholder="Pérez">
-        
-        <div id="messageBox" class="message-box" style="display:none;"></div>
+      <div class="form-group">
+        <label class="label">Apellido (Last Name)</label>
+        <input type="text" id="updLastName" class="input" placeholder="Ej: Pérez">
+      </div>
 
-        <div class="actions">
-            <a class="btn" href="{% url 'revisiones_pendientes' %}">Volver al Panel</a> 
-            <button type="submit" class="btn primary" id="btnUpdateName">Guardar Nombre</button>
-        </div>
+      <div id="messageBox" class="msg-box"></div>
+
+      <div class="actions">
+        <a href="{% url 'dashboard_admin' %}" class="btn btn-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary" id="btnUpdateName">Guardar Cambios</button>
+      </div>
     </form>
+  </div>
 </div>
 
 <script>
-    // URL de la API que acabamos de crear
-    const URL_UPDATE_NAME_API = "{% url 'api_update_user_name' %}";
+    const URL_API = "{% url 'api_update_user_name' %}";
+    const btn = document.getElementById('btnUpdateName');
+    const msgBox = document.getElementById('messageBox');
 
-    // Elementos DOM
-    const frmNameUpdate = document.getElementById('frmNameUpdate');
-    const updEmail = document.getElementById('updEmail');
-    const updFirstName = document.getElementById('updFirstName');
-    const updLastName = document.getElementById('updLastName');
-    const btnUpdateName = document.getElementById('btnUpdateName');
-    const messageBox = document.getElementById('messageBox');
-
-    // Helper para mostrar mensajes
-    function showMessage(type, content) {
-        messageBox.style.display = 'block';
-        messageBox.className = 'message-box ' + type;
-        messageBox.textContent = content;
+    function showMsg(type, text) {
+        msgBox.style.display = 'block';
+        msgBox.className = 'msg-box ' + (type === 'ok' ? 'msg-ok' : 'msg-err');
+        msgBox.textContent = text;
     }
 
-    // Helper para obtener el CSRF token (esencial para peticiones POST en Django)
     function getCookie(name) {
         const v = ("; " + document.cookie).split("; " + name + "=");
         if (v.length === 2) return v.pop().split(";").shift();
     }
 
-    // Helper para realizar la petición POST
-    async function post(url, data) {
-        const form = new URLSearchParams();
-        for (const k in data) { form.append(k, data[k]); }
-        const r = await fetch(url, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": getCookie("csrftoken"),
-                "X-Requested-With": "XMLHttpRequest"
-            },
-            body: form
-        });
-        
-        let json_data;
-        try {
-            json_data = await r.json();
-        } catch (e) {
-            return { ok: false, error: "Error de servidor (respuesta no JSON)." };
-        }
-        
-        return json_data;
-    }
-
-    frmNameUpdate.onsubmit = async function(e) {
+    document.getElementById('frmNameUpdate').onsubmit = async function(e) {
         e.preventDefault();
-        messageBox.style.display = 'none'; // Limpiar mensaje anterior
+        msgBox.style.display = 'none';
+        
+        const email = document.getElementById('updEmail').value.trim();
+        const first = document.getElementById('updFirstName').value.trim();
+        const last = document.getElementById('updLastName').value.trim();
 
-        const email = (updEmail.value || '').trim();
-        const firstName = (updFirstName.value || '').trim();
-        const lastName = (updLastName.value || '').trim();
+        if (!email) { showMsg('err', "Falta el correo."); return; }
 
-        if (!email || (!firstName && !lastName)) {
-            showMessage('error', "Debe ingresar un email y al menos un nombre o apellido.");
-            return;
-        }
-
-        const dataToSend = {
-            email: email,
-            first_name: firstName,
-            last_name: lastName
-        };
-
-        btnUpdateName.disabled = true;
-        btnUpdateName.textContent = 'Guardando...';
+        btn.disabled = true; btn.textContent = 'Procesando...';
 
         try {
-            const res = await post(URL_UPDATE_NAME_API, dataToSend);
+            const r = await fetch(URL_API, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken"), "X-Requested-With": "XMLHttpRequest" },
+                body: new URLSearchParams({email, first_name: first, last_name: last})
+            });
+            const data = await r.json();
 
-            if (res.ok) {
-                showMessage('success', `✅ Éxito: ${res.message} Nombre completo actual: ${res.new_name}`);
-                // Limpiar campos para otra entrada
-                updEmail.value = '';
-                updFirstName.value = '';
-                updLastName.value = '';
+            if (data.ok) {
+                showMsg('ok', `✅ Actualizado: ${data.new_name}`);
+                document.getElementById('updEmail').value = '';
+                document.getElementById('updFirstName').value = '';
+                document.getElementById('updLastName').value = '';
             } else {
-                showMessage('error', `❌ Fallo: ${res.error || 'Error desconocido al actualizar.'}`);
+                showMsg('err', data.error || 'Error desconocido');
             }
-        } catch (err) {
-            showMessage('error', "⚠️ Error de conexión/servidor. Revisa la consola.");
-            console.error(err);
+        } catch (e) {
+            showMsg('err', 'Error de conexión');
         } finally {
-            btnUpdateName.disabled = false;
-            btnUpdateName.textContent = 'Guardar Nombre';
+            btn.disabled = false; btn.textContent = 'Guardar Cambios';
         }
     };
 </script>
-
 </body>
 </html>
