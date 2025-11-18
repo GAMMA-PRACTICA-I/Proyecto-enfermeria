@@ -1,65 +1,1080 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel de Administrador</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f2f2f2;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
+  <meta charset="utf-8"/>
+  <title>Admin – Campo Clínico UNAB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-        .dashboard-container {
-            background-color: white;
-            padding: 30px;
-            border: 2px solid #000;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 400px;
-            text-align: center;
-        }
+  <style>
+    :root{
+      --nav-bg: #022a66;       
+      --nav-hover: rgba(255, 255, 255, 0.1);
+      --gold-text: #fbbf24;
+      --gold-soft: rgba(251, 191, 36, 0.15);
+      
+      --bg-page: #f4f7fc;      
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      
+      --card-bg: #ffffff;
+      --border-light: #e2e8f0;
+      --radius: 16px;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
 
-        h1 {
-            margin-bottom: 20px;
-        }
+      /* Kanban Colors */
+      --col-new-bg: #eff6ff; --col-new-txt: #1e40af;
+      --col-done-bg: #f0fdf4; --col-done-txt: #166534;
 
-        p {
-            margin: 10px 0;
-        }
+      --prio-high-bg: #fee2e2; --prio-high-txt: #991b1b;
+      --prio-med-bg: #fef3c7; --prio-med-txt: #92400e;
+      --prio-low-bg: #f1f5f9; --prio-low-txt: #475569;
 
-        .role {
-            font-weight: bold;
-            color: #333;
-        }
+      /* Tag por defecto (por si no hay prioridad) */
+      --prio-tag-bg: #e0f2fe;
+      --prio-tag-txt: #0369a1;
+    }
 
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: black;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
+    *{ box-sizing:border-box; }
 
-        a:hover {
-            background-color: #333;
-        }
-    </style>
+    body{
+      margin:0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-shell{ display: flex; height: 100%; }
+
+    /* SIDEBAR */
+    .sidebar{
+      width: 270px;
+      background: var(--nav-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .sidebar-logo-container{
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .sidebar-logo-img { max-width: 100%; height: auto; }
+
+    .user-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+    .avatar-circle{
+      width: 38px;
+      height: 38px;
+      background: var(--gold-text);
+      color: #022a66;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .user-info h4 {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .user-info p {
+      margin: 2px 0 0;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .nav-menu{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-link{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      text-decoration: none;
+      color: #cbd5e1;
+      border-radius: 8px;
+      transition: 0.2s;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .nav-link:hover{ background: var(--nav-hover); color: #fff; }
+
+    .nav-link.active{
+      background: rgba(251, 191, 36, 0.1); 
+      color: var(--gold-text); 
+      border-left: 3px solid var(--gold-text);
+      border-radius: 4px 8px 8px 4px;
+    }
+
+    .logout-btn{
+      margin-top: auto;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #cbd5e1;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: 0.2s;
+      font-family: inherit;
+    }
+    .logout-btn:hover{ background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* MAIN CONTENT */
+    .main-content{
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px 40px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .header-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 30px;
+    }
+    .header-area h1 {
+      margin: 0 0 6px 0;
+      color: #022a66;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+    .header-area p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* BOTÓN (por si decides usar alguno) */
+    .btn-create {
+      background-color: #022a66;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.2s;
+    }
+    .btn-create:hover { background-color: #0f172a; }
+
+    /* TAB SECTIONS */
+    .section{
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .section.active{
+      display: block;
+    }
+    @keyframes fadeIn{
+      from { opacity:0; transform:translateY(5px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* BOARD (MESA DE AYUDA) */
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      height: 100%;
+      min-height: 0;
+    }
+    .column {
+      background: #f8fafc;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-light);
+      overflow: hidden;
+    }
+    .col-head {
+      padding: 16px 20px;
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .column[data-status="nuevos"] .col-head {
+      background: var(--col-new-bg);
+      color: var(--col-new-txt);
+    }
+    .column[data-status="resueltos"] .col-head {
+      background: var(--col-done-bg);
+      color: var(--col-done-txt);
+    }
+    .count-badge {
+      background: #fff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .col-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .empty-text{
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* TICKETS CARD */
+    .ticket-card{
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .ticket-card:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+      border-color: #cbd5e1;
+    }
+
+    .tag{
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+      background: var(--prio-tag-bg);
+      color: var(--prio-tag-txt);
+    }
+    .tag.alta  { background: var(--prio-high-bg); color: var(--prio-high-txt); }
+    .tag.media { background: var(--prio-med-bg);  color: var(--prio-med-txt); }
+    .tag.baja  { background: var(--prio-low-bg);  color: var(--prio-low-txt); }
+
+    .t-id{
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    .t-title{
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .t-user{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+    .t-user svg{
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+    .t-time{
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 12px;
+      text-align: right;
+      display: block;
+    }
+
+    /* PANEL DETALLE */
+    .detail-panel{
+      position: fixed;
+      right: 24px;
+      top: 24px;
+      bottom: 24px;
+      width: 380px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 22px 45px rgba(15,23,42,0.35);
+      border: 1px solid var(--border-light);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      z-index: 40;
+    }
+    .detail-panel.hidden{ display:none; }
+
+    .detail-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:8px;
+      margin-bottom: 10px;
+    }
+    .detail-title{
+      margin:0;
+      font-size:1.05rem;
+      font-weight:600;
+      color:#0f172a;
+    }
+    .detail-subtitle{
+      margin:2px 0 0;
+      font-size:.8rem;
+      color:var(--text-muted);
+    }
+    .detail-close-btn{
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      font-size:1.1rem;
+      padding:2px 6px;
+      border-radius:999px;
+    }
+    .detail-close-btn:hover{
+      background:#e5e7eb;
+    }
+
+    .detail-body{
+      flex:1;
+      overflow:auto;
+      font-size:.9rem;
+      padding-top:4px;
+    }
+    .detail-label{
+      font-size:.75rem;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:var(--text-muted);
+      margin-top:10px;
+      margin-bottom:2px;
+      font-weight:600;
+    }
+    .detail-text{
+      margin:0;
+      color:var(--text-main);
+      white-space:pre-wrap;
+    }
+    .detail-badge{
+      display:inline-block;
+      padding:3px 10px;
+      border-radius:999px;
+      font-size:.75rem;
+      background:#eff6ff;
+      color:#1e40af;
+    }
+
+    .detail-textarea{
+      width:100%;
+      min-height:100px;
+      border-radius:10px;
+      border:1px solid #cbd5e1;
+      padding:8px 10px;
+      font-family:inherit;
+      font-size:.88rem;
+      resize:vertical;
+    }
+
+    .detail-footer{
+      margin-top:12px;
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
+    .btn{
+      border-radius:999px;
+      padding:7px 14px;
+      font-size:.85rem;
+      border:1px solid transparent;
+      cursor:pointer;
+      font-family:inherit;
+      transition:background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease;
+    }
+    .btn-secondary{
+      background:#ffffff;
+      border-color:#d1d5db;
+      color:#374151;
+    }
+    .btn-secondary:hover{
+      background:#f3f4f6;
+    }
+    .btn-primary{
+      background:#2563eb;
+      border-color:#2563eb;
+      color:#f9fafb;
+      box-shadow:0 8px 18px rgba(37,99,235,.35);
+    }
+    .btn-primary:hover{
+      background:#1d4ed8;
+      border-color:#1d4ed8;
+      transform:translateY(-1px);
+    }
+    .btn-primary[disabled]{
+      opacity: .6;
+      cursor: default;
+      box-shadow: none;
+      transform:none;
+    }
+
+    .detail-status-pill{
+      font-size:.78rem;
+      padding:2px 8px;
+      border-radius:999px;
+      background:#f1f5f9;
+      color:#475569;
+    }
+    .detail-status-pill.closed{
+      background:#ecfdf5;
+      color:#166534;
+    }
+
+    /* TOOLS GRID (HERRAMIENTAS) */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+    }
+    .tool-card {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .tool-header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .tool-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #1e293b;
+    }
+    .tool-header p {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .btn-tool {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .btn-register { background: #022a66; color: #fff; }
+    .btn-update   { background: #2563eb; color: #fff; }
+    .btn-delete   { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+
+    .alert-msg {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      display: none;
+    }
+    .alert-success { background: #ecfdf5; color: #047857; border: 1px solid #d1fae5; }
+    .alert-error   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    @media(max-width: 1024px){
+      .app-shell{
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+      }
+      .sidebar{ width: 100%; }
+      .board {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .col-body {
+        min-height: 300px;
+      }
+      .detail-panel{
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        width: auto;
+      }
+    }
+  </style>
 </head>
-<body>
-    <div class="dashboard-container">
-        <h1>Bienvenido, {{ user.email }}</h1>
-        <p>Has ingresado como <span class="role">Administrador</span>.</p>
-        <p>Puedes gestionar usuarios, catálogos y revisar todas las solicitudes.</p>
 
-        <a href="{% url 'logout' %}">Cerrar sesión</a>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo-container">
+      <img src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png" alt="UNAB" class="sidebar-logo-img">
     </div>
+
+    <div class="user-box">
+      <div class="avatar-circle">AD</div>
+      <div class="user-info">
+        <h4>{{ request.user.get_full_name|default:"Administrador" }}</h4>
+        <p>Administrador</p>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <!-- Ahora las secciones funcionan como SPA -->
+      <a href="#tickets" class="nav-link active" onclick="showSection('tickets', this)">
+        <span>📥</span> Mesa de Ayuda
+      </a>
+      <a href="#herramientas" class="nav-link" onclick="showSection('herramientas', this)">
+        <span>🛠️</span> Herramientas
+      </a>
+    </nav>
+
+    <form method="post" action="{% url 'logout' %}" style="margin-top:auto">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">⏏ Cerrar Sesión</button>
+    </form>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- ================== SECCIÓN MESA DE AYUDA ================== -->
+    <section id="tickets" class="section active">
+      <div class="header-area">
+        <div>
+          <h1>Mesa de Ayuda</h1>
+          <p>Gestión centralizada de solicitudes de soporte estudiantil.</p>
+        </div>
+      </div>
+
+      <section class="board">
+        <!-- Columna nuevos / en proceso -->
+        <div class="column" data-status="nuevos">
+          <div class="col-head">
+            <div style="display:flex; align-items:center; gap:8px;">
+               <span>📬</span> <span>Nuevos / En proceso</span>
+            </div>
+            <span class="count-badge count">
+              {{ tickets_abiertos|length }}
+            </span>
+          </div>
+          <div class="col-body cards">
+            {% if tickets_abiertos %}
+              {% for t in tickets_abiertos %}
+                <article
+                  class="ticket-card"
+                  data-ticket-id="{{ t.id }}"
+                  data-detail-url="{% url 'supportticket_detail_api' t.id %}"
+                  data-reply-url="{% url 'supportticket_reply' t.id %}"
+                >
+                  <span class="tag">{{ t.tipo_consulta }}</span>
+                  <span class="t-id">#{{ t.id }}</span>
+
+                  <h3 class="t-title">{{ t.asunto }}</h3>
+
+                  <div class="t-user">
+                    <svg viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+                    <span class="student-name">
+                      {{ t.user.get_full_name|default:t.user.email }}
+                    </span>
+                  </div>
+
+                  <span class="t-time">
+                    {{ t.created_at|date:"Y-m-d H:i" }}
+                  </span>
+                </article>
+              {% endfor %}
+            {% else %}
+              <p class="empty-text">No hay tickets pendientes.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Columna resueltos -->
+        <div class="column" data-status="resueltos">
+          <div class="col-head">
+            <div style="display:flex; align-items:center; gap:8px;">
+               <span>✅</span> <span>Resueltos</span>
+            </div>
+            <span class="count-badge count">
+              {{ tickets_cerrados|length }}
+            </span>
+          </div>
+          <div class="col-body cards">
+            {% if tickets_cerrados %}
+              {% for t in tickets_cerrados %}
+                <article
+                  class="ticket-card"
+                  data-ticket-id="{{ t.id }}"
+                  data-detail-url="{% url 'supportticket_detail_api' t.id %}"
+                  data-reply-url="{% url 'supportticket_reply' t.id %}"
+                >
+                  <span class="tag">
+                    {{ t.tipo_consulta|default:"OTRA CONSULTA" }}
+                  </span>
+                  <span class="t-id">#{{ t.id }}</span>
+
+                  <h3 class="t-title">{{ t.asunto }}</h3>
+
+                  <div class="t-user">
+                    <svg viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+                    <span class="student-name">
+                      {{ t.user.get_full_name|default:t.user.email }}
+                    </span>
+                  </div>
+
+                  <span class="t-time">
+                    {{ t.updated_at|date:"Y-m-d H:i" }}
+                  </span>
+                </article>
+              {% endfor %}
+            {% else %}
+              <p class="empty-text">No hay tickets resueltos en el último año.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel de detalle / respuesta -->
+      <aside id="ticket-detail-panel" class="detail-panel hidden">
+        <div class="detail-header">
+          <div>
+            <h2 class="detail-title" id="detail-title">Detalle de ticket</h2>
+            <p class="detail-subtitle" id="detail-subtitle"></p>
+          </div>
+          <button type="button" class="detail-close-btn" id="detail-close-btn" aria-label="Cerrar panel">✕</button>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-label">ID</div>
+          <p class="detail-text">
+            <span id="detail-id"></span>
+            <span id="detail-status-pill" class="detail-status-pill" style="margin-left:8px;"></span>
+          </p>
+
+          <div class="detail-label">Estudiante</div>
+          <p class="detail-text" id="detail-student"></p>
+
+          <div class="detail-label">Tipo de consulta</div>
+          <p class="detail-text" id="detail-tipo"></p>
+
+          <div class="detail-label">Detalle enviado</div>
+          <p class="detail-text" id="detail-detalle"></p>
+
+          <div class="detail-label">Respuesta del administrador</div>
+          <form id="ticket-reply-form">
+            <textarea
+              id="reply-text"
+              name="respuesta"
+              class="detail-textarea"
+              placeholder="Escribe aquí la respuesta que será enviada al correo del estudiante…"
+              required
+            ></textarea>
+          </form>
+        </div>
+
+        <div class="detail-footer">
+          <button type="button" class="btn btn-secondary" id="detail-cancel">
+            Cancelar
+          </button>
+          <button type="submit" form="ticket-reply-form" class="btn btn-primary" id="detail-send">
+            Enviar respuesta y cerrar
+          </button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ================== SECCIÓN HERRAMIENTAS ================== -->
+    <section id="herramientas" class="section">
+      <div class="header-area">
+        <div>
+          <h1>Centro de Gestión</h1>
+          <p>Administración de cuentas y datos de usuarios.</p>
+        </div>
+      </div>
+
+      <div class="tools-grid">
+        <!-- Registrar usuario -->
+        <div class="tool-card">
+          <div class="tool-header">
+            <h3>👤 Registrar Usuario</h3>
+            <p>Crear cuenta manualmente.</p>
+          </div>
+          <form action="{% url 'register' %}" method="POST">
+            {% csrf_token %}
+            <div class="row-2">
+              <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" name="first_name" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label>Apellido</label>
+                <input type="text" name="last_name" class="form-input" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Correo Electrónico</label>
+              <input type="email" name="email" class="form-input" placeholder="@uandresbello.edu" required>
+            </div>
+            <div class="form-group">
+              <label>Rol</label>
+              <select name="rol" class="form-select">
+                <option value="STUDENT">Estudiante</option>
+                <option value="REVIEWER">Revisor</option>
+                <option value="ADMIN">Administrador</option>
+              </select>
+            </div>
+            <div class="row-2">
+              <div class="form-group">
+                <label>Clave</label>
+                <input type="password" name="password1" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label>Confirmar</label>
+                <input type="password" name="password2" class="form-input" required>
+              </div>
+            </div>
+            <button type="submit" class="btn-tool btn-register">Crear Cuenta</button>
+          </form>
+        </div>
+
+        <!-- Corregir datos -->
+        <div class="tool-card">
+          <div class="tool-header">
+            <h3>✏️ Corregir Datos</h3>
+            <p>Actualizar nombre usando correo.</p>
+          </div>
+          <form id="frmNameUpdate">
+            <div class="form-group">
+              <label>Correo del Usuario</label>
+              <input type="email" id="updEmail" class="form-input" required>
+            </div>
+            <div class="row-2">
+              <div class="form-group">
+                <label>Nuevo Nombre</label>
+                <input type="text" id="updFirst" class="form-input">
+              </div>
+              <div class="form-group">
+                <label>Nuevo Apellido</label>
+                <input type="text" id="updLast" class="form-input">
+              </div>
+            </div>
+            <button type="submit" class="btn-tool btn-update">Guardar Cambios</button>
+            <div id="msgUpdate" class="alert-msg"></div>
+          </form>
+        </div>
+
+        <!-- Zona de peligro -->
+        <div class="tool-card" style="border-color:#fecaca;">
+          <div class="tool-header">
+            <h3 style="color:#991b1b;">🗑️ Zona de Peligro</h3>
+            <p>Eliminar usuario y sus datos.</p>
+          </div>
+          <form id="frmDelete">
+            <div class="form-group">
+              <label style="color:#991b1b;">Correo a Eliminar</label>
+              <input type="email" id="delEmail" class="form-input" placeholder="Usuario a borrar" style="border-color:#fca5a5;">
+            </div>
+            <div style="height:20px"></div>
+            <button type="submit" class="btn-tool btn-delete">Eliminar Definitivamente</button>
+            <div id="msgDelete" class="alert-msg"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  /* === Navegación SPA (sidebar) === */
+  function showSection(id, element) {
+    document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    if (element) element.classList.add('active');
+  }
+
+  /* === Utilidad: obtener CSRF de cookies === */
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  /* === LÓGICA MESA DE AYUDA (detalle + respuesta) === */
+  (function(){
+    const board = document.querySelector('.board');
+    const panel = document.getElementById('ticket-detail-panel');
+    const btnClose = document.getElementById('detail-close-btn');
+    const btnCancel = document.getElementById('detail-cancel');
+    const btnSend = document.getElementById('detail-send');
+    const replyForm = document.getElementById('ticket-reply-form');
+    const replyText = document.getElementById('reply-text');
+
+    const elId = document.getElementById('detail-id');
+    const elSubtitle = document.getElementById('detail-subtitle');
+    const elStudent = document.getElementById('detail-student');
+    const elTipo = document.getElementById('detail-tipo');
+    const elDetalle = document.getElementById('detail-detalle');
+    const elStatusPill = document.getElementById('detail-status-pill');
+
+    let currentCard = null;
+    let currentReplyUrl = null;
+
+    if (!board || !panel) return;
+
+    function updateCounters(){
+      document.querySelectorAll('.column').forEach(col => {
+        const count = col.querySelectorAll('.ticket-card').length;
+        const badge = col.querySelector('.count');
+        if (badge) badge.textContent = count;
+      });
+    }
+
+    function closePanel(){
+      panel.classList.add('hidden');
+      if (replyText) replyText.value = '';
+      currentCard = null;
+      currentReplyUrl = null;
+      if (btnSend) btnSend.disabled = false;
+    }
+
+    // Click en tarjetas -> cargar detalle
+    board.addEventListener('click', function(ev){
+      const card = ev.target.closest('.ticket-card');
+      if (!card) return;
+
+      const detailUrl = card.getAttribute('data-detail-url');
+      const replyUrl = card.getAttribute('data-reply-url');
+      if (!detailUrl || !replyUrl) return;
+
+      currentCard = card;
+      currentReplyUrl = replyUrl;
+
+      fetch(detailUrl, {
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+      })
+      .then(r => r.json())
+      .then(data => {
+        const isClosed = data.estado === "CERRADA";
+
+        elId.textContent = "#" + data.id;
+        elSubtitle.textContent = "Creado el " + (data.created_at || "");
+        elStudent.textContent = data.student_name + " · " + data.student_email;
+        elTipo.textContent = data.tipo_consulta;
+        elDetalle.textContent = data.detalle || "";
+        
+        replyText.value = data.respuesta_admin || "";
+        replyText.disabled = isClosed;
+        
+        elStatusPill.textContent = isClosed ? "Cerrado" : "Abierto";
+        elStatusPill.classList.toggle('closed', isClosed);
+        
+        const detailFooter = panel.querySelector('.detail-footer');
+        if (detailFooter) {
+          detailFooter.style.display = isClosed ? 'none' : 'flex';
+        }
+
+        panel.classList.remove('hidden');
+      })
+      .catch(() => {
+        alert("No se pudo cargar el detalle del ticket.");
+      });
+    });
+
+    // Cerrar panel
+    if (btnClose)  btnClose.addEventListener('click', closePanel);
+    if (btnCancel) btnCancel.addEventListener('click', closePanel);
+
+    // Enviar respuesta
+    replyForm.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      if (!currentReplyUrl || !currentCard) return;
+
+      const formData = new FormData(replyForm);
+      if (btnSend) btnSend.disabled = true;
+
+      fetch(currentReplyUrl, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) {
+          alert(data.error || "No se pudo enviar la respuesta.");
+          if (btnSend) btnSend.disabled = false;
+          return;
+        }
+
+        // Mover tarjeta a columna "resueltos"
+        const colResolved = document.querySelector('.column[data-status="resueltos"] .cards');
+        if (colResolved && !colResolved.contains(currentCard)) {
+          colResolved.prepend(currentCard);
+        }
+        updateCounters();
+        closePanel();
+      })
+      .catch(() => {
+        alert("Error al enviar la respuesta.");
+        if (btnSend) btnSend.disabled = false;
+      });
+    });
+
+    updateCounters();
+  })();
+
+  /* === LÓGICA HERRAMIENTAS (update / delete) === */
+  (function(){
+    function alertBox(id, type, text){
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'alert-msg ' + (type === 'ok' ? 'alert-success' : 'alert-error');
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    // Corregir Nombre
+    const frmNameUpdate = document.getElementById('frmNameUpdate');
+    if (frmNameUpdate){
+      frmNameUpdate.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('updEmail').value;
+        const first = document.getElementById('updFirst').value;
+        const last = document.getElementById('updLast').value;
+        if(!email) return;
+
+        try {
+          const res = await fetch("{% url 'api_update_user_name' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+            body: new URLSearchParams({email, first_name: first, last_name: last})
+          });
+          const data = await res.json();
+          if(data.ok) {
+            alertBox('msgUpdate', 'ok', 'Datos actualizados.');
+            document.getElementById('updEmail').value = '';
+            document.getElementById('updFirst').value = '';
+            document.getElementById('updLast').value = '';
+          } else {
+            alertBox('msgUpdate', 'error', data.error || 'Error');
+          }
+        } catch(e){
+          alertBox('msgUpdate', 'error', 'Error de conexión');
+        }
+      });
+    }
+
+    // Eliminar usuario
+    const frmDelete = document.getElementById('frmDelete');
+    if (frmDelete){
+      frmDelete.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('delEmail').value;
+        if(!email) return;
+        if(!confirm(`¿ESTÁS SEGURO?\nSe borrará todo lo de ${email}.`)) return;
+
+        try {
+          const res = await fetch("{% url 'api_delete_user' %}", {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+            body: new URLSearchParams({email})
+          });
+          const data = await res.json();
+          if(data.ok) {
+            alertBox('msgDelete', 'ok', 'Usuario eliminado.');
+            document.getElementById('delEmail').value = '';
+          } else {
+            alertBox('msgDelete', 'error', data.error || 'Error');
+          }
+        } catch(e){
+          alertBox('msgDelete', 'error', 'Error de conexión');
+        }
+      });
+    }
+  })();
+</script>
+
 </body>
 </html>
