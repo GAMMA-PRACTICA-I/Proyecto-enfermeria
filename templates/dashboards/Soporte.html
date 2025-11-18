@@ -54,6 +54,31 @@
     color:#374151;
   }
 
+  /* MENSAJE INLINE */
+
+  .support-message{
+    margin-top:12px;
+    margin-bottom:4px;
+    padding:8px 12px;
+    border-radius:12px;
+    font-size:.82rem;
+    display:none;          /* oculto por defecto */
+  }
+
+  .support-message--ok{
+    display:block;
+    background:#ecfdf5;
+    border:1px solid #bbf7d0;
+    color:#065f46;
+  }
+
+  .support-message--error{
+    display:block;
+    background:#fef2f2;
+    border:1px solid #fecaca;
+    color:#991b1b;
+  }
+
   /* CARD FORMULARIO */
 
   .support-form-card{
@@ -214,6 +239,9 @@
         Anuncios en Canvas / correo institucional.
       </span>
     </div>
+
+    <!-- MENSAJE INLINE (éste aparece en el “espacio blanco”) -->
+    <div id="support-message" class="support-message" aria-live="polite"></div>
   </section>
 
   <!-- COLUMNA DERECHA: FORMULARIO -->
@@ -224,8 +252,8 @@
       En el proyecto real se asociaría a tu usuario y se notificaría al equipo correspondiente.
     </p>
 
-    <!-- FORMULARIO CONECTADO A DJANGO -->
-    <form method="post" action="{% url 'soporte_estudiante' %}">
+    <!-- FORMULARIO CON AJAX -->
+    <form id="support-form" method="post" action="{% url 'soporte_estudiante' %}">
       {% csrf_token %}
 
       <div class="support-form-group">
@@ -301,3 +329,63 @@
     </p>
   </article>
 </section>
+
+<script>
+  (function(){
+    const form = document.getElementById('support-form');
+    const messageBox = document.getElementById('support-message');
+
+    if (!form || !messageBox) return;
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: formData,
+        });
+
+        let data = null;
+
+        // Intentar leer JSON solo si el servidor realmente lo envía
+        const ctype = response.headers.get('content-type') || '';
+        if (ctype.includes('application/json')) {
+          try {
+            data = await response.json();
+          } catch (err) {
+            // Ignoramos errores de parseo; mientras response.ok sea true,
+            // asumimos que el ticket se guardó.
+          }
+        }
+
+        if (!response.ok) {
+          // Error real HTTP
+          throw new Error((data && data.error) || 'Error al enviar');
+        }
+
+        const text =
+          (data && data.message) ||
+          'Tu solicitud de soporte se envió correctamente.';
+
+        messageBox.textContent = text;
+        messageBox.classList.remove('support-message--error');
+        messageBox.classList.add('support-message--ok');
+
+        form.reset();
+
+      } catch (err) {
+        messageBox.textContent =
+          'No pudimos confirmar el envío de tu solicitud. Si el problema persiste, inténtalo nuevamente.';
+        messageBox.classList.remove('support-message--ok');
+        messageBox.classList.add('support-message--error');
+      }
+    });
+  })();
+</script>
