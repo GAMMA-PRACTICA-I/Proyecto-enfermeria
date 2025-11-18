@@ -9,6 +9,13 @@
     /* CSS compatible con xhtml2pdf: sin flex, sin grid, solo tablas y estilos simples */
     body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color: #0b1220; }
     h1, h2, h3 { margin: 8px 0; }
+    .header-line { 
+        color: #dc3545;            /* Color de la línea para algunos navegadores */
+        background-color: #dc3545; /* Color de fondo para generadores PDF */
+        height: 2px; 
+        border: none; 
+        margin: 10px 0 15px 0;
+    }
     .muted { color: #444; }
     .section { margin: 10px 0 16px; }
     .table { width: 100%; border-collapse: collapse; }
@@ -28,294 +35,165 @@
     .check.warn::before { content: "• "; }
     /* Encabezado */
     .hdr { border: 1px solid #cfd8e3; padding: 8px; border-radius: 6px; }
+    .header-top-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    .header-top-table td{
+      vertical-align: top;
+      padding: 0;
+      border: none;
+    }
+    .header-top-table .left-text{
+      text-align: left;
+      font-size: 10pt;
+      line-height: 1.2;
+      color: #022a66;
+      font-weight: bold;
+    }
+    .header-top-table .right-image{
+      text-align: right;
+    }
+    .header-top-table .right-image img{
+      max-width: 100px;
+      height: auto;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Encabezado -->
-  <div class="hdr">
-    <h1 style="margin:0">Ficha Estudiante – Revisión</h1>
-    <p class="muted small" style="margin:4px 0 0">
-      Ficha <span class="mono">#{{ ficha.id }}</span> • Usuario: {{ ficha.user.get_full_name|default:ficha.user.email }} ({{ ficha.user.email }}) •
-      Estado Global: <strong>{{ ficha.get_estado_global_display }}</strong> •
-      Actualizada: {{ ficha.updated_at|date:"Y-m-d H:i" }}
-    </p>
-  </div>
-
-  <!-- Helper para leer estado de prev -->
-  {% comment %}
-    Usaremos esta macro mental: status = prev[section][key].status si existe,
-    y lo convertimos a clases ok/bad/warn.
-  {% endcomment %}
-
-  {% with P=prev|default:{} %}
-
-  <!-- I. Antecedentes Generales -->
-  <div class="section">
-    <h2>I. Antecedentes Generales</h2>
-    <table class="table">
-      <thead>
+    <table class="header-top-table">
         <tr>
-          <th style="width:30%">Campo</th>
-          <th>Valor</th>
-          <th style="width:18%">Revisión</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for label,key in
-          "Nombre legal,nombre_legal|RUT,rut|Género,genero|Fecha de nacimiento,fecha_nacimiento|Teléfono,telefono_celular|Dirección actual,direccion_actual|Dirección de origen,direccion_origen|Contacto emergencia,nombre_contacto:contacto_emergencia_nombre|Parentesco,contacto_emergencia_parentesco|Teléfono emergencia,contacto_emergencia_telefono|Centro de salud,centro_salud|Seguro,seguro|Detalle seguro,seguro_detalle"|cut:" "|split:"|" %}
-          {% with
-            parts=key|split:"," %}
-          {% if parts|length == 2 %}
-            {% with k=parts.1 %}
-              <tr>
-                <td>{{ parts.0 }}</td>
-                <td>
-                  {% if k == "seguro" and ficha.generales %}
-                    {{ ficha.generales.get_seguro_display|default:"-" }}
-                  {% else %}
-                    {{ ficha.generales|getattr:k|default:"-" }}
-                  {% endif %}
-                </td>
-                <td class="nowrap">
-                  {% with S=P.GENERALES|default:{} %}
-                    {% with info=S.k|default:None %}
-                      {% if info and info.status == "REVISADO_OK" %}
-                        <span class="pill ok check">Aprobado</span>
-                      {% elif info and info.status == "REVISADO_NO_OK" %}
-                        <span class="pill bad check">No OK</span>
-                      {% else %}
-                        <span class="pill warn check">Pendiente</span>
-                      {% endif %}
-                    {% endwith %}
-                  {% endwith %}
-                </td>
-              </tr>
-            {% endwith %}
-          {% endif %}
-          {% endwith %}
-        {% endfor %}
-        <!-- Foto de ficha (si aplica mostrar solo estado) -->
-        <tr>
-          <td>Foto ficha (PNG)</td>
-          <td>
-            {% if ficha.generales and ficha.generales.foto_ficha %}
-              Archivo presente
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td class="nowrap">
-            {% with S=P.GENERALES|default:{} %}
-              {% with info=S.foto_ficha|default:None %}
-                {% if info and info.status == "REVISADO_OK" %}
-                  <span class="pill ok check">Aprobado</span>
-                {% elif info and info.status == "REVISADO_NO_OK" %}
-                  <span class="pill bad check">No OK</span>
-                {% else %}
-                  <span class="pill warn check">Pendiente</span>
-                {% endif %}
-              {% endwith %}
-            {% endwith %}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- II. Antecedentes Académicos -->
-  <div class="section">
-    <h2>II. Antecedentes Académicos</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:30%">Campo</th>
-          <th>Valor</th>
-          <th style="width:18%">Revisión</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for label,k in
-          "Nombre social,nombre_social|Carrera,carrera|Año que cursa,anio_cursa|Estado,estado|Asignatura,asignatura|Correo institucional,correo_institucional|Correo personal,correo_personal"|split:"|" %}
-          {% with parts=k|split:"," %}
-            <tr>
-              <td>{{ parts.0 }}</td>
-              <td>{{ ficha.academicos|getattr:parts.1|default:"-" }}</td>
-              <td class="nowrap">
-                {% with S=P.ACADEMICOS|default:{} %}
-                  {% with info=S|get_item:parts.1 %}
-                    {% if info and info.status == "REVISADO_OK" %}
-                      <span class="pill ok check">Aprobado</span>
-                    {% elif info and info.status == "REVISADO_NO_OK" %}
-                      <span class="pill bad check">No OK</span>
-                    {% else %}
-                      <span class="pill warn check">Pendiente</span>
-                    {% endif %}
-                  {% endwith %}
-                {% endwith %}
-              </td>
-            </tr>
-          {% endwith %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- III. Antecedentes Mórbidos -->
-  <div class="section">
-    <h2>III. Antecedentes Mórbidos</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:30%">Campo</th>
-          <th>Valor</th>
-          <th style="width:18%">Revisión</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for label,k in
-          "Alergias (detalle),alergias_detalle|Grupo sanguíneo,grupo_sanguineo|Crónicas (detalle),cronicas_detalle|Medicamentos (detalle),medicamentos_detalle|Otros antecedentes,otros_antecedentes"|split:"|" %}
-          {% with parts=k|split:"," %}
-            <tr>
-              <td>{{ parts.0 }}</td>
-              <td>
-                {% if parts.1 == "grupo_sanguineo" and ficha.medicos %}
-                  {{ ficha.medicos.get_grupo_sanguineo_display|default:"-" }}
-                {% else %}
-                  {{ ficha.medicos|getattr:parts.1|default:"-" }}
-                {% endif %}
-              </td>
-              <td class="nowrap">
-                {% with S=P.MORBIDOS|default:{} %}
-                  {% with info=S|get_item:parts.1 %}
-                    {% if info and info.status == "REVISADO_OK" %}
-                      <span class="pill ok check">Aprobado</span>
-                    {% elif info and info.status == "REVISADO_NO_OK" %}
-                      <span class="pill bad check">No OK</span>
-                    {% else %}
-                      <span class="pill warn check">Pendiente</span>
-                    {% endif %}
-                  {% endwith %}
-                {% endwith %}
-              </td>
-            </tr>
-          {% endwith %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- IV. Documentos adjuntos (estado) -->
-  <div class="section">
-    <h2>IV. Documentos Adjuntos</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:25%">Sección</th>
-          <th style="width:35%">Item</th>
-          <th>Archivo</th>
-          <th style="width:18%">Revisión</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in docs %}
-          <tr>
-            <td>{{ d.get_section_display }}</td>
-            <td>{{ d.get_item_display }}</td>
-            <td class="small">
-              {% if d.file_name %}{{ d.file_name }}{% else %}-{% endif %}
+            <td class="left-text">
+                Universidad Andrés Bello<br/>
+                Facultad de Enfermería
             </td>
-            <td class="nowrap">
-              {% if d.review_status == "REVISADO_OK" %}
-                <span class="pill ok check">Aprobado</span>
-              {% elif d.review_status == "REVISADO_NO_OK" %}
-                <span class="pill bad check">No OK</span>
-              {% else %}
-                <span class="pill warn check">Adjuntado</span>
-              {% endif %}
+            <td class="right-image">
+              <img src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png" class="logo-unab" alt="Facultad Enfermería UNAB" style="width: 180px; height: auto;">
             </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="4" class="small">Sin documentos adjuntos.</td></tr>
-        {% endfor %}
-      </tbody>
+        </tr>
     </table>
-  </div>
+    <hr class="header-line">
 
-  <!-- V. Declaración -->
-  <div class="section">
-    <h2>V. Declaración</h2>
+    <h1>Ficha Estudiante - Revisión</h1>
+
+    <h2>Datos del Estudiante</h2>
     <table class="table">
-      <thead>
-        <tr>
-          <th style="width:30%">Campo</th>
-          <th>Valor</th>
-          <th style="width:18%">Revisión</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Nombre estudiante</td>
-          <td>{{ ficha.declaracion.nombre_estudiante|default:"-" }}</td>
-          <td class="nowrap">
-            {% with S=P.DECLARACION|default:{} %}
-              {% with info=S.nombre_estudiante|default:None %}
-                {% if info and info.status == "REVISADO_OK" %}
-                  <span class="pill ok check">Aprobado</span>
-                {% elif info and info.status == "REVISADO_NO_OK" %}
-                  <span class="pill bad check">No OK</span>
-                {% else %}
-                  <span class="pill warn check">Pendiente</span>
-                {% endif %}
-              {% endwith %}
-            {% endwith %}
-          </td>
-        </tr>
-        <tr>
-          <td>RUT</td>
-          <td>{{ ficha.declaracion.rut|default:"-" }}</td>
-          <td class="nowrap">
-            {% with S=P.DECLARACION|default:{} %}
-              {% with info=S.rut|default:None %}
-                {% if info and info.status == "REVISADO_OK" %}
-                  <span class="pill ok check">Aprobado</span>
-                {% elif info and info.status == "REVISADO_NO_OK" %}
-                  <span class="pill bad check">No OK</span>
-                {% else %}
-                  <span class="pill warn check">Pendiente</span>
-                {% endif %}
-              {% endwith %}
-            {% endwith %}
-          </td>
-        </tr>
-        <tr>
-          <td>Fecha</td>
-          <td>
-            {% if ficha.declaracion and ficha.declaracion.fecha %}
-              {{ ficha.declaracion.fecha|date:"Y-m-d" }}
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td class="nowrap">
-            {% with S=P.DECLARACION|default:{} %}
-              {% with info=S.fecha|default:None %}
-                {% if info and info.status == "REVISADO_OK" %}
-                  <span class="pill ok check">Aprobado</span>
-                {% elif info and info.status == "REVISADO_NO_OK" %}
-                  <span class="pill bad check">No OK</span>
-                {% else %}
-                  <span class="pill warn check">Pendiente</span>
-                {% endif %}
-              {% endwith %}
-            {% endwith %}
-          </td>
-        </tr>
-      </tbody>
+        <tr><th>RUT</th><td>{{ estudiante.rut }}</td></tr>
+        <tr><th>Nombre Completo</th><td>{{ estudiante.get_full_name }}</td></tr>
+        <tr><th>Correo Electrónico</th><td>{{ estudiante.user.email }}</td></tr>
+        <tr><th>Teléfono</th><td>{{ estudiante.telefono }}</td></tr>
+        <tr><th>Fecha de Nacimiento</th><td>{{ estudiante.fecha_nacimiento|date:"d M Y" }}</td></tr>
+        <tr><th>Nacionalidad</th><td>{{ estudiante.nacionalidad }}</td></tr>
+        <tr><th>Dirección</th><td>{{ estudiante.direccion }}</td></tr>
+        <tr><th>Comuna</th><td>{{ estudiante.comuna }}</td></tr>
+        <tr><th>Región</th><td>{{ estudiante.region }}</td></tr>
     </table>
-  </div>
 
-  {% endwith %}
+    <h2>Antecedentes Académicos</h2>
+    <table class="table">
+        <tr><th>Universidad</th><td>{{ estudiante.universidad }}</td></tr>
+        <tr><th>Campus</th><td>{{ estudiante.campus }}</td></tr>
+        <tr><th>Carrera</th><td>{{ estudiante.carrera }}</td></tr>
+        <tr><th>Régimen</th><td>{{ estudiante.regimen }}</td></tr>
+        <tr><th>Jornada</th><td>{{ estudiante.jornada }}</td></tr>
+        <tr><th>Nivel</th><td>{{ estudiante.nivel }}</td></tr>
+    </table>
+
+    <h2>Antecedentes Mórbidos</h2>
+    <table class="table">
+        <tr><th>Enfermedades Crónicas</th><td>{{ estudiante.enfermedades_cronicas|default:"N/A" }}</td></tr>
+        <tr><th>Alergias</th><td>{{ estudiante.alergias|default:"N/A" }}</td></tr>
+        <tr><th>Medicamentos Habituales</th><td>{{ estudiante.medicamentos_habituales|default:"N/A" }}</td></tr>
+    </table>
+
+    <h2>Registro de Vacunas</h2>
+    <table class="table">
+        <tr><th>Anti Sarampión</th><td><span class="{% if estudiante.anti_sarampion_ok %}ok{% else %}bad{% endif %}">{{ estudiante.get_anti_sarampion_display }}</span></td></tr>
+        <tr><th>Anti Hepatitis B</th><td><span class="{% if estudiante.anti_hepatitis_b_ok %}ok{% else %}bad{% endif %}">{{ estudiante.get_anti_hepatitis_b_display }}</span></td></tr>
+        <tr><th>Anti Varicela</th><td><span class="{% if estudiante.anti_varicela_ok %}ok{% else %}bad{% endif %}">{{ estudiante.get_anti_varicela_display }}</span></td></tr>
+        <tr><th>Anti Influenza</th><td><span class="{% if estudiante.anti_influenza_ok %}ok{% else %}bad{% endif %}">{{ estudiante.get_anti_influenza_display }}</span></td></tr>
+        <tr><th>Anti Tétanos</th><td><span class="{% if estudiante.anti_tetanos_ok %}ok{% else %}bad{% endif %}">{{ estudiante.get_anti_tetanos_display }}</span></td></tr>
+    </table>
+
+    <h2>Documentos Adjuntos</h2>
+    <table class="table">
+        <tr>
+            <th>Certificado Anti Sarampión</th>
+            <td>
+                {% if estudiante.certificado_anti_sarampion %}
+                    <a href="{{ estudiante.certificado_anti_sarampion.url }}" target="_blank">Ver Documento</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Certificado Anti Hepatitis B</th>
+            <td>
+                {% if estudiante.certificado_anti_hepatitis_b %}
+                    <a href="{{ estudiante.certificado_anti_hepatitis_b.url }}" target="_blank">Ver Documento</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Certificado Anti Varicela</th>
+            <td>
+                {% if estudiante.certificado_anti_varicela %}
+                    <a href="{{ estudiante.certificado_anti_varicela.url }}" target="_blank">Ver Documento</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Certificado Anti Influenza</th>
+            <td>
+                {% if estudiante.certificado_anti_influenza %}
+                    <a href="{{ estudiante.certificado_anti_influenza.url }}" target="_blank">Ver Documento</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Certificado Anti Tétanos</th>
+            <td>
+                {% if estudiante.certificado_anti_tetanos %}
+                    <a href="{{ estudiante.certificado_anti_tetanos.url }}" target="_blank">Ver Documento</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Certificado de Alumno Regular</th>
+            <td>
+                {% if estudiante.certificado_alumno_regular %}
+                    <a href="{{ estudiante.certificado_alumno_regular.url }}" target="_blank">Ver Documento</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <h2>Declaración Jurada</h2>
+    <table class="table">
+        <tr><th>Declaración firmada</th><td><span class="{% if estudiante.declaracion_jurada_ok %}ok{% else %}bad{% endif %}">{{ estudiante.get_declaracion_jurada_display }}</span></td></tr>
+        {% if estudiante.fecha_firma_declaracion %}
+            <tr><th>Fecha de Firma</th><td>{{ estudiante.fecha_firma_declaracion|date:"d M Y H:i" }}</td></tr>
+        {% endif %}
+    </table>
+
+    <div class="note">
+        Este documento es una revisión interna de la ficha del estudiante.
+        La información contenida es confidencial y solo para uso administrativo.
+        Generado el: {{ now|date:"d M Y H:i" }}
+    </div>
 
 </body>
 </html>

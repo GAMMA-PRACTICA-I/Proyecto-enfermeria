@@ -150,6 +150,7 @@ def _doc_create_with_blob(
         file_name=canon_name,
         file_mime=content_type or None,
         review_status=DocumentReviewStatus.ADJUNTADO,
+        order=0,
     )
 
     StudentDocumentBlob.objects.create(
@@ -282,7 +283,7 @@ class FichaView(View):
                 "centro_salud": gen_form.cleaned_data.get("centro_salud"),
                 "seguro": gen_form.cleaned_data.get("prevision"),
                 "seguro_detalle": gen_form.cleaned_data.get("prevision_detalle"),
-                "correo_institucional": gen_form.cleaned_data.get("correo_institucional"),
+                # "correo_institucional": gen_form.cleaned_data.get("correo_institucional"),
             }
 
             fields_to_update = []
@@ -293,7 +294,7 @@ class FichaView(View):
                     fields_to_update.append(field_name)
 
             # Primero, guardamos la instancia de StudentGeneral con los campos actualizados/creados.
-            if fields_to_update:
+            if g.pk and fields_to_update:
                 g.save(update_fields=fields_to_update)
             else:
                 g.save()
@@ -340,9 +341,12 @@ class FichaView(View):
             fields_to_update = [] 
 
             # Correo institucional (viene del form de generales si es válido)
-            if gen_form.is_valid() and gen_form.cleaned_data.get("correo_institucional") is not None and gen_form.cleaned_data.get("correo_institucional") != "":
-                a.correo_institucional = gen_form.cleaned_data.get("correo_institucional")
-                fields_to_update.append("correo_institucional")
+            if gen_form.is_valid(): # Aseguramos que los datos del formulario de generales son válidos
+                correo_inst = gen_form.cleaned_data.get("correo_institucional")
+                # Solo actualizamos si el campo fue llenado (no None y no vacío)
+                if correo_inst is not None and correo_inst != "":
+                    a.correo_institucional = correo_inst
+                    fields_to_update.append("correo_institucional")
 
             # Actualización de otros campos académicos
             for field_name, value in academic_updates.items():
@@ -350,7 +354,7 @@ class FichaView(View):
                     setattr(a, field_name, value)
                     fields_to_update.append(field_name)
 
-            if fields_to_update:
+            if a.pk and fields_to_update:
                 a.save(update_fields=fields_to_update)
             else:
                 a.save() # Guarda si es nuevo.
@@ -380,7 +384,7 @@ class FichaView(View):
                     setattr(m, field_name, value)
                     fields_to_update.append(field_name)
 
-            if fields_to_update:
+            if m.pk and fields_to_update:
                 m.save(update_fields=fields_to_update)
             else:
                 m.save() # Guarda si es nuevo.
@@ -495,7 +499,7 @@ class FichaView(View):
                     setattr(d, field_name, value)
                     fields_to_update.append(field_name)
             
-            if fields_to_update:
+            if d.pk and fields_to_update:
                 d.save(update_fields=fields_to_update)
             else:
                 d.save() # Guarda si es nuevo.
@@ -520,9 +524,12 @@ class FichaView(View):
                 comentario.autor = request.user
                 comentario.ficha = ficha
                 comentario.save()
-            return redirect("ficha")
-
-        return redirect("dashboard_estudiante")
+            active_tab = request.POST.get("active_tab_name", "generales")
+            return redirect(reverse("ficha") + f"#{active_tab}")
+        
+        active_tab = request.POST.get("active_tab_name", "generales")
+        url_destino = reverse("dashboard_estudiante") + f"#{active_tab}"
+        return redirect(url_destino)
 
 @method_decorator(login_required, name="dispatch")
 class ReviewDashboardView(View):

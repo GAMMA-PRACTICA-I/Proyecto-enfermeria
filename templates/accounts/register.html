@@ -1,51 +1,308 @@
-{% extends "base.html" %}
 {% load static %}
-{% block content %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Registro – Campo Clínico UNAB</title>
 
-<div class="container mt-5" style="max-width:600px;">
-    <h2 class="mb-4">Registro de usuario</h2>
+  <link rel="preload" as="image" href="https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=">
 
-    <form method="POST">
-        {% csrf_token %}
+  <style>
+  :root{
+    --navy:#022a66;
+    --blue:#0b60c5;
+    --ink:#0f172a;
+    --muted:#334155;
+    --card-bg:#ffffff;
+    --card-brd:rgba(15,23,42,.12);
+    --shadow:0 24px 50px rgba(15,23,42,.25);
+    --radius:18px;
+  }
 
-        <div class="mb-3">
-            <label for="email" class="form-label">Correo electrónico</label>
-            <input type="email" name="email" class="form-control" required>
-        </div>
+  *{box-sizing:border-box}
+  html,body{height:100%}
 
-        <div class="mb-3">
-            <label class="form-label">Rol</label>
-            <select name="rol" class="form-select" required>
-                <option value="STUDENT">Estudiante</option>
+  body{
+    margin:0;
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Arial,sans-serif;
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.72)),
+      url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:1100px;
+    padding:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:40px;
+  }
+
+  /* Lado logo */
+  .side{
+    flex:1;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .logo{
+    width:100%;
+    max-width:400px;
+    height:auto;
+    object-fit:contain;
+  }
+
+  /* Panel general */
+  .panel{
+    position:relative;
+    width:100%;
+    max-width:480px; /* Un poco más ancho que el login para que quepan los nombres */
+    background:var(--card-bg);
+    border:1px solid var(--card-brd);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    max-height: 90vh; /* Evita que se salga de pantallas pequeñas */
+  }
+
+  .bar{
+    background:linear-gradient(90deg,var(--navy),var(--blue));
+    color:#fff;
+    padding:14px 18px;
+    font-weight:800;
+    letter-spacing:.08em;
+    font-size:.9rem;
+    flex-shrink: 0;
+  }
+
+  .content{
+    padding:20px 28px 24px 28px;
+    overflow-y: auto; /* Scroll si el registro es muy largo */
+  }
+
+  /* Grid para poner nombre y apellido juntos */
+  .row-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Formulario */
+  .field{margin:10px 0}
+  
+  .label{
+    display:block;
+    font-weight:700;
+    font-size:.9rem;
+    margin-bottom:6px;
+    color:var(--ink);
+  }
+
+  .input, .select{
+    width:100%;
+    height:50px;
+    padding:0 14px;
+    border:1px solid var(--card-brd);
+    border-radius:12px;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+    box-shadow:0 2px 0 rgba(2,6,23,.06) inset;
+    transition:border-color .15s,transform .15s,box-shadow .15s;
+    font-size:.95rem;
+    font-family: inherit;
+  }
+  
+  /* Ajuste específico para selects */
+  .select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+  }
+
+  .input::placeholder{color:#94a3b8;}
+
+  .input:focus, .select:focus{
+    border-color:#cbd5e1;
+    background-color:#ffffff;
+    box-shadow:
+      0 0 0 3px rgba(37,99,235,.20),
+      0 2px 0 rgba(15,23,42,.06) inset;
+    transform:translateY(-1px);
+  }
+
+  /* Botones y footer */
+  .footer-row{
+    margin-top:20px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    width:100%;
+  }
+
+  .btn{
+    flex:1;
+    height:50px;
+    padding:0 18px;
+    border:0;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    background:linear-gradient(90deg,var(--navy),var(--blue));
+    color:#fff;
+    box-shadow:0 10px 24px rgba(15,23,42,.25);
+    transition:transform .15s,box-shadow .15s,opacity .15s;
+    font-size:.9rem;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration: none;
+  }
+
+  .btn.secondary {
+    background: #fff;
+    border: 1px solid var(--card-brd);
+    color: var(--muted);
+    box-shadow: none;
+  }
+
+  .btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 14px 32px rgba(15,23,42,.35);
+  }
+  .btn.secondary:hover {
+    background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .btn:active{
+    transform:translateY(0);
+    opacity:.96;
+  }
+
+  @media (max-width:900px){
+    body{
+      height:auto;
+      padding:20px 0;
+    }
+
+    .wrap{
+      flex-direction:column;
+      gap:24px;
+      padding:15px;
+      width:100%;
+    }
+
+    .side{
+      justify-content:center;
+      width:100%;
+    }
+    
+    .logo{
+      max-width:260px;
+    }
+
+    .panel{
+      width:100%;
+      max-height: none;
+    }
+    
+    .row-fields {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+  }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <aside class="side" aria-label="Identidad institucional">
+      <img class="logo"
+           alt="Universidad Andrés Bello – Facultad de Enfermería"
+           src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png">
+    </aside>
+
+    <section class="panel" aria-label="Registro de usuario">
+      <div class="bar">REGISTRO DE USUARIO</div>
+      <div class="content">
+
+        <form method="POST">
+          {% csrf_token %}
+
+          <div class="row-fields">
+            <div class="field">
+              <label class="label" for="first_name">Nombre</label>
+              <input type="text" name="first_name" id="first_name" class="input" placeholder="Tu nombre" required>
+            </div>
+            <div class="field">
+              <label class="label" for="last_name">Apellido</label>
+              <input type="text" name="last_name" id="last_name" class="input" placeholder="Tu apellido" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="email">Correo electrónico</label>
+            <input type="email" name="email" id="email" class="input" placeholder="nombre@uandresbello.edu" required>
+          </div>
+
+          <div class="field">
+            <label class="label">Rol</label>
+            <select name="rol" class="select" required>
+                <option value="STUDENT" selected>Estudiante</option>
                 <option value="REVIEWER">Revisor</option>
                 <option value="ADMIN">Administrador</option>
             </select>
-        </div>
+          </div>
+          
+          <div class="row-fields">
+            <div class="field">
+              <label class="label" for="password1">Contraseña</label>
+              <input type="password" name="password1" id="password1" class="input" placeholder="••••••••" required>
+            </div>
+  
+            <div class="field">
+              <label class="label" for="password2">Confirmar</label>
+              <input type="password" name="password2" id="password2" class="input" placeholder="••••••••" required>
+            </div>
+          </div>
 
-<div class="mb-3">
-            <label for="first_name" class="form-label">Nombre de pila</label>
-            <input type="text" name="first_name" id="first_name" class="form-control" required>
-        </div>
+          <div class="footer-row">
+            <div class="actions">
+              <a href="{% url 'login' %}" class="btn secondary">
+                Volver
+              </a>
 
-        <div class="mb-3">
-            <label for="last_name" class="form-label">Apellido</label>
-            <input type="text" name="last_name" id="last_name" class="form-control" required>
-        </div>
-        
-        <div class="mb-3">
-            <label for="password1" class="form-label">Contraseña</label>
-            <input type="password" name="password1" class="form-control" required>
-        </div>
-
-        <div class="mb-3">
-            <label for="password2" class="form-label">Confirmar contraseña</label>
-            <input type="password" name="password2" class="form-control" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100">Crear cuenta</button>
-    </form>
-
-    <p class="mt-3">¿Ya tienes una cuenta? <a href="{% url 'login' %}">Iniciar sesión</a></p>
-</div>
-
-{% endblock %}
+              <button class="btn" type="submit">
+                Crear cuenta
+              </button>
+            </div>
+          </div>
+          
+        </form>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
