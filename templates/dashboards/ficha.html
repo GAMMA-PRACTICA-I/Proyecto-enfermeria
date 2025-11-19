@@ -84,12 +84,14 @@
 
       <form method="post" action="{% url 'ficha' %}" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
+        <input type="hidden" name="active_tab_name" id="input_active_name" value="generales">
 
         <!-- I. ANTECEDENTES GENERALES (sin adjuntos, según Word) -->
         <section class="pane" data-pane="generales">
           <div class="grid2">
              <div>
               <label>Foto ficha (PNG)</label>
+              <span class="hint">Esta imagen aparecerá en la esquina superior derecha del PDF.</span>
               <div class="uploader" data-key="foto_ficha">
                 <div class="controls">
                   <input type="file" id="foto_ficha_input" name="foto_ficha" accept="image/png" hidden>
@@ -101,6 +103,7 @@
             </div>
                <div>
               <label>Certificado de Alumno Regular (PDF)</label>
+              <span class="hint">Adjunta tu certificado emitido por la universidad.</span>
               <div class="uploader" data-key="cert_alumno_regular">
                 <div class="controls">
                   <input type="file" id="cert_alumno_regular_input" name="cert_alumno_regular" accept="application/pdf" hidden>
@@ -124,11 +127,9 @@
                 <option>Prefiero no decir</option>
               </select>
             </div>
-
             <div>
-              <label>RUT / Pasaporte
-              </label>
-              <input type="text" name="rut" placeholder="12.345.678-9 / Pasaporte" />
+              <label>RUT</label>
+              <input type="text" name="rut" placeholder="Rut / Pasaporte" />
             </div>
             <div>
               <label>Fecha de nacimiento</label>
@@ -577,8 +578,8 @@
               <input type="text" name="decl_nombre" placeholder="Nombre completo" />
             </div>
             <div>
-              <label>RUT o ID</label>
-              <input type="text" name="decl_rut" placeholder="12.345.678-9 / Pasaporte" />
+              <label>RUT</label>
+              <input type="text" name="decl_rut" placeholder="Rut / Pasaporte" />
             </div>
             <div>
               <label>Fecha</label>
@@ -637,27 +638,44 @@
       const stepLabel=root.querySelector('#stepLabel');
       const order=['generales','academicos','morbidos','vacunas','adjunta','declaracion'];
       const stepCount=order.length;
-      function goto(id){
+
+      function goto(id, updateUrl = true){
         tabs.forEach(t=>{const a=t.dataset.tab===id;t.classList.toggle('active',a);t.setAttribute('aria-selected',a?'true':'false')});
         panes.forEach(p=>p.hidden=(p.getAttribute('data-pane')!==id));
         const idx=order.indexOf(id);
         dots.forEach((d,i)=>d.classList.toggle('active',i<=idx));
-        stepLabel.textContent=`Paso ${idx+1} de ${stepCount}`;
+        if(stepLabel) stepLabel.textContent=`Paso ${idx+1} de ${stepCount}`;
+        
         window.scrollTo({top:0,behavior:'smooth'});
-        history.replaceState(null,'',`#${id}`);
+        
+        if (updateUrl) {
+          history.replaceState(null,'',`#${id}`);
+        }
+        
+        const inputTab = document.getElementById('input_active_name');
+        if(inputTab) {
+          inputTab.value = id;
+        }
       }
-      const initial=location.hash&&order.includes(location.hash.slice(1))?location.hash.slice(1):order[0];
-      goto(initial);
-      tabs.forEach(btn=>btn.addEventListener('click',()=>goto(btn.dataset.tab)));
+
+      // inicialización corregida
+      const currentHash = location.hash.slice(1);
+      const isFichaHash = order.includes(currentHash);
+      const initial = isFichaHash ? currentHash : order[0];
+      goto(initial, isFichaHash);
+
+      tabs.forEach(btn=>btn.addEventListener('click',()=>goto(btn.dataset.tab, true))); 
+      
       nextBtns.forEach(btn=>btn.addEventListener('click',()=>{
         const current=tabs.find(t=>t.classList.contains('active')).dataset.tab;
         const idx=order.indexOf(current);
-        if(idx<order.length-1)goto(order[idx+1]);
+        if(idx<order.length-1) goto(order[idx+1], true);
       }));
+      
       prevBtns.forEach(btn=>btn.addEventListener('click',()=>{
         const current=tabs.find(t=>t.classList.contains('active')).dataset.tab;
         const idx=order.indexOf(current);
-        if(idx>0)goto(order[idx-1]);
+        if(idx>0) goto(order[idx-1], true);
       }));
       root.addEventListener('keydown',(e)=>{
         if(e.key==='Enter'&&e.target.tagName==='INPUT'){

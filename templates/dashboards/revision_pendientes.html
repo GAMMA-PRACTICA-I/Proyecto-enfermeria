@@ -1,515 +1,351 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
   <title>Panel de Revisor – Campo Clínico UNAB</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
   <style>
     :root{
-      --sidebar-bg-top:#022a66;
-      --sidebar-bg-bottom:#011537;
-      --sidebar-border:#001229;
-      --sidebar-text:#e5efff;
-      --sidebar-muted:#9fb4dd;
-      --sidebar-active:#ffd000;
+      /* COLORES BASE (Mismos del Estudiante) */
+      --nav-bg: #022a66;       
+      --nav-hover: rgba(255, 255, 255, 0.1);
+      
+      /* ACENTOS DORADOS */
+      --gold-soft-bg: rgba(251, 191, 36, 0.15); 
+      --gold-text: #fbbf24;
+      --gold-border: rgba(251, 191, 36, 0.3);
 
-      --bg-page:#f4f7fc;
-      --card-bg:#ffffff;
-      --card-border:#dde3f0;
-      --card-shadow:0 14px 32px rgba(15,23,42,.12);
-
-      --text-main:#0f172a;
-      --text-muted:#6b7280;
-
-      --accent:#0b3a7e;
+      --bg-page: #f4f7fc;      
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      
+      --card-bg: #ffffff;
+      --border-light: #e2e8f0;
+      --radius: 16px;
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      
+      /* Colores de Estado (Badges) */
+      --success-bg: #dcfce7; --success-text: #166534;
+      --warn-bg: #fef9c3;    --warn-text: #854d0e;
+      --danger-bg: #fee2e2;  --danger-text: #991b1b;
     }
 
     *{ box-sizing:border-box; }
 
-    html, body{
-      margin:0;
-      padding:0;
-      height:100%;
-    }
-
     body{
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:var(--bg-page);
-      color:var(--text-main);
-      display:flex;
+      margin:0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden; /* Scroll en main-content */
     }
 
     .app-shell{
-      display:flex;
-      width:100%;
-      min-height:100vh;
+      display: flex;
+      height: 100%;
     }
 
-    /* =========== SIDEBAR =========== */
-
+    /* =========== SIDEBAR (Igual al Estudiante) =========== */
     .sidebar{
-      width:260px;
-      background:linear-gradient(180deg,var(--sidebar-bg-top),var(--sidebar-bg-bottom));
-      border-right:1px solid var(--sidebar-border);
-      color:var(--sidebar-text);
-      padding:18px 18px 20px;
-      display:flex;
-      flex-direction:column;
+      width: 290px;
+      background: var(--nav-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 20px;
+      transition: transform 0.3s ease;
     }
 
-    .brand-title{
-      font-size:0.78rem;
-      letter-spacing:0.18em;
-      text-transform:uppercase;
-      color:var(--sidebar-muted);
-      margin-bottom:2px;
+    .sidebar-logo-container{
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    
+    .sidebar-logo-img {
+      max-width: 100%;
+      width: 240px;
+      height: auto;
+      object-fit: contain;
+      /* Fondo blanco suave para el logo si es transparente */
+      background: rgba(255,255,255,0.95);
+      padding: 6px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
 
-    .brand-main{
-      font-weight:600;
-      font-size:0.98rem;
+    .user-box {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
     }
 
-    .user-box{
-      margin-top:14px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
-      border-radius:12px;
-      background:rgba(0,0,0,.16);
-      border:1px solid rgba(15,23,42,.55);
+    .avatar-circle{
+      width: 38px; height: 38px;
+      background: var(--gold-text); 
+      color: #022a66;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1rem;
+      flex-shrink: 0;
     }
 
-    .user-avatar{
-      width:40px;
-      height:40px;
-      border-radius:12px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      background:#0e4aa6;
-      color:#fff;
-      flex-shrink:0;
-      font-size:0.9rem;
+    .user-info h4 { margin: 0; font-size: 0.9rem; color: #fff; font-weight: 600; }
+    .user-info p { margin: 0; font-size: 0.75rem; color: #cbd5e1; }
+
+    .nav-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      font-weight: 600;
     }
 
-    .user-info{ min-width:0; }
-
-    .user-info strong{
-      display:block;
-      font-size:0.86rem;
-      margin-bottom:2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .user-info small{
-      display:block;
-      font-size:0.76rem;
-      color:var(--sidebar-muted);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .nav-label{
-      margin:16px 4px 6px;
-      font-size:0.72rem;
-      letter-spacing:0.18em;
-      text-transform:uppercase;
-      color:var(--sidebar-muted);
-    }
-
-    .nav-list{
-      list-style:none;
-      margin:0;
-      padding:4px;
+    .nav-menu{
+      list-style: none; padding: 0; margin: 0; flex: 1;
+      display: flex; flex-direction: column; gap: 6px;
     }
 
     .nav-link{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color:var(--sidebar-text);
-      text-decoration:none;
-      padding:8px 10px;
-      border-radius:10px;
-      border:1px solid transparent;
-      cursor:pointer;
-      font-size:0.86rem;
-      transition:background .15s ease, border-color .15s ease, transform .08s ease;
-    }
-
-    .nav-link span.icon{
-      width:20px;
-      height:20px;
-      border-radius:999px;
-      border:1px solid rgba(203,213,225,.6);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      text-decoration: none;
+      color: #e2e8f0;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border: 1px solid transparent;
     }
 
     .nav-link:hover{
-      background:rgba(15,23,42,.6);
-      transform:translateY(-1px);
+      background: var(--nav-hover);
+      color: #fff;
     }
 
     .nav-link.active{
-      background:var(--sidebar-active);
-      border-color:rgba(255,255,255,.25);
-      color:#111827;
+      background: var(--gold-soft-bg);
+      color: var(--gold-text);
+      border: 1px solid var(--gold-border);
+      font-weight: 600;
     }
-
-    .sidebar-footer{
-      margin-top:auto;
-      padding-top:10px;
-      border-top:1px solid rgba(15,23,42,.7);
-    }
+    
+    .nav-icon{ font-size: 1.1rem; }
 
     .logout-btn{
-      width:100%;
-      padding:10px 12px;
-      border-radius:10px;
-      border:1px solid rgba(15,23,42,.9);
-      background:#0f172a;
-      color:#f9fafb;
-      cursor:pointer;
-      font-size:0.85rem;
-      transition:background .15s ease, box-shadow .15s ease, transform .08s ease;
+      margin-top: auto;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #cbd5e1;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: 0.2s;
+      font-family: inherit;
     }
+    .logout-btn:hover{ background: rgba(255,255,255,0.1); color: #fff; }
 
-    .logout-btn:hover{
-      background:#111827;
-      box-shadow:0 12px 22px rgba(15,23,42,.6);
-      transform:translateY(-1px);
-    }
-
-    /* =========== MAIN =========== */
-
-    .main-wrapper{
-      flex:1;
-      padding:24px 26px 30px;
-      min-height:100vh;
-    }
-
+    /* =========== MAIN CONTENT =========== */
     .main-content{
-      max-width:1180px;
-      margin:0 auto;
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px 40px;
+      position: relative;
     }
 
-    .page-header{
-      margin-bottom:14px;
+    .header-text h2 { color: #022a66; margin: 0; font-size: 1.5rem; }
+    .header-text p { color: #64748b; margin: 4px 0 20px 0; }
+
+    /* Banner Azul (Estilo Estudiante) */
+    .hero-banner {
+      background: linear-gradient(90deg, #003366 0%, #004488 100%);
+      border-radius: 16px;
+      padding: 30px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 24px;
+    }
+    
+    .hero-text h1 { margin: 0 0 8px 0; font-size: 1.6rem; }
+    .hero-text p { margin: 0; opacity: 0.9; max-width: 600px; line-height: 1.4; }
+
+    /* Card Generico */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-light);
+      padding: 20px;
+      margin-bottom: 20px;
     }
 
-    .page-header h1{
-      margin:0 0 4px;
-      font-size:1.4rem;
-      color:var(--accent);
-      font-weight:600;
+    /* Controles de Tabla (Tabs y Buscador) */
+    .controls-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
     }
 
-    .page-header p{
-      margin:0;
-      font-size:0.9rem;
-      color:var(--text-muted);
-      max-width:560px;
+    .tabs-container {
+      display: inline-flex;
+      background: #e2e8f0;
+      padding: 4px;
+      border-radius: 12px;
+      gap: 4px;
     }
 
-    .row{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      flex-wrap:wrap;
-      margin-bottom:12px;
+    .tab-btn {
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: #475569;
+      background: transparent;
+      transition: all 0.2s;
     }
 
-    .tabs{
-      display:inline-flex;
-      background:#e5e7eb;
-      padding:2px;
-      border-radius:999px;
-      gap:2px;
+    .tab-btn.active {
+      background: #fff;
+      color: #022a66;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      font-weight: 700;
     }
 
-    .tab{
-      border:0;
-      padding:6px 12px;
-      border-radius:999px;
-      font-size:0.8rem;
-      background:transparent;
-      cursor:pointer;
-      color:#374151;
-      transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+    .search-input {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.9rem;
+      min-width: 280px;
+      outline: none;
+      transition: 0.2s;
+    }
+    .search-input:focus {
+      border-color: #022a66;
+      box-shadow: 0 0 0 3px rgba(2, 42, 102, 0.1);
     }
 
-    .tab.active{
-      background:#2563eb;
-      color:#f9fafb;
-      box-shadow:0 6px 16px rgba(37,99,235,.4);
+    /* Tabla Moderna */
+    .table-responsive {
+      overflow-x: auto;
     }
 
-    .search{
-      flex:1;
-      min-width:220px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid #d1d5db;
-      font-size:0.82rem;
-      background:#f9fafb;
-      outline:none;
-      transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    table.table {
+      width: 100%;
+      border-collapse: separate; 
+      border-spacing: 0;
+      font-size: 0.9rem;
     }
 
-    .search:focus{
-      border-color:#2563eb;
-      background:#ffffff;
-      box-shadow:0 0 0 1px rgba(37,99,235,.25);
+    .table th {
+      text-align: left;
+      padding: 12px 16px;
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-light);
     }
 
-    .card{
-      background:var(--card-bg);
-      border:1px solid:var(--card-border);
+    .table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-main);
+      vertical-align: middle;
     }
 
-    .table-card{
-      background:var(--card-bg);
-      border-radius:18px;
-      border:1px solid var(--card-border);
-      padding:14px 16px 16px;
-      box-shadow:var(--card-shadow);
+    .table tr:last-child td { border-bottom: none; }
+    .table tr:hover td { background: #f8fafc; }
+
+    /* Badges de Estado */
+    .badge {
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .s-ok { background: var(--success-bg); color: var(--success-text); }
+    .s-warn { background: var(--warn-bg); color: var(--warn-text); }
+    .s-bad { background: var(--danger-bg); color: var(--danger-text); }
+
+    /* Botones de Acción en Tabla */
+    .btn-sm {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-right: 4px;
+      border: 1px solid transparent;
+      font-weight: 500;
+      transition: 0.2s;
     }
 
-    table.table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:0.82rem;
-    }
+    .btn-outline { background: #fff; border-color: #cbd5e1; color: #334155; }
+    .btn-outline:hover { background: #f1f5f9; border-color: #94a3b8; }
 
-    .table th,
-    .table td{
-      border-bottom:1px solid #e6eaf0;
-      padding:10px 12px;
-      text-align:left;
-      vertical-align:top;
-      white-space:nowrap;
-    }
+    .btn-primary { background: #022a66; color: #fff; }
+    .btn-primary:hover { background: #001a4d; box-shadow: 0 4px 12px rgba(2, 42, 102, 0.2); }
 
-    .table th{
-      background:#fafbfe;
-      font-size:0.78rem;
-      text-transform:uppercase;
-      letter-spacing:0.06em;
-      color:#6b7280;
-    }
+    .btn-finalizar { background: #fbbf24; color: #451a03; }
+    .btn-finalizar:hover { background: #f59e0b; }
 
-    .status{
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:0.75rem;
-      border:1px solid #e6eaf0;
-      background:#fff;
-    }
-
-    .s-warn{background:#fff7ed;border-color:#fed7aa;color:#b45309;}
-    .s-ok{background:#ecfdf5;border-color:#bbf7d0;color:#059669;}
-    .s-bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c;}
-
-    .btn{
-      display:inline-block;
-      padding:7px 11px;
-      border-radius:999px;
-      border:1px solid #e6eaf0;
-      background:#fff;
-      text-decoration:none;
-      color:#111827;
-      cursor:pointer;
-      font-size:0.8rem;
-      font-family:inherit;
-      transition:background .15s ease, box-shadow .15s ease, transform .08s ease;
-    }
-
-    .btn:hover{
-      background:#f3f4f6;
-      transform:translateY(-1px);
-    }
-
-    .btn.primary{
-      background:#2563eb;
-      border-color:#2563eb;
-      color:#fff;
-      box-shadow:0 8px 18px rgba(37,99,235,.45);
-    }
-
-    .btn.primary:hover{
-      background:#1d4ed8;
-      border-color:#1d4ed8;
-    }
-
-    /* =========== SOPORTE =========== */
-
-    .section{ display:none; animation:fadeIn .16s ease-out; }
-    .section.active{ display:block; }
-
-    .support-card{
-      background:var(--card-bg);
-      border-radius:18px;
-      border:1px solid var(--card-border);
-      box-shadow:var(--card-shadow);
-      padding:18px 20px 20px;
-      max-width:900px;
-    }
-
-    .support-header h2{
-      margin:0 0 6px;
-      font-size:1.05rem;
-      color:var(--accent);
-    }
-
-    .support-header p{
-      margin:0 0 10px;
-      font-size:0.9rem;
-      color:var(--text-muted);
-      max-width:560px;
-    }
-
-    .chip-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      margin-bottom:12px;
-    }
-
-    .chip{
-      font-size:0.74rem;
-      padding:4px 10px;
-      border-radius:999px;
-      background:#e5e7eb;
-      color:#111827;
-    }
-
-    .support-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-      gap:10px;
-      margin-top:6px;
-    }
-
-    .support-pill{
-      background:#f9fafb;
-      border-radius:12px;
-      border:1px solid #e5e7eb;
-      padding:10px 12px;
-      font-size:0.84rem;
-    }
-
-    .support-pill h3{
-      margin:0 0 4px;
-      font-size:0.86rem;
-      color:#111827;
-    }
-
-    .support-pill p{
-      margin:0;
-      color:#4b5563;
-      font-size:0.84rem;
-    }
-
-    /* =========== MODAL =========== */
-
+    /* Modal */
     .modal{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.35);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:40;
+      position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter: blur(2px);
+      display:none; align-items:center; justify-content:center; z-index:50;
     }
-
     .modal.open{ display:flex; }
-
     .modal .box{
-      width:520px;
-      max-width:92vw;
-      background:#fff;
-      border-radius:12px;
-      padding:16px;
-      border:1px solid #e6eaf0;
+      width:500px; max-width:90%; background:#fff; border-radius:16px;
+      padding:24px; box-shadow: var(--shadow-lg);
     }
-
-    .box h3{ margin:0 0 10px; }
-
+    .box h3{ margin:0 0 12px; color: #022a66; }
     .box textarea{
-      width:100%;
-      min-height:120px;
-      padding:10px;
-      border-radius:10px;
-      border:1px solid #e6eaf0;
-      resize:vertical;
-      font-family:inherit;
-      font-size:0.9rem;
+      width:100%; min-height:120px; padding:12px; border-radius:12px;
+      border:1px solid #cbd5e1; font-family:inherit; font-size:0.9rem; resize:vertical;
     }
+    .box textarea:focus{ outline:none; border-color:#022a66; }
+    .box .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
 
-    .box .actions{
-      display:flex;
-      gap:8px;
-      justify-content:flex-end;
-      margin-top:12px;
-    }
+    /* Secciones SPA */
+    .section { display:none; animation:fadeIn .2s ease; }
+    .section.active { display:block; }
+    @keyframes fadeIn{ from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
 
-    /* NUEVO: estilo para el textarea de comentarios generales */
-    .textarea-notes{
-      width:100%;
-      padding:8px 10px;
-      border-radius:10px;
-      border:1px solid #d1d5db;
-      font-size:0.85rem;
-      resize:vertical;
-      font-family:inherit;
-      background:#f9fafb;
-      outline:none;
-      transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
-    }
-
-    .textarea-notes:focus{
-      border-color:#2563eb;
-      background:#ffffff;
-      box-shadow:0 0 0 1px rgba(37,99,235,.25);
-    }
-
-    @keyframes fadeIn{
-      from{ opacity:0; transform:translateY(4px); }
-      to{ opacity:1; transform:none; }
-    }
-
-    @media (max-width: 960px){
-      .sidebar{
-        position:static;
-        width:100%;
-        flex-direction:row;
-        align-items:flex-start;
-        padding:12px 16px;
-      }
-      .main-wrapper{
-        padding:16px 14px 24px;
-      }
-    }
-
-    @media (max-width: 640px){
-      .sidebar{ flex-direction:column; }
-      .row{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-      .search{
-        width:100%;
-      }
+    /* Responsive */
+    @media (max-width: 768px){
+      .app-shell{ flex-direction: column; height: auto; overflow-y: auto; }
+      .sidebar{ width: 100%; border-right: none; }
+      .hero-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .controls-row { flex-direction: column; align-items: stretch; }
     }
   </style>
 </head>
@@ -517,153 +353,126 @@
 <body>
 <div class="app-shell">
 
-  <!-- =========== SIDEBAR =========== -->
   <aside class="sidebar">
-    <div>
-      <div class="brand-title">CAMPO CLÍNICO · UNAB</div>
-      <div class="brand-main">Panel de revisor</div>
+    <div class="sidebar-logo-container">
+      <img src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png" 
+           alt="Facultad Enfermería UNAB" 
+           class="sidebar-logo-img">
+    </div>
 
-      <div class="user-box">
-        <div class="user-avatar">
-          US
+    <div class="user-box">
+      <div class="avatar-circle">
+        {{ request.user.first_name|default:"AD"|first|upper }}
+      </div>
+      <div class="user-info">
+        <h4 title="{{ request.user.get_full_name }}">
+            {{ request.user.get_full_name|default:request.user.email|truncatechars:18 }}
+        </h4>
+        <p>Revisor Clínico</p>
+      </div>
+    </div>
+
+    <div class="nav-label">Gestión</div>
+
+    <nav class="nav-menu">
+      <a href="#revision" class="nav-link active" data-target="revision">
+        <span class="nav-icon">📋</span> Revisión de fichas
+      </a>
+      <a href="#soporte" class="nav-link" data-target="soporte">
+        <span class="nav-icon">🛟</span> Soporte Revisor
+      </a>
+    </nav>
+
+    <form method="post" action="{% url 'logout' %}" style="margin-top: auto;">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">⏏ Cerrar Sesión</button>
+    </form>
+  </aside>
+
+  <main class="main-content">
+    
+    <div class="header-text">
+      <h2>Panel de Revisor</h2>
+      <p>Gestión y validación de antecedentes estudiantiles.</p>
+    </div>
+
+    <section id="revision" class="section active">
+      
+      <div class="hero-banner">
+        <div class="hero-text">
+          <h1>Hola, {{ request.user.first_name|default:"Revisor" }}</h1>
+          <p>
+            Gestiona las fichas enviadas por los estudiantes. Revisa la documentación, 
+            descarga el PDF consolidado y actualiza el estado final.
+          </p>
         </div>
-        <div class="user-info">
-          <strong title="{{ request.user.get_full_name|default:request.user.email }}">
-            {{ request.user.get_full_name|default:request.user.email }}
-          </strong>
-          <small>Revisor</small>
+        <div style="background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 12px; text-align:center; border:1px solid rgba(255,255,255,0.2);">
+             <span style="display:block; font-size:0.75rem; text-transform:uppercase;">Total Fichas</span>
+             <strong style="font-size:1.5rem; color:#fbbf24;">{{ fichas|length }}</strong>
         </div>
       </div>
 
-      <div class="nav-label">Navegación</div>
-      <nav aria-label="principal">
-        <ul class="nav-list">
-          <li>
-            <a href="#revision" class="nav-link active" data-target="revision">
-              <span class="icon">📋</span>
-              <span>Revisión de fichas</span>
-            </a>
-          </li>
-          <li>
-            <a href="#soporte" class="nav-link" data-target="soporte">
-              <span class="icon">🛟</span>
-              <span>Soporte</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-
-    <div class="sidebar-footer">
-      <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="logout-btn">Cerrar sesión</button>
-      </form>
-    </div>
-  </aside>
-
-  <!-- =========== MAIN =========== -->
-  <div class="main-wrapper">
-    <main class="main-content">
-
-      <!-- SECCIÓN: REVISIÓN -->
-      <section id="revision" class="section active">
-        <header class="page-header">
-          <h1>Revisión de fichas</h1>
-          <p>
-            Gestiona las fichas enviadas por los estudiantes: revisa datos,
-            descarga la ficha en PDF y marca el estado final.
-          </p>
-        </header>
-
-        <div class="row">
-          <div class="tabs">
-            <button class="tab active" data-filter="abiertas">Abiertas</button>
-            <button class="tab" data-filter="cerradas">Cerradas</button>
-            <button class="tab" data-filter="todas">Todas</button>
+      <div class="card">
+        
+        <div class="controls-row">
+          <div class="tabs-container">
+            <button class="tab-btn active" data-filter="abiertas">Abiertas</button>
+            <button class="tab-btn" data-filter="cerradas">Cerradas</button>
+            <button class="tab-btn" data-filter="todas">Todas</button>
           </div>
-          <input class="search" id="q" placeholder="Buscar por nombre o correo…" />
+          <input class="search-input" id="q" placeholder="🔍 Buscar por nombre,correo…" />
         </div>
 
-        <!-- NUEVO: comentarios generales del revisor -->
-        <section class="table-card" style="margin-bottom:12px;">
-          <h2 style="margin:0 0 6px;font-size:0.98rem;">Comentarios generales de la revisión</h2>
-          <p style="margin:0 0 8px;font-size:0.84rem;color:var(--text-muted);">
-            Este comentario se utilizará como observación global al finalizar la revisión
-            de una ficha y será enviado al estudiante en el correo.
-          </p>
-          <textarea
-            id="globalNotes"
-            rows="3"
-            class="textarea-notes"
-            placeholder="Escribe aquí los comentarios generales sobre la ficha antes de pulsar “Finalizar revisión”…"
-          ></textarea>
-        </section>
-
-        <section class="table-card">
+        <div class="table-responsive">
           <table class="table" id="tbl">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>RUT / ID</th>
+                <th>Nombre Estudiante</th>
+                <th>ID</th>
                 <th>Correo</th>
                 <th>Estado</th>
-                <th>Actualizada</th>
-                <th style="min-width:320px;"></th>
+                <th>Actualización</th>
+                <th style="text-align:right;">Acciones</th>
               </tr>
             </thead>
-            <tbody><!-- se llena por JS --></tbody>
+            <tbody></tbody>
           </table>
-        </section>
-      </section>
-
-      <!-- SECCIÓN: SOPORTE (tipo estudiante) -->
-      <section id="soporte" class="section">
-        <div class="support-card">
-          <div class="support-header">
-            <h2>Soporte y ayuda para revisores</h2>
-            <p>
-              Si tienes dudas sobre el proceso de revisión, estados de ficha o problemas
-              con la plataforma, utiliza estos canales de contacto oficiales.
-            </p>
-            <div class="chip-row">
-              <span class="chip">Enfermería · UNAB</span>
-              <span class="chip">Campos clínicos</span>
-              <span class="chip">Soporte revisor</span>
-            </div>
-          </div>
-
-          <div class="support-grid">
-            <article class="support-pill">
-              <h3>Correo coordinación</h3>
-              <p>campo.clinico@uandresbello.edu</p>
-            </article>
-            <article class="support-pill">
-              <h3>Horario de atención</h3>
-              <p>Lunes a viernes, 09:00–17:00 hrs.</p>
-            </article>
-            <article class="support-pill">
-              <h3>Canal oficial</h3>
-              <p>Anuncios en Canvas y correo institucional.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- Modal (se mantiene para observaciones/rechazo) -->
-      <div class="modal" id="mRechazo">
-        <div class="box">
-          <h3>Motivo de observación / rechazo</h3>
-          <textarea id="txtMotivo" placeholder="Escribe el detalle para el estudiante…"></textarea>
-          <div class="actions">
-            <button class="btn" id="btnCancelar">Cancelar</button>
-            <button class="btn primary" id="btnGuardar">Guardar</button>
-          </div>
         </div>
       </div>
 
-    </main>
-  </div>
+    </section>
+
+    <section id="soporte" class="section">
+      <div class="card">
+        <h3 style="color:#022a66; margin-top:0;">Canales de Ayuda</h3>
+        <p style="color:#64748b;">Si tienes dudas sobre el proceso de validación, contacta a coordinación.</p>
+        
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-top:20px;">
+          <div style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+            <strong>Correo Coordinación</strong>
+            <div style="color:#022a66;">campo.clinico@uandresbello.edu</div>
+          </div>
+          <div style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+            <strong>Horario Atención</strong>
+            <div style="color:#64748b;">Lunes a viernes, 09:00–17:00 hrs.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="modal" id="mRechazo">
+      <div class="box">
+        <h3>Observar o Rechazar Ficha</h3>
+        <p style="font-size:0.9rem; color:#64748b; margin-bottom:8px;">Indica el motivo para que el estudiante pueda corregirlo.</p>
+        <textarea id="txtMotivo" placeholder="Ej: El certificado de vacunas no es legible o está vencido..."></textarea>
+        <div class="actions">
+          <button class="btn-sm btn-outline" id="btnCancelar" style="padding:10px 20px;">Cancelar</button>
+          <button class="btn-sm btn-primary" id="btnGuardar" style="padding:10px 20px;">Guardar Observación</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script type="application/javascript">
@@ -673,18 +482,20 @@
   {
     id:  {{ f.id }},
     nombre: "{{ f.user.get_full_name|default:f.user.email|escapejs }}",
-    rut: "{{ f.user.id|escapejs }}",
+    rut: "{{ f.user.id|escapejs }}", // Ajusta si usas perfil.rut
     email: "{{ f.user.email|escapejs }}",
     estado: "{{ f.get_estado_global_display|escapejs }}",
     estado_raw: "{{ f.estado_global|escapejs }}",
     fecha: "{{ f.updated_at|date:'Y-m-d H:i'|escapejs }}"
   }{% if not forloop.last %},{% endif %}
   {% empty %}{% endfor %}
-];
+  ];
 
   const URL_PDF_BASE         = "{% url 'ficha_pdf' %}".replace('/ficha/pdf/', '/ficha/pdf/?ficha_id=0');
-  const URL_FIELD_API_BASE   = "{% url 'api_review_field' 0 %}";
-  const URL_FINALIZE_API_BASE= "{% url 'api_review_finalize' 0 %}";
+  // Ajusta estas URLs según tu urls.py real si difieren
+  // Se asume que existen rutas tipo /api/review/field/<ficha_id>/ y /api/review/finalize/<ficha_id>/
+  const URL_FIELD_API_BASE   = "/api/review/field/0/"; 
+  const URL_FINALIZE_API_BASE= "/api/review/finalize/0/"; 
   const URL_DETALLE_BASE     = "{% url 'revisor_ficha' 0 %}";
 
   function getCookie(name){
@@ -707,19 +518,18 @@
   }
 
   function badgeClass(raw){
-    if(raw === 'APROBADA') return 's-ok';
-    if(raw === 'RECHAZADA') return 's-bad';
-    return 's-warn';
+    if(raw === 'APROBADA') return 'badge s-ok';
+    if(raw === 'RECHAZADA') return 'badge s-bad';
+    return 'badge s-warn';
   }
 
-  const tbody       = document.querySelector('#tbl tbody');
-  const q           = document.getElementById('q');
-  const tabs        = Array.from(document.querySelectorAll('.tab'));
-  const mRechazo    = document.getElementById('mRechazo');
-  const txtMotivo   = document.getElementById('txtMotivo');
-  const btnCancelar = document.getElementById('btnCancelar');
-  const btnGuardar  = document.getElementById('btnGuardar');
-  const txtGlobalNotes = document.getElementById('globalNotes'); // NUEVO
+  const tbody      = document.querySelector('#tbl tbody');
+  const q          = document.getElementById('q');
+  const tabs       = Array.from(document.querySelectorAll('.tab-btn'));
+  const mRechazo   = document.getElementById('mRechazo');
+  const txtMotivo  = document.getElementById('txtMotivo');
+  const btnCancelar= document.getElementById('btnCancelar');
+  const btnGuardar = document.getElementById('btnGuardar');
 
   let filtro    = 'abiertas';
   let currentId = null;
@@ -748,86 +558,54 @@
         const pdfHref     = URL_PDF_BASE.replace('ficha_id=0', `ficha_id=${x.id}`);
 
         tr.innerHTML =
-          '<td>' + (x.nombre || '-') + '</td>' +
+          '<td><strong>' + (x.nombre || '-') + '</strong></td>' +
           '<td>' + (x.rut || '-') + '</td>' +
           '<td>' + (x.email || '-') + '</td>' +
-          '<td><span class="status ' + badgeClass(x.estado_raw) + '">' + x.estado + '</span></td>' +
-          '<td>' + (x.fecha || '-') + '</td>' +
-          '<td>' +
-          `<a class="btn" href="${pdfHref}" target="_blank">Ficha</a> ` +
-          `<a class="btn primary" href="${detalleHref}">Revisar</a> ` +
-          `<button class="btn js-finalizar" data-id="${x.id}">Finalizar revisión</button>` +
+          '<td><span class="' + badgeClass(x.estado_raw) + '">' + x.estado + '</span></td>' +
+          '<td style="color:#64748b; font-size:0.85rem;">' + (x.fecha || '-') + '</td>' +
+          '<td style="text-align:right;">' +
+          `<a class="btn-sm btn-outline" href="${pdfHref}" target="_blank">📄 PDF</a> ` +
+          `<a class="btn-sm btn-primary" href="${detalleHref}">Revisar</a> ` +
+          `<button class="btn-sm btn-finalizar js-finalizar" data-id="${x.id}">Finalizar</button>` +
           '</td>';
         return tr;
       });
 
     tbody.replaceChildren.apply(tbody, rows);
 
-    // Botón "Finalizar revisión"
+    // Listeners botones dinámicos
     tbody.querySelectorAll('.js-finalizar').forEach(btn=>{
       btn.onclick = async (e)=>{
         const id = Number(e.currentTarget.dataset.id);
-        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`);
+        // Como las URL base pueden no tener el ID correcto si es string "0", hacemos replace
+        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`); 
+        
+        if(!confirm("¿Finalizar revisión de esta ficha?")) return;
 
-        // NUEVO: tomar el comentario general desde el textarea
-        const globalNotes = (txtGlobalNotes && txtGlobalNotes.value)
-          ? txtGlobalNotes.value
-          : '';
-
-        const res = await post(urlFinalize, { global_notes: globalNotes });
-        if(res.ok){
-          const it = DATA.find(z=>z.id===id);
-          if(it){
-            it.estado_raw = res.estado;
-            it.estado = (res.estado === 'APROBADA') ? 'Aprobada' :
-                        (res.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+        try {
+          const res = await post(urlFinalize, {});
+          if(res.ok){
+            const it = DATA.find(z=>z.id===id);
+            if(it){
+              it.estado_raw = res.estado; // ej: APROBADA o RECHAZADA
+              it.estado = (res.estado === 'APROBADA') ? 'Aprobada' :
+                          (res.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+            }
+            paint();
+          } else {
+            alert('No se pudo finalizar: ' + (res.error||'error desconocido'));
           }
-          // si quieres limpiar el comentario al terminar una ficha, descomenta:
-          // txtGlobalNotes.value = '';
-          paint();
-        }else{
-          alert('No se pudo finalizar: ' + (res.error||'error'));
+        } catch(err) {
+          console.error(err);
+          alert("Error de conexión al finalizar.");
         }
       };
     });
-
-    // Handlers del modal (por si se usa desde otra parte)
-    btnCancelar.onclick = function(){
-      mRechazo.classList.remove('open');
-    };
-
-    btnGuardar.onclick = async function(){
-      if(!currentId) return;
-      const notes = (txtMotivo.value || '').trim();
-      try{
-        const urlField = URL_FIELD_API_BASE.replace('/0/', `/${currentId}/`);
-        const r1 = await post(urlField, {
-          field_key: "_global",
-          section: "Global",
-          status: "REVISADO_NO_OK",
-          notes
-        });
-        if(!r1.ok){ throw new Error('Fallo al registrar observación'); }
-
-        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${currentId}/`);
-        const r2 = await post(urlFinalize, {});
-        if(!r2.ok){ throw new Error('Fallo al finalizar revisión'); }
-
-        const it = DATA.find(z=>z.id===currentId);
-        if(it){
-          it.estado_raw = r2.estado;
-          it.estado = (r2.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
-        }
-        paint();
-        mRechazo.classList.remove('open');
-      }catch(err){
-        alert(err.message || 'Error inesperado');
-      }
-    };
   }
 
-  // Filtros + búsqueda
+  // Eventos Filtros y Buscador
   q.addEventListener('input', paint);
+  
   tabs.forEach(function(t){
     t.addEventListener('click', function(){
       tabs.forEach(function(x){ x.classList.remove('active'); });
@@ -837,31 +615,73 @@
     });
   });
 
-  // Exponer el modal de motivo (para otros botones si quieres)
+  // Modal Logic
+  btnCancelar.onclick = function(){ mRechazo.classList.remove('open'); };
+  
+  btnGuardar.onclick = async function(){
+    if(!currentId) return;
+    const notes = (txtMotivo.value || '').trim();
+    if(!notes) { alert("Escribe un motivo."); return; }
+    
+    try{
+      // 1. Registrar observación global
+      const urlField = URL_FIELD_API_BASE.replace('/0/', `/${currentId}/`); // Ajusta URL según tu backend
+      // OJO: Asegúrate que tu backend soporte esta llamada
+      /* Si tu backend espera /api/review/field/<id>/ con POST parameters:
+         field_key, section, status, notes
+      */
+      const r1 = await post(urlField, {
+        field_key: "_global",
+        section: "Global",
+        status: "REVISADO_NO_OK",
+        notes: notes
+      });
+      if(!r1.ok && !r1.success){ throw new Error('Fallo al registrar observación'); }
+
+      // 2. Finalizar (marcar como rechazada globalmente)
+      const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${currentId}/`);
+      const r2 = await post(urlFinalize, {});
+      
+      if(r2.ok || r2.success){ // A veces devuelven ok:true o success:true
+         const it = DATA.find(z=>z.id===currentId);
+         if(it){
+           it.estado_raw = r2.estado || 'RECHAZADA';
+           it.estado = 'Rechazada';
+         }
+         paint();
+         mRechazo.classList.remove('open');
+      } else {
+         throw new Error('Fallo al finalizar revisión');
+      }
+    }catch(err){
+      alert(err.message || 'Error inesperado');
+    }
+  };
+
+  // Exponer función para abrir modal desde otros lados si fuera necesario
   window.openMotivo = function(id){
     currentId = id;
     txtMotivo.value = '';
     mRechazo.classList.add('open');
   };
 
-  // Navegación entre secciones (Revisión / Soporte)
-  (function(){
-    const navLinks = document.querySelectorAll('.nav-link[data-target]');
-    const sections = document.querySelectorAll('.section');
+  // Navegación SPA (Sidebar links)
+  const navLinks = document.querySelectorAll('.nav-link[data-target]');
+  const sections = document.querySelectorAll('.section');
 
-    navLinks.forEach(link=>{
-      link.addEventListener('click', function(e){
-        e.preventDefault();
-        const target = this.dataset.target;
-        sections.forEach(sec=>{
-          sec.classList.toggle('active', sec.id === target);
-        });
-        navLinks.forEach(l=>l.classList.remove('active'));
-        this.classList.add('active');
-      });
+  navLinks.forEach(link=>{
+    link.addEventListener('click', function(e){
+      e.preventDefault();
+      const target = this.dataset.target;
+      
+      // Toggle active classes
+      sections.forEach(sec => sec.classList.toggle('active', sec.id === target));
+      navLinks.forEach(l => l.classList.remove('active'));
+      this.classList.add('active');
     });
-  })();
+  });
 
+  // Inicializar
   paint();
 </script>
 </body>

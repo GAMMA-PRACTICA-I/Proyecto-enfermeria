@@ -1,222 +1,427 @@
 {% load static %}{% load review_tags %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
+  <meta charset="utf-8">
   <title>Revisión de Ficha – Campo Clínico UNAB</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
   <style>
-    /* =========================================
-       ESTILOS PRINCIPALES (De revision_pendientes.html)
-       ========================================= */
     :root{
-      --sidebar-bg-top:#022a66;
-      --sidebar-bg-bottom:#011537;
-      --sidebar-border:#001229;
-      --sidebar-text:#e5efff;
-      --sidebar-muted:#9fb4dd;
-      --sidebar-active:#ffd000;
+      /* Colores Institucionales (diseño nuevo) */
+      --nav-bg: #022a66;       
+      --gold-text: #fbbf24;
+      --bg-page: #f4f7fc;      
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      
+      --card-bg: #ffffff;
+      --border-light: #e2e8f0;
+      --radius: 12px;
 
-      --bg-page:#f4f7fc;
-      --card-bg:#ffffff;
-      --card-border:#dde3f0;
-      --card-shadow:0 14px 32px rgba(15,23,42,.12);
-
-      --text-main:#0f172a;
-      --text-muted:#6b7280;
-      --accent:#0b3a7e;
-
-      /* Estados específicos para revisión */
-      --ok-bg: #ecfdf5; --ok-text: #047857; --ok-border: #a7f3d0;
-      --bad-bg: #fef2f2; --bad-text: #b91c1c; --bad-border: #fecaca;
+      /* Estados */
+      --ok-bg: #f0fdf4; --ok-txt: #166534; --ok-border: #bbf7d0;
+      --bad-bg: #fef2f2; --bad-txt: #991b1b; --bad-border: #fecaca;
+      --pending-txt: #94a3b8;
     }
 
     *{ box-sizing:border-box; }
 
-    html, body{ margin:0; padding:0; height:100%; }
-    body{
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:var(--bg-page);
-      color:var(--text-main);
-      display:flex;
+    body{ 
+      margin:0; 
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
+      background: var(--bg-page); 
+      color: var(--text-main); 
+      min-height: 100vh;          
+      overflow-y: auto;           
+      overflow-x: auto;           
     }
 
-    .app-shell{ display:flex; width:100%; min-height:100vh; }
+    .app-shell{ 
+      display: flex; 
+      min-height: 100vh; 
+      width: 100%;
+    }
 
-    /* =========== SIDEBAR (Estilo Original) =========== */
-    .sidebar{
-      width:260px;
-      background:linear-gradient(180deg,var(--sidebar-bg-top),var(--sidebar-bg-bottom));
-      border-right:1px solid var(--sidebar-border);
-      color:var(--sidebar-text);
-      padding:18px 18px 20px;
-      display:flex; flex-direction:column; flex-shrink:0;
-    }
-    .brand-title{ font-size:0.78rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--sidebar-muted); margin-bottom:2px; }
-    .brand-main{ font-weight:600; font-size:0.98rem; }
-    
-    .user-box{
-      margin-top:14px; display:flex; align-items:center; gap:10px; padding:10px 12px;
-      border-radius:12px; background:rgba(0,0,0,.16); border:1px solid rgba(15,23,42,.55);
-    }
-    .user-avatar{
-      width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center;
-      font-weight:900; background:#0e4aa6; color:#fff; flex-shrink:0; font-size:0.9rem;
-    }
-    .user-info{ min-width:0; }
-    .user-info strong{ display:block; font-size:0.86rem; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .user-info small{ display:block; font-size:0.76rem; color:var(--sidebar-muted); }
-
-    .nav-label{ margin:16px 4px 6px; font-size:0.72rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--sidebar-muted); }
-    .nav-list{ list-style:none; margin:0; padding:4px; }
-    
-    .nav-link{
-      display:flex; align-items:center; gap:8px; color:var(--sidebar-text); text-decoration:none;
-      padding:8px 10px; border-radius:10px; border:1px solid transparent; cursor:pointer; font-size:0.86rem;
-      transition:background .15s ease, transform .08s ease;
-    }
-    .nav-link:hover{ background:rgba(15,23,42,.6); transform:translateY(-1px); }
-    .nav-link.active{ background:var(--sidebar-active); border-color:rgba(255,255,255,.25); color:#111827; font-weight:600; }
-    .nav-link span.icon{
-      width:20px; height:20px; border-radius:999px; border:1px solid rgba(203,213,225,.6);
-      display:flex; align-items:center; justify-content:center; font-size:0.78rem;
+    /* === SIDEBAR (diseño nuevo) === */
+    .sidebar{ 
+      width: 280px; 
+      background: var(--nav-bg); 
+      color: #fff; 
+      display: flex; 
+      flex-direction: column; 
+      flex-shrink: 0;
+      padding: 20px; 
+      border-right: 1px solid rgba(255,255,255,0.05); 
+      overflow-y: auto;
     }
     
-    .sidebar-footer{ margin-top:auto; padding-top:10px; border-top:1px solid rgba(15,23,42,.7); }
-    .logout-btn{
-      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(15,23,42,.9);
-      background:#0f172a; color:#f9fafb; cursor:pointer; font-size:0.85rem; transition:0.15s;
+    .sidebar-logo-img { 
+      max-width: 100%; 
+      width: 200px; 
+      background: rgba(255,255,255,0.95); 
+      padding: 8px; 
+      border-radius: 8px; 
+      margin-bottom: 24px; 
+      align-self: center; 
     }
-    .logout-btn:hover{ background:#111827; box-shadow:0 12px 22px rgba(15,23,42,.6); }
-
-    /* =========== MAIN (Contenido) =========== */
-    .main-wrapper{ flex:1; padding:24px 26px 80px; min-height:100vh; overflow-y: auto; position:relative; }
-    .main-content{ max-width:1180px; margin:0 auto; }
-
-    .page-header{ margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
-    .page-header h1{ margin:0 0 4px; font-size:1.4rem; color:var(--accent); font-weight:600; }
-    .page-header p{ margin:0; font-size:0.9rem; color:var(--text-muted); }
-
-    /* Tarjetas de Sección */
-    .table-card{
-      background:var(--card-bg); border-radius:18px; border:1px solid var(--card-border);
-      padding:0; box-shadow:var(--card-shadow); margin-bottom:24px; overflow:hidden;
+    
+    .user-box { 
+      background: rgba(0, 0, 0, 0.2); 
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+      border-radius: 12px; 
+      padding: 12px; 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      margin-bottom: 30px; 
     }
-    .card-header-title {
-        padding: 14px 20px; background: #fafbfe; border-bottom: 1px solid #e6eaf0;
-        font-weight: 700; color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;
+    .avatar-circle{ 
+      width: 38px; 
+      height: 38px; 
+      background: var(--gold-text); 
+      color: #022a66; 
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-weight: 700; 
+      font-size: 1rem; 
+      flex-shrink:0; 
+    }
+    .user-info h4 { margin: 0; font-size: 0.9rem; font-weight: 600; color: #fff; }
+    .user-info p { margin: 0; font-size: 0.75rem; color: #cbd5e1; }
+
+    .nav-menu{ 
+      list-style: none; 
+      padding: 0; 
+      margin: 0; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 8px; 
+      flex: 1; 
+    }
+    .nav-link{ 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      padding: 10px 14px; 
+      text-decoration: none; 
+      color: #cbd5e1; 
+      border-radius: 8px; 
+      transition: 0.2s; 
+      font-size: 0.9rem; 
+      font-weight: 500; 
+    }
+    .nav-link:hover{ background: rgba(255,255,255,0.1); color: #fff; }
+    .nav-link.active{ 
+      background: rgba(251, 191, 36, 0.15); 
+      color: var(--gold-text); 
+      font-weight: 600; 
     }
 
-    /* Tablas */
-    table.table{ width:100%; border-collapse:collapse; font-size:0.85rem; }
-    .table th, .table td{ border-bottom:1px solid #e6eaf0; padding:12px 16px; text-align:left; vertical-align:top; }
-    .table th{ background:#f8fafc; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:#6b7280; }
-    .table tr:last-child td { border-bottom: none; }
+    .logout-btn{ 
+      margin-top: auto; 
+      background: transparent; 
+      border: 1px solid rgba(255,255,255,0.2); 
+      color: #cbd5e1; 
+      padding: 10px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      width: 100%; 
+      transition: 0.2s; 
+    }
+    .logout-btn:hover{ background: rgba(255,255,255,0.1); color: #fff; }
 
-    /* Columnas y Elementos Específicos */
-    .col-label { width: 25%; font-weight: 600; color: var(--text-main); }
-    .col-value { width: 30%; color: var(--text-muted); word-break: break-word; }
-    .col-file  { width: 15%; }
+    /* === MAIN === */
+    .main-content{ 
+      flex: 1; 
+      min-width: 0; 
+      overflow-y: auto; 
+      padding: 30px 40px; 
+      display: flex; 
+      flex-direction: column; 
+    }
+
+    /* HEADER DE PÁGINA */
+    .page-header {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .ph-title h1 { 
+      margin: 0 0 4px 0; 
+      color: #022a66; 
+      font-size: 1.4rem; 
+      font-weight: 700; 
+    }
+    .ph-meta { 
+      font-size: 0.9rem; 
+      color: var(--text-muted); 
+      display: flex; 
+      gap: 12px; 
+      align-items: center; 
+      flex-wrap: wrap; 
+    }
+    .ph-tag { 
+      background: #eff6ff; 
+      color: #2563eb; 
+      padding: 2px 8px; 
+      border-radius: 6px; 
+      font-weight: 600; 
+      font-size: 0.75rem; 
+      text-transform: uppercase; 
+    }
+
+    .btn-back {
+      background: #fff; 
+      border: 1px solid var(--border-light); 
+      padding: 8px 16px; 
+      border-radius: 8px; 
+      color: var(--text-muted); 
+      text-decoration: none; 
+      font-size: 0.9rem; 
+      transition: 0.2s; 
+      white-space: nowrap;
+    }
+    .btn-back:hover { border-color: #94a3b8; color: var(--text-main); }
+
+    /* SECCIONES / TABLAS (adaptadas a render_data + columna archivo) */
+    .section-wrapper {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      width: 100%;
+    }
+
+    .section-header {
+      padding: 16px 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-light);
+      font-weight: 700;
+      color: #334155;
+      font-size: 1rem;
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.data-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      min-width: 720px; 
+      font-size: 0.9rem;
+    }
+    
+    .data-table th {
+      text-align: left; 
+      padding: 12px 24px; 
+      font-size: 0.75rem; 
+      text-transform: uppercase; 
+      color: #94a3b8; 
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .data-table td {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+
+    .col-label { width: 23%; font-weight: 600; color: #0f172a; }
+    .col-value { 
+      width: 32%; 
+      color: #475569; 
+      word-wrap: break-word; 
+      word-break: break-word;
+      max-width: 320px;
+    }
+    .col-file { width: 15%; }
     .col-action { width: 30%; text-align: right; }
 
-    /* Botones de Archivo */
+    /* Botones de archivo (Ver foto / PDF) */
     .btn-mini {
-        display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
-        border-radius: 8px; font-size: 0.78rem; font-weight: 600; text-decoration: none;
-        cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+      display: inline-flex; 
+      align-items: center; 
+      gap: 6px; 
+      padding: 6px 12px;
+      border-radius: 8px; 
+      font-size: 0.78rem; 
+      font-weight: 600; 
+      text-decoration: none;
+      cursor: pointer; 
+      border: 1px solid transparent; 
+      transition: all 0.2s;
+      white-space: nowrap;
     }
-    .btn-view { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .btn-view { 
+      background: #eff6ff; 
+      color: #1d4ed8; 
+      border-color: #bfdbfe; 
+    }
     .btn-view:hover { background: #dbeafe; }
-    .btn-pdf { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
-    .btn-pdf:hover { background: #ffe4e6; }
-    .no-file { color: #9ca3af; font-style: italic; font-size: 0.8rem; }
-
-    /* CONTROLES DE REVISIÓN */
-    .review-controls { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-    
-    /* El input real se oculta completamente */
-    .check-input { position: absolute; opacity: 0; pointer-events: none; }
-
-    /* Estilo del Botón */
-    .check-label {
-        display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
-        border: 1px solid #cbd5e1; border-radius: 6px; background: #fff;
-        color: #64748b; font-size: 0.85rem; font-weight: 500; cursor: pointer;
-        transition: all 0.2s; user-select: none;
+    .btn-pdf { 
+      background: #fff1f2; 
+      color: #be123c; 
+      border-color: #fecdd3; 
     }
-    .check-label:hover { background: #f1f5f9; color: #334155; }
+    .btn-pdf:hover { background: #ffe4e6; }
+    .no-file { 
+      color: #9ca3af; 
+      font-style: italic; 
+      font-size: 0.8rem; 
+    }
 
-    /* ESTADOS ACTIVOS (Cuando se selecciona) */
+    /* CONTROLES DE REVISIÓN (reutilizando tu lógica) */
+    .review-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .check-input { 
+      position: absolute; 
+      opacity: 0; 
+      pointer-events: none; 
+    }
+
+    .check-label {
+      display: inline-flex; 
+      align-items: center; 
+      gap: 6px;
+      padding: 6px 12px; 
+      border: 1px solid var(--border-light); 
+      border-radius: 6px;
+      background: #fff; 
+      color: var(--text-muted); 
+      font-size: 0.85rem; 
+      font-weight: 600;
+      cursor: pointer; 
+      transition: all 0.2s; 
+      white-space: nowrap;
+    }
+    .check-label:hover { background: #f8fafc; }
+
     .check-input[value="REVISADO_OK"]:checked + .check-label {
-        background: #dcfce7; color: #166534; border-color: #86efac; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      background: var(--ok-bg); 
+      color: var(--ok-txt); 
+      border-color: var(--ok-border);
     }
     .check-input[value="REVISADO_NO_OK"]:checked + .check-label {
-        background: #fee2e2; color: #991b1b; border-color: #fca5a5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    
-    /* TEXTO DE ESTADO (La Guía) */
-    .status-text { 
-        font-size: 0.8rem; font-weight: 700; margin-left: 12px; min-width: 80px; text-align: center;
-        padding: 4px 8px; border-radius: 4px; background: #f1f5f9; color: #94a3b8;
-    }
-    .status-text.ok { background: #dcfce7; color: #15803d; } 
-    .status-text.bad { background: #fee2e2; color: #b91c1c; }
-    .radio-label:hover { background: #f9fafb; border-color: #d1d5db; }
-    .radio-input { display: none; }
-
-    /* Estados Activos */
-    .radio-input[value="REVISADO_OK"]:checked + .radio-label {
-        background: var(--ok-bg); color: var(--ok-text); border-color: var(--ok-border);
-    }
-    .radio-input[value="REVISADO_NO_OK"]:checked + .radio-label {
-        background: var(--bad-bg); color: var(--bad-text); border-color: var(--bad-border);
+      background: var(--bad-bg); 
+      color: var(--bad-txt); 
+      border-color: var(--bad-border);
     }
 
-    /* Status Text indicator */
-    .status-indicator { font-size: 0.75rem; font-weight: 700; min-width: 70px; text-align: center; }
-    .status-indicator.ok { color: var(--ok-text); }
-    .status-indicator.bad { color: var(--bad-text); }
-    
-    /* Textarea para observaciones */
-    .notes-area {
-        width: 100%; margin-top: 8px; padding: 8px; border-radius: 8px;
-        border: 1px solid #d1d5db; font-family: inherit; font-size: 0.85rem;
-        resize: vertical; min-height: 50px; display: none;
+    .status-text {
+      font-size: 0.8rem; 
+      color: var(--pending-txt); 
+      min-width: 70px; 
+      text-align: right;
     }
-    .notes-area:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+    .status-text.ok { color: var(--ok-txt); font-weight: 600; }
+    .status-text.bad { color: var(--bad-txt); font-weight: 600; }
 
-    /* Footer Flotante */
-    .floating-footer {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-40%);
-        background: #0f172a; color: #fff; padding: 12px 24px; border-radius: 99px;
-        display: flex; align-items: center; gap: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        z-index: 50; border: 1px solid rgba(255,255,255,0.1);
+    .notes-box { 
+      margin-top: 10px; 
+      display: none; 
+      width: 100%; 
     }
-    .btn-finish {
-        background: var(--sidebar-active); color: #0f172a; border: none; padding: 8px 20px;
-        border-radius: 99px; font-weight: 700; cursor: pointer; font-size: 0.9rem;
-        transition: transform 0.1s;
+    .notes-box textarea {
+      width: 100%; 
+      padding: 10px; 
+      border: 1px solid #cbd5e1; 
+      border-radius: 8px;
+      font-family: inherit; 
+      font-size: 0.9rem; 
+      resize: vertical; 
+      min-height: 70px;
+      box-sizing: border-box;
     }
-    .btn-finish:hover { transform: scale(1.05); }
+    .notes-box textarea:focus { outline: none; border-color: #022a66; }
 
-    /* Modal de Imagen */
+    /* FOOTER FLOTANTE (diseño nuevo pero con tu funcionalidad) */
+    .review-footer {
+      position: sticky; 
+      bottom: 20px;
+      background: #022a66; 
+      color: #fff;
+      padding: 16px 30px;
+      border-radius: 50px;
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(2, 42, 102, 0.3);
+      margin-top: 20px; 
+      z-index: 10; 
+      width: 100%;
+    }
+    .btn-primary {
+      background: var(--gold-text); 
+      color: #022a66;
+      border: none; 
+      padding: 10px 24px; 
+      border-radius: 30px;
+      font-weight: 700; 
+      cursor: pointer; 
+      font-size: 0.95rem;
+      transition: transform 0.1s; 
+      white-space: nowrap;
+    }
+    .btn-primary:hover { transform: scale(1.03); background: #fff; }
+
+    /* MODAL DE IMAGEN (tomado de tu código viejo) */
     .modal-overlay {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000;
-        display: none; justify-content: center; align-items: center; backdrop-filter: blur(3px);
+      position: fixed; inset: 0; 
+      background: rgba(0,0,0,0.85); 
+      z-index: 1000;
+      display: none; 
+      justify-content: center; 
+      align-items: center; 
+      backdrop-filter: blur(3px);
     }
     .modal-overlay.open { display: flex; }
     .modal-img-content { position: relative; max-width: 90%; max-height: 90%; }
-    .modal-img-content img { max-width: 100%; max-height: 85vh; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
-    .close-modal {
-        position: absolute; top: -40px; right: 0; color: #fff; font-size: 2rem;
-        font-weight: bold; cursor: pointer;
+    .modal-img-content img { 
+      max-width: 100%; 
+      max-height: 85vh; 
+      border-radius: 8px; 
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); 
     }
-    
-    @media (max-width: 1024px) { .floating-footer { left: 20px; right: 20px; transform: none; justify-content: space-between; } }
-    @media (max-width: 768px){
-      .sidebar { display:none; } /* Ocultar sidebar en movil por ahora o ajustar */
-      .main-wrapper { padding: 16px; }
+    .close-modal {
+      position: absolute; 
+      top: -40px; 
+      right: 0; 
+      color: #fff; 
+      font-size: 2rem;
+      font-weight: bold; 
+      cursor: pointer;
+    }
+
+    @media (max-width: 900px){
+        .app-shell { flex-direction: column; height: auto; overflow: auto; }
+        .sidebar { width: 100%; }
+        .main-content { overflow: visible; padding: 20px 16px; }
+        .review-controls { justify-content: flex-start; margin-top: 10px; }
+        .col-action { text-align: left; width: 100%; }
     }
   </style>
 </head>
@@ -225,148 +430,158 @@
 <div class="app-shell">
 
   <aside class="sidebar">
-    <div>
-      <div class="brand-title">CAMPO CLÍNICO · UNAB</div>
-      <div class="brand-main">Panel de revisor</div>
+    <div class="sidebar-logo-container">
+      <img src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png" alt="UNAB" class="sidebar-logo-img">
+    </div>
 
-      <div class="user-box">
-        <div class="user-avatar">{{ request.user.first_name|default:"R"|first|upper }}</div>
-        <div class="user-info">
-          <strong title="{{ request.user.get_full_name }}">
-            {{ request.user.get_full_name|default:request.user.email|truncatechars:20 }}
-          </strong>
-          <small>Revisor</small>
-        </div>
+    <div class="user-box">
+      <div class="avatar-circle">
+        {{ request.user.first_name|default:"R"|first|upper }}
       </div>
-
-      <div class="nav-label">Navegación</div>
-      <ul class="nav-list">
-        <li>
-          <a href="{% url 'revisiones_pendientes' %}" class="nav-link">
-            <span class="icon">←</span>
-            <span>Volver a Lista</span>
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link active">
-            <span class="icon">📋</span>
-            <span>Ficha Actual</span>
-          </a>
-        </li>
-      </ul>
+      <div class="user-info">
+        <h4 title="{{ request.user.get_full_name }}">
+          {{ request.user.get_full_name|default:request.user.email|truncatechars:18 }}
+        </h4>
+        <p>Revisor Clínico</p>
+      </div>
     </div>
 
-    <div class="sidebar-footer">
-      <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="logout-btn">Cerrar sesión</button>
-      </form>
-    </div>
+    <nav class="nav-menu">
+      <a href="{% url 'revisiones_pendientes' %}" class="nav-link">
+        <span>🔙</span> Volver a Lista
+      </a>
+      <a href="#" class="nav-link active">
+        <span>📋</span> Ficha Actual
+      </a>
+    </nav>
+
+    <form method="post" action="{% url 'logout' %}" style="margin-top: auto;">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">⏏ Cerrar Sesión</button>
+    </form>
   </aside>
 
-  <div class="main-wrapper">
-    <main class="main-content">
-      
-      <div class="page-header">
-        <div>
-            <h1>Revisión: {{ ficha.user.email }}</h1>
-            <p>
-                Estado: <strong style="color:var(--accent)">{{ ficha.get_estado_global_display }}</strong> • 
-                Actualizado: {{ ficha.updated_at|date:"d/m/Y H:i" }}
-            </p>
+  <main class="main-content">
+
+    <header class="page-header">
+      <div class="ph-title">
+        <h1>Revisión de Ficha</h1>
+        <div class="ph-meta">
+          <span><strong>Estudiante:</strong> {{ ficha.user.email }}</span>
+          <span class="ph-tag">{{ ficha.get_estado_global_display }}</span>
+          <span>📅 {{ ficha.updated_at|date:"d/m/Y H:i" }}</span>
         </div>
       </div>
+      <a href="{% url 'revisiones_pendientes' %}" class="btn-back">Cancelar / Volver</a>
+    </header>
 
-      {% for section in render_data %}
-      <section class="table-card">
-        <div class="card-header-title">{{ section.title }}</div>
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr>
-                <th class="col-label">Item</th>
-                <th class="col-value">Valor</th>
-                <th class="col-file">Archivo</th>
-                <th class="col-action">Evaluación</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for label, value, doc_obj, review_key, is_photo in section.rows %}
-              {% with review=prev|get_item:review_key %}
-              <tr>
-                <td class="col-label">{{ label }}</td>
-                <td class="col-value">{{ value|linebreaksbr }}</td>
-                
-                <td class="col-file">
-                    {% if is_photo and tiene_foto %}
-                        {% url 'serve_ficha_photo' ficha_id=ficha.id as url %}
-                        <button type="button" class="btn-mini btn-view" onclick="verImagen('{{ url }}')">📷 Ver Foto</button>
-                    {% elif doc_obj %}
-                        {% url 'serve_document_file' doc_id=doc_obj.id as url %}
-                        {% if '.pdf' in doc_obj.file_name|lower %}
-                             <a href="{{ url }}" target="_blank" class="btn-mini btn-pdf">📄 PDF</a>
-                        {% else %}
-                             <button type="button" class="btn-mini btn-view" onclick="verImagen('{{ url }}')">🖼️ Imagen</button>
-                        {% endif %}
+    {# --- AQUÍ USAMOS TU render_data CON ARCHIVOS Y FOTO --- #}
+    {% for section in render_data %}
+    <div class="section-wrapper">
+      <div class="section-header">
+        {{ forloop.counter }}. {{ section.title }}
+      </div>
+      
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-label">Item</th>
+              <th class="col-value">Valor</th>
+              <th class="col-file">Archivo</th>
+              <th class="col-action">Evaluación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for label, value, doc_obj, review_key, is_photo in section.rows %}
+            {% with current_review=prev|get_item:review_key %}
+            <tr>
+              <td class="col-label">{{ label }}</td>
+              <td class="col-value">{{ value|linebreaksbr }}</td>
+
+              <td class="col-file">
+                {% if is_photo and tiene_foto %}
+                    {% url 'serve_ficha_photo' ficha_id=ficha.id as url %}
+                    <button type="button" class="btn-mini btn-view" onclick="verImagen('{{ url }}')">📷 Ver Foto</button>
+                {% elif doc_obj %}
+                    {% url 'serve_document_file' doc_id=doc_obj.id as url %}
+                    {% if '.pdf' in doc_obj.file_name|lower %}
+                      <a href="{{ url }}" target="_blank" class="btn-mini btn-pdf">📄 PDF</a>
+                    {% else %}
+                      <button type="button" class="btn-mini btn-view" onclick="verImagen('{{ url }}')">🖼️ Imagen</button>
                     {% endif %}
-                </td>
+                {% else %}
+                    <span class="no-file">Sin archivo</span>
+                {% endif %}
+              </td>
 
-                    <td class="col-action">
-                        <div class="review-controls">
-                            <label class="check-label">
-                                <input type="radio" class="check-input" name="r_{{ review_key }}" value="REVISADO_OK" 
-                                    {% if current_review.status == 'REVISADO_OK' %}checked{% endif %}
-                                    onchange="markReview('{{ review_key }}', 'REVISADO_OK', '{{ section.title|escapejs }}', this)">
-                                Aprobar
-                            </label>
-                            
-                            <label class="check-label">
-                                <input type="radio" class="check-input" name="r_{{ review_key }}" value="REVISADO_NO_OK" 
-                                    {% if current_review.status == 'REVISADO_NO_OK' %}checked{% endif %}
-                                    onchange="toggleNotes(this); markReview('{{ review_key }}', 'REVISADO_NO_OK', '{{ section.title|escapejs }}', this)">
-                                Observar
-                            </label>
-                            
-                            <span class="status-text {% if current_review.status == 'REVISADO_OK' %}ok{% elif current_review.status == 'REVISADO_NO_OK' %}bad{% endif %}">
-                                {{ current_review.get_status_display|default:'Pendiente' }}
-                            </span>
-                        </div>
+              <td class="col-action">
+                <div class="review-controls">
+                  <label class="check-label">
+                    <input type="radio" 
+                           class="check-input" 
+                           name="r_{{ review_key }}" 
+                           value="REVISADO_OK"
+                           {% if current_review.status == 'REVISADO_OK' %}checked{% endif %}
+                           onchange="markReview('{{ review_key }}', 'REVISADO_OK', '{{ section.title|escapejs }}', this)">
+                    ✓ Aprobado
+                  </label>
 
-                        <div class="notes-box" style="display:{% if current_review.status == 'REVISADO_NO_OK' %}block{% else %}none{% endif %};">
-                            <textarea placeholder="Indique el motivo..." onblur="markReview('{{ review_key }}', 'REVISADO_NO_OK', '{{ section.title|escapejs }}', this)">{% if current_review %}{{ current_review.notes }}{% endif %}</textarea>
-                        </div>
-                    </td>
-              </tr>
-              {% endwith %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      {% endfor %}
+                  <label class="check-label">
+                    <input type="radio" 
+                           class="check-input" 
+                           name="r_{{ review_key }}" 
+                           value="REVISADO_NO_OK"
+                           {% if current_review.status == 'REVISADO_NO_OK' %}checked{% endif %}
+                           onchange="toggleNotes(this); markReview('{{ review_key }}', 'REVISADO_NO_OK', '{{ section.title|escapejs }}', this)">
+                    ✕ Observar
+                  </label>
 
-    </main>
+                  <span class="status-text {% if current_review.status == 'REVISADO_OK' %}ok{% elif current_review.status == 'REVISADO_NO_OK' %}bad{% endif %}">
+                    {% if current_review.status == 'REVISADO_OK' %}Aprobado{% elif current_review.status == 'REVISADO_NO_OK' %}Observado{% else %}Pendiente{% endif %}
+                  </span>
+                </div>
 
-    <div class="floating-footer">
-        <span style="opacity:0.8; font-size:0.9rem">Revisando a <strong>{{ ficha.user.get_full_name }}</strong></span>
-        <button class="btn-finish" onclick="finalizeReview()">Finalizar Revisión</button>
+                <div class="notes-box" style="{% if current_review.status == 'REVISADO_NO_OK' %}display:block{% else %}display:none{% endif %};">
+                  <textarea placeholder="Indique el motivo..."
+                            onblur="markReview('{{ review_key }}', 'REVISADO_NO_OK', '{{ section.title|escapejs }}', this)">
+                    {% if current_review %}{{ current_review.notes }}{% endif %}
+                  </textarea>
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="review-footer">
+      <span>Revisando a <strong>{{ ficha.user.get_full_name|default:ficha.user.email }}</strong></span>
+      <button class="btn-primary" onclick="finalizeReview()">Finalizar Revisión</button>
     </div>
 
+  </main>
+</div>
+
+{# MODAL PARA VER IMÁGENES #}
+<div id="visor" class="modal-overlay" onclick="cerrarVisor()">
+  <div class="modal-img-content" onclick="event.stopPropagation()">
+    <span class="close-modal" onclick="cerrarVisor()">×</span>
+    <img id="visorImg" src="">
   </div>
 </div>
 
-<div id="visor" class="modal-overlay" onclick="cerrarVisor()">
-    <div class="modal-img-content" onclick="event.stopPropagation()">
-        <span class="close-modal" onclick="cerrarVisor()">×</span>
-        <img id="visorImg" src="">
-    </div>
-</div>
-
 <script>
-  function getCookie(name){ const v = `; ${document.cookie}`.split(`; ${name}=`); if(v.length===2) return v.pop().split(';').shift(); }
+  function getCookie(name){
+    const v = `; ${document.cookie}`.split(`; ${name}=`);
+    if(v.length===2) return v.pop().split(';').shift();
+  }
   const csrftoken = getCookie('csrftoken');
 
-  // Lógica Visual (Modal)
+  // Modal ver imagen
   function verImagen(url){
       document.getElementById('visorImg').src = url;
       document.getElementById('visor').classList.add('open');
@@ -376,69 +591,53 @@
       document.getElementById('visorImg').src = "";
   }
 
-  // Lógica UI (Mostrar textarea)
+  // Mostrar / ocultar textarea de observación
   function toggleNotes(radio){
-      const box = radio.closest('td').querySelector('.notes-box');
-      box.style.display = radio.value === 'REVISADO_NO_OK' ? 'block' : 'none';
+      const td = radio.closest('td');
+      const box = td.querySelector('.notes-box');
+      if (!box) return;
+      box.style.display = radio.value === 'REVISADO_NO_OK' && radio.checked ? 'block' : 'none';
+      const textarea = box.querySelector('textarea');
+      if (radio.value === 'REVISADO_NO_OK' && textarea) textarea.focus();
   }
 
-  // Lógica Guardado + Actualización Visual
-  async function guardar(key, status, section, el){
-      const cell = el.closest('td');
-      const txt = cell.querySelector('textarea');
-      const notes = (status === 'REVISADO_NO_OK' && txt) ? txt.value : '';
-      const statusSpan = cell.querySelector('.status-text'); // Referencia al texto de estado
-      
-      // 1. Actualizar Texto Visualmente (Lo que pediste)
-      if(status === 'REVISADO_OK'){
-         statusSpan.textContent = 'Aprobado';
-         statusSpan.className = 'status-text ok';
-      } else {
-         statusSpan.textContent = 'Observado';
-         statusSpan.className = 'status-text bad';
-      }
-
-      // 2. Mostrar/Ocultar textarea si es necesario
-      if(txt) txt.parentElement.style.display = (status === 'REVISADO_NO_OK') ? 'block' : 'none';
-
-      // 3. Enviar al servidor
-      try {
-          await fetch(`/accounts/api/review/field/{{ ficha.id }}/`, {
-              method: 'POST',
-              headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
-              body: new URLSearchParams({ field_key: key, section: section, status: status, notes: notes })
-          });
-      } catch(e){ console.error(e); }
-  }
-
+  // Guardar revisión de campo (misma lógica que tenías)
   async function markReview(key, status, sectionTitle, el){
       const td = el.closest('td');
-      const notes = (status === 'REVISADO_NO_OK') ? td.querySelector('textarea').value : '';
-      
-      // 1. Actualizar el texto de estado (La guía)
+      const textarea = td.querySelector('.notes-box textarea');
+      const notes = (status === 'REVISADO_NO_OK' && textarea) ? textarea.value : '';
+
       const span = td.querySelector('.status-text');
-      if(status === 'REVISADO_OK'){
-          span.textContent = 'Aprobado';
-          span.className = 'status-text ok';
-      } else {
-          span.textContent = 'Observado';
-          span.className = 'status-text bad';
+      if (span){
+        if(status === 'REVISADO_OK'){
+            span.textContent = 'Aprobado';
+            span.className = 'status-text ok';
+        } else {
+            span.textContent = 'Observado';
+            span.className = 'status-text bad';
+        }
       }
 
-      // 2. Enviar datos al servidor
       try {
           await fetch(`/accounts/api/review/field/{{ ficha.id }}/`, {
               method: 'POST',
               headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
-              body: new URLSearchParams({ field_key: key, section: sectionTitle, status: status, notes: notes })
+              body: new URLSearchParams({ 
+                field_key: key, 
+                section: sectionTitle, 
+                status: status, 
+                notes: notes 
+              })
           });
-      } catch(e){ console.error("Error guardando:", e); }
+      } catch(e){ 
+          console.error("Error guardando:", e); 
+      }
   }
 
-  // Lógica Finalizar (Nombre corregido para coincidir con el botón)
+  // Finalizar revisión (igual que tu versión original)
   async function finalizeReview(){
       const g = prompt("Comentario global (opcional) para el estudiante:");
-      if(g === null) return; // Cancelar
+      if(g === null) return; // Cancelado
       
       try {
           const res = await fetch(`/accounts/api/review/finalize/{{ ficha.id }}/`, {
@@ -446,9 +645,14 @@
               headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
               body: new URLSearchParams({ global_notes: g })
           });
-          if(res.ok) window.location.href = "{% url 'revisiones_pendientes' %}";
-          else alert("Error al finalizar.");
-      } catch(e){ alert("Error de conexión"); }
+          if(res.ok){
+            window.location.href = "{% url 'revisiones_pendientes' %}";
+          } else {
+            alert("Error al finalizar.");
+          }
+      } catch(e){ 
+          alert("Error de conexión"); 
+      }
   }
 </script>
 </body>
