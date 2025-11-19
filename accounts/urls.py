@@ -1,58 +1,135 @@
 from django.urls import path
-from django.views.generic.base import RedirectView
 
 from .views import (
-    register,
+    # Auth / navegación
+    custom_login_view,
+    home,
     landing_por_rol,
+    logout_to_login,
+
+    # Estudiante
     dashboard_estudiante,
     FichaView,
+    soporte_estudiante,
+
+    # Revisor
     ReviewDashboardView,
     ReviewerFichaDetailView,
-    ReviewDocumentUpdateView,
-    ApproveFichaView,
-    ObserveFichaView,
-    FieldReviewAPI,         # <- OJO: FieldReviewAPI (no ReviewFieldAPI)
-    FinalizeReviewAPI,
-    UpdateUserNameAPI,
-    delete_account_tool_view,
-    DeleteUserAPI,
-    ficha_pdf,
+
+    # Detalle documento
     detalle_documento,
+
+    # APIs revisor
+    FieldReviewAPI,
+    FinalizeReviewAPI,
+
+    # Admin soporte
+    dashboard_admin_soporte,
+    supportticket_detail_api,
+    supportticket_reply,
+
+    # Herramientas admin (usuarios)
     update_name_tool_view,
+    delete_account_tool_view,
+    UpdateUserNameAPI,
+    DeleteUserAPI,
+
+    # NUEVO: vista para registrar usuarios
+    register,
 )
 
 urlpatterns = [
-    
-    # Inicio según rol
-    path("", landing_por_rol, name="landing_por_rol"),
-    
-    #Herramientas para administrador (despues quitar permiso a revisor)
-    path("revisiones/herramientas/nombre/", update_name_tool_view, name="update_name_tool"),
-    path("revisiones/herramientas/eliminar-cuenta/", delete_account_tool_view, name="delete_account_tool"),
-    # Auth/registro
-    path("register/", register, name="register"),
-    path("login/", RedirectView.as_view(url="/accounts/login/", permanent=False)),
+    # -------------------------
+    # Auth / navegación
+    # -------------------------
+    path("login/", custom_login_view, name="login"),
+    path("logout/", logout_to_login, name="logout"),
 
+    # Landing según rol
+    path("", landing_por_rol, name="landing_por_rol"),
+    path("home/", home, name="home"),
+
+    # -------------------------
     # Estudiante
+    # -------------------------
     path("estudiante/", dashboard_estudiante, name="dashboard_estudiante"),
     path("ficha/", FichaView.as_view(), name="ficha"),
-    path("ficha/pdf/", ficha_pdf, name="ficha_pdf"),
+    path("soporte/", soporte_estudiante, name="soporte_estudiante"),
 
-    # Panel revisor
+    # -------------------------
+    # Revisor
+    # -------------------------
     path("revisiones/", ReviewDashboardView.as_view(), name="revisiones_pendientes"),
     path("revisiones/<int:ficha_id>/", ReviewerFichaDetailView.as_view(), name="revisor_ficha"),
 
-    # Acciones revisor sobre ficha/documentos
-    path("revisar/documento/<int:doc_id>/", ReviewDocumentUpdateView.as_view(), name="revisar_documento"),
-    path("revisar/ficha/<int:ficha_id>/aprobar/", ApproveFichaView.as_view(), name="aprobar_ficha"),
-    path("revisar/ficha/<int:ficha_id>/observar/", ObserveFichaView.as_view(), name="observar_ficha"),
-
-    # APIs que consume el JS del panel
-    path("api/review/field/<int:ficha_id>/", FieldReviewAPI.as_view(), name="api_review_field"),
-    path("api/review/finalize/<int:ficha_id>/", FinalizeReviewAPI.as_view(), name="api_review_finalize"),
-    path("api/user/update-name/", UpdateUserNameAPI.as_view(), name="api_update_user_name"),
-    path("api/user/delete/", DeleteUserAPI.as_view(), name="api_delete_user"),
-    
+    # -------------------------
     # Detalle de documento
-    path("documento/<int:id>/", detalle_documento, name="detalle_documento"),
+    # (coincide con tu vista actual: def detalle_documento(request, id))
+    # -------------------------
+    path(
+        "documento/<int:id>/",
+        detalle_documento,
+        name="detalle_documento",
+    ),
+
+    # APIs de revisión
+    path(
+        "api/review/field/<int:ficha_id>/",
+        FieldReviewAPI.as_view(),
+        name="api_review_field",
+    ),
+    path(
+        "api/review/finalize/<int:ficha_id>/",
+        FinalizeReviewAPI.as_view(),
+        name="api_review_finalize",
+    ),
+
+    # -------------------------
+    # Admin soporte (mesa de ayuda)
+    # -------------------------
+    path("admin/soporte/", dashboard_admin_soporte, name="dashboard_admin_soporte"),
+    path(
+        "api/admin/ticket/<int:ticket_id>/",
+        supportticket_detail_api,
+        name="api_ticket_detail",
+    ),
+    path(
+        "api/admin/ticket/<int:ticket_id>/reply/",
+        supportticket_reply,
+        name="api_ticket_reply",
+    ),
+
+    # -------------------------
+    # Herramientas admin (gestión de usuarios)
+    # -------------------------
+    path(
+        "revisiones/herramientas/nombre/",
+        update_name_tool_view,
+        name="update_name_tool",
+    ),
+    path(
+        "revisiones/herramientas/eliminar-cuenta/",
+        delete_account_tool_view,
+        name="delete_account_tool",
+    ),
+
+     path(
+        "api/user/update-name/",
+        UpdateUserNameAPI.as_view(),
+        name="api_update_user_name",
+    ),
+    path(
+        "api/user/delete/",
+        DeleteUserAPI.as_view(),
+        name="api_delete_user",
+    ),
+
+    # -------------------------
+    # Registro de usuarios (ADMIN)
+    # -------------------------
+    path(
+        "admin/register/",
+        register,
+        name="register",
+    ),
 ]
