@@ -340,53 +340,12 @@
     .section.active { display:block; }
     @keyframes fadeIn{ from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
 
-    /* NUEVO: estilo para el textarea de comentarios generales */
-    .textarea-notes{
-      width:100%;
-      padding:8px 10px;
-      border-radius:10px;
-      border:1px solid #d1d5db;
-      font-size:0.85rem;
-      resize:vertical;
-      font-family:inherit;
-      background:#f9fafb;
-      outline:none;
-      transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
-    }
-
-    .textarea-notes:focus{
-      border-color:#2563eb;
-      background:#ffffff;
-      box-shadow:0 0 0 1px rgba(37,99,235,.25);
-    }
-
-    @keyframes fadeIn{
-      from{ opacity:0; transform:translateY(4px); }
-      to{ opacity:1; transform:none; }
-    }
-
-    @media (max-width: 960px){
-      .sidebar{
-        position:static;
-        width:100%;
-        flex-direction:row;
-        align-items:flex-start;
-        padding:12px 16px;
-      }
-      .main-wrapper{
-        padding:16px 14px 24px;
-      }
-    }
-
-    @media (max-width: 640px){
-      .sidebar{ flex-direction:column; }
-      .row{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-      .search{
-        width:100%;
-      }
+    /* Responsive */
+    @media (max-width: 768px){
+      .app-shell{ flex-direction: column; height: auto; overflow-y: auto; }
+      .sidebar{ width: 100%; border-right: none; }
+      .hero-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .controls-row { flex-direction: column; align-items: stretch; }
     }
   </style>
 </head>
@@ -464,22 +423,7 @@
           <input class="search-input" id="q" placeholder="🔍 Buscar por nombre,correo…" />
         </div>
 
-        <!-- NUEVO: comentarios generales del revisor -->
-        <section class="table-card" style="margin-bottom:12px;">
-          <h2 style="margin:0 0 6px;font-size:0.98rem;">Comentarios generales de la revisión</h2>
-          <p style="margin:0 0 8px;font-size:0.84rem;color:var(--text-muted);">
-            Este comentario se utilizará como observación global al finalizar la revisión
-            de una ficha y será enviado al estudiante en el correo.
-          </p>
-          <textarea
-            id="globalNotes"
-            rows="3"
-            class="textarea-notes"
-            placeholder="Escribe aquí los comentarios generales sobre la ficha antes de pulsar “Finalizar revisión”…"
-          ></textarea>
-        </section>
-
-        <section class="table-card">
+        <div class="table-responsive">
           <table class="table" id="tbl">
             <thead>
               <tr>
@@ -579,14 +523,13 @@
     return 'badge s-warn';
   }
 
-  const tbody       = document.querySelector('#tbl tbody');
-  const q           = document.getElementById('q');
-  const tabs        = Array.from(document.querySelectorAll('.tab'));
-  const mRechazo    = document.getElementById('mRechazo');
-  const txtMotivo   = document.getElementById('txtMotivo');
-  const btnCancelar = document.getElementById('btnCancelar');
-  const btnGuardar  = document.getElementById('btnGuardar');
-  const txtGlobalNotes = document.getElementById('globalNotes'); // NUEVO
+  const tbody      = document.querySelector('#tbl tbody');
+  const q          = document.getElementById('q');
+  const tabs       = Array.from(document.querySelectorAll('.tab-btn'));
+  const mRechazo   = document.getElementById('mRechazo');
+  const txtMotivo  = document.getElementById('txtMotivo');
+  const btnCancelar= document.getElementById('btnCancelar');
+  const btnGuardar = document.getElementById('btnGuardar');
 
   let filtro    = 'abiertas';
   let currentId = null;
@@ -634,26 +577,27 @@
     tbody.querySelectorAll('.js-finalizar').forEach(btn=>{
       btn.onclick = async (e)=>{
         const id = Number(e.currentTarget.dataset.id);
-        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`);
+        // Como las URL base pueden no tener el ID correcto si es string "0", hacemos replace
+        const urlFinalize = URL_FINALIZE_API_BASE.replace('/0/', `/${id}/`); 
+        
+        if(!confirm("¿Finalizar revisión de esta ficha?")) return;
 
-        // NUEVO: tomar el comentario general desde el textarea
-        const globalNotes = (txtGlobalNotes && txtGlobalNotes.value)
-          ? txtGlobalNotes.value
-          : '';
-
-        const res = await post(urlFinalize, { global_notes: globalNotes });
-        if(res.ok){
-          const it = DATA.find(z=>z.id===id);
-          if(it){
-            it.estado_raw = res.estado;
-            it.estado = (res.estado === 'APROBADA') ? 'Aprobada' :
-                        (res.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+        try {
+          const res = await post(urlFinalize, {});
+          if(res.ok){
+            const it = DATA.find(z=>z.id===id);
+            if(it){
+              it.estado_raw = res.estado; // ej: APROBADA o RECHAZADA
+              it.estado = (res.estado === 'APROBADA') ? 'Aprobada' :
+                          (res.estado === 'RECHAZADA') ? 'Rechazada' : it.estado;
+            }
+            paint();
+          } else {
+            alert('No se pudo finalizar: ' + (res.error||'error desconocido'));
           }
-          // si quieres limpiar el comentario al terminar una ficha, descomenta:
-          // txtGlobalNotes.value = '';
-          paint();
-        }else{
-          alert('No se pudo finalizar: ' + (res.error||'error'));
+        } catch(err) {
+          console.error(err);
+          alert("Error de conexión al finalizar.");
         }
       };
     });
