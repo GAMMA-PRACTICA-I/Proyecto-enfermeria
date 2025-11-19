@@ -1,7 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
-
-from .models import ComentarioDocumento, ComentarioFicha, StudentSupportTicket
+from .models import ComentarioFicha
 
 
 class StudentGeneralForm(forms.Form):
@@ -16,15 +14,12 @@ class StudentGeneralForm(forms.Form):
     contacto_emergencia_parentesco = forms.CharField(required=False, max_length=80)
     contacto_emergencia_telefono = forms.CharField(required=False, max_length=30)
     centro_salud = forms.CharField(required=False, max_length=120)
-    prevision = forms.CharField(
-        required=False,
-        max_length=20,  # se mapea a 'seguro' en la vista
-    )
+    prevision = forms.CharField(required=False, max_length=20)        # se mapea a 'seguro' en la vista
     prevision_detalle = forms.CharField(required=False, max_length=120)
     correo_institucional = forms.EmailField(required=False)
     foto_ficha = forms.ImageField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={"accept": "image/png"}),
+        widget=forms.ClearableFileInput(attrs={"accept": "image/png"})
     )
 
 
@@ -47,9 +42,7 @@ class StudentMedicalForm(forms.Form):
 
 class StudentVaccinesForm(forms.Form):
     varicela_serologia_resultado = forms.CharField(required=False, max_length=15)
-    varicela_serologia_fecha = forms.DateField(
-        required=False, input_formats=["%Y-%m-%d"]
-    )
+    varicela_serologia_fecha = forms.DateField(required=False, input_formats=["%Y-%m-%d"])
     influenza_fecha = forms.DateField(required=False, input_formats=["%Y-%m-%d"])
     vacunas_obs = forms.CharField(required=False)
 
@@ -60,67 +53,31 @@ class StudentDeclarationForm(forms.Form):
     decl_fecha = forms.DateField(required=False, input_formats=["%Y-%m-%d"])
     decl_firma = forms.CharField(required=False, max_length=255)
 
+from django import forms
+from .models import ComentarioDocumento
+
 
 class ComentarioDocumentoForm(forms.ModelForm):
     class Meta:
         model = ComentarioDocumento
-        # campo del comentario
-        fields = ["mensaje"]
-        widgets = {
-            "mensaje": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Escribe un comentario...",
-                }
-            )
-        }
+        fields = ["mensaje"]  # <-- este es el campo del comentario
 
+        widgets = {
+            "mensaje": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Escribe un comentario..."
+            })
+        }
 
 class ComentarioFichaForm(forms.ModelForm):
     class Meta:
         model = ComentarioFicha
         fields = ["mensaje"]
         widgets = {
-            "mensaje": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Escribe un comentario para toda la ficha...",
-                }
-            )
+            "mensaje": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Escribe un comentario para toda la ficha..."
+            })
         }
-
-
-class CustomAuthenticationForm(AuthenticationForm):
-    """
-    Wrapper de compatibilidad para el login.
-    No agrega lógica nueva, sólo evita errores de import
-    cuando las vistas usan CustomAuthenticationForm.
-    """
-
-    pass
-
-
-class SupportTicketForm(forms.ModelForm):
-    """
-    Formulario para que el estudiante envíe tickets de soporte.
-
-    En las vistas se usa como:
-      - SupportTicketForm(request.POST, user=request.user)
-      - SupportTicketForm(user=request.user)
-
-    El parámetro `user` se acepta en __init__ para mantener compatibilidad,
-    aunque no es obligatorio usarlo dentro del formulario.
-    """
-
-    class Meta:
-        model = StudentSupportTicket
-        # Campos que el estudiante puede rellenar
-        fields = ["tipo_consulta", "asunto", "detalle"]
-
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-        # Aquí podrías personalizar choices o placeholders según self.user
-        # si lo necesitas más adelante.

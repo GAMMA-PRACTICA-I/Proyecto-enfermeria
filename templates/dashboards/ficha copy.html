@@ -3,854 +3,153 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Ficha Estudiante - Campos Clínicos</title>
+  <title>Antecedentes del Estudiante</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-   :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa;--primary:#003366;--accent:#2563eb;--ok:#059669;--warn:#b45309}
-    html,body{margin:0;padding:0;width:100%;overflow-x:hidden}
+    :root{--text:#0b0b0b;--muted:#5b6a7a;--line:rgba(0,0,0,.12);--chip:#f5f7fa}
     *{box-sizing:border-box}
-    body{font-family:system-ui,Arial;color:var(--text)}
-    .page{padding:24px;width:100%}
-    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin:0 auto;width:min(1100px,100%)}
-    h2{margin:0 0 14px}
+    body{font-family:system-ui,Arial;margin:24px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
     .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--chip);cursor:pointer}
     .tab.active{background:#e8eefb;border-color:#c6d7ff}
     .pane[hidden]{display:none}
-    label{display:block;font-weight:600;margin:6px 0 4px}
-    .hint{display:block;font-weight:400;color:var(--muted);font-size:.9rem;margin:2px 0 8px}
+    label{display:block;font-weight:600;margin:4px 0}
+    .hint{font-weight:400;color:var(--muted)}
     .grid2{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
-    .grid3{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
-    .grid4{display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr))}
-    @media (max-width:900px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
     input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.18)}
-    textarea{min-height:96px;resize:vertical}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
-    .btn{
-        padding:10px 14px;
-        border-radius:10px;
-        border:1px solid var(--line);
-        background:var(--primary) !important;  /* fuerza el azul oscuro */
-        color:#fff;
-        cursor:pointer}
-    .btn.ghost{
-      background:#fff !important;
-      color:var(--primary) !important;
-      border:1px solid var(--primary) !important;}
-    .progress{display:flex;gap:6px;align-items:center;margin:10px 0 6px}
-    .dot{width:10px;height:10px;border-radius:999px;border:1px solid var(--line);background:#e9eef8;opacity:.8}
-    .dot.active{background:#c6d7ff;border-color:#94b3ff;opacity:1}
-    .section-title{font-weight:700;margin:12px 0 6px}
-    .uploader{margin-top:8px}
-    .uploader .controls{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-    .files{display:grid;gap:8px}
-    .file-item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
-    .file-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .file-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-    .note{font-size:.85rem;color:var(--muted)}
-    .status-select{min-width:200px}
-    table.vax{width:100%;border-collapse:separate;border-spacing:0 8px}
-    table.vax th{font-weight:600;text-align:left;color:var(--muted);font-size:.9rem}
-    table.vax td{vertical-align:middle}
-    .rowbox{display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center}
-    .addline{margin-top:6px}
-    .block{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}
-    .btn[aria-disabled="true"]{opacity:.5;pointer-events:none}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#0f172a;color:#fff;cursor:pointer}
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="card">
-      <h2>Ficha Estudiantil – Campos Clínicos</h2>
+  <div class="card">
+    <h2 style="margin:0 0 10px">Ficha Estudiantil</h2>
 
-      <div class="progress" aria-label="Progreso">
-        <span class="dot" data-step="0"></span>
-        <span class="dot" data-step="1"></span>
-        <span class="dot" data-step="2"></span>
-        <span class="dot" data-step="3"></span>
-        <span class="dot" data-step="4"></span>
-        <span class="dot" data-step="5"></span>
-        <span style="margin-left:8px;color:var(--muted);font-size:.92rem" id="stepLabel">Paso 1 de 6</span>
-      </div>
-
-      <div class="tabs" role="tablist">
-        <button type="button" class="tab active" data-tab="generales" role="tab" aria-selected="true">Antecedentes Generales</button>
-        <button type="button" class="tab" data-tab="academicos" role="tab">Antecedentes Académicos</button>
-        <button type="button" class="tab" data-tab="morbidos" role="tab">Antecedentes Mórbidos</button>
-        <button type="button" class="tab" data-tab="vacunas" role="tab">Vacunas / Serología</button>
-        <button type="button" class="tab" data-tab="adjunta" role="tab">Documentación Adjunta</button>
-        <button type="button" class="tab" data-tab="declaracion" role="tab">Declaración</button>
-      </div>
-
-      <form method="post" action="{% url 'ficha' %}" enctype="multipart/form-data" novalidate>
-        {% csrf_token %}
-        <input type="hidden" name="active_tab_name" id="input_active_name" value="generales">
-
-        <!-- I. ANTECEDENTES GENERALES (sin adjuntos, según Word) -->
-        <section class="pane" data-pane="generales">
-          <div class="grid2">
-             <div>
-              <label>Foto ficha (PNG)</label>
-              <span class="hint">Esta imagen aparecerá en la esquina superior derecha del PDF.</span>
-              <div class="uploader" data-key="foto_ficha">
-                <div class="controls">
-                  <input type="file" id="foto_ficha_input" name="foto_ficha" accept="image/png" hidden>
-                  <button type="button" class="btn" data-action="pick" data-target="foto_ficha_input">Subir foto</button>
-                  <button type="button" class="btn ghost" data-action="clear" data-target="foto_ficha_input">Quitar</button>
-                </div>
-                <div class="files" id="foto_ficha_files"></div>
-              </div>
-            </div>
-               <div>
-              <label>Certificado de Alumno Regular (PDF)</label>
-              <span class="hint">Adjunta tu certificado emitido por la universidad.</span>
-              <div class="uploader" data-key="cert_alumno_regular">
-                <div class="controls">
-                  <input type="file" id="cert_alumno_regular_input" name="cert_alumno_regular" accept="application/pdf" hidden>
-                  <button type="button" class="btn" data-action="pick" data-target="cert_alumno_regular_input">Subir certificado</button>
-                  <button type="button" class="btn ghost" data-action="clear" data-target="cert_alumno_regular_input">Quitar</button>
-                </div>
-                <div class="files" id="cert_alumno_regular_files"></div>
-              </div>
-            </div>
-            <div>
-              <label>Nombre completo legal</label>
-              <input type="text" name="nombre_legal" placeholder="Nombre completo" />
-            </div>
-            <div>
-              <label>Género</label>
-              <select name="genero">
-                <option value="">Seleccione…</option>
-                <option>Mujer</option>
-                <option>Hombre</option>
-                <option>No binario</option>
-                <option>Prefiero no decir</option>
-              </select>
-            </div>
-
-            <div>
-              <label>RUT / ID</label>
-              <input type="text" name="rut" placeholder="12.345.678-9 / Pasaporte" />
-            </div>
-            <div>
-              <label>Fecha de nacimiento</label>
-              <input type="date" name="fecha_nacimiento" />
-            </div>
-
-            <div>
-              <label>Teléfono celular</label>
-              <input type="tel" name="telefono_celular" placeholder="+56 9 XXXX XXXX" />
-            </div>
-            <div>
-              <label>Correo institucional</label>
-              <input type="email" name="correo_institucional" placeholder="usuario@unab.cl" />
-            </div>
-
-            <div>
-              <label>Dirección residencial actual / Comuna</label>
-              <input type="text" name="direccion_actual" placeholder="Dirección y comuna" />
-            </div>
-            <div>
-              <label>Dirección residencial de origen / Comuna</label>
-              <input type="text" name="direccion_origen" placeholder="Dirección y comuna" />
-            </div>
-
-            <div>
-              <label>Contacto de emergencia (nombre)</label>
-              <input type="text" name="contacto_emergencia_nombre" placeholder="Nombre completo" />
-            </div>
-            <div>
-              <label>Teléfono contacto de emergencia</label>
-              <input type="tel" name="contacto_emergencia_telefono" placeholder="+56 9 XXXX XXXX" />
-            </div>
-
-            <div>
-              <label>Parentesco contacto de emergencia</label>
-              <input type="text" name="contacto_emergencia_parentesco" placeholder="Ej. madre, padre, tutor" />
-            </div>
-            <div>
-              <label>Centro de Salud donde se atiende</label>
-              <input type="text" name="centro_salud" placeholder="Nombre del centro de salud" />
-            </div>
-
-            <div>
-              <label>Previsión</label>
-              <select name="prevision" id="prevision">
-                <option value="">Seleccione…</option>
-                <option>ISAPRE</option>
-                <option>FONASA A</option>
-                <option>FONASA B</option>
-                <option>FONASA C</option>
-                <option>FONASA D</option>
-                <option>Fuerzas Armadas</option>
-                <option>Otro</option>
-              </select>
-            </div>
-            <div id="prevision_detalle_wrap" style="display:none">
-              <label>Detalle previsión (especifique)</label>
-              <input type="text" name="prevision_detalle" id="prevision_detalle" placeholder="Especifique su previsión" />
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn next">Siguiente</button>
-          </div>
-        </section>
-
-        <!-- II. ANTECEDENTES ACADÉMICOS (sin adjuntos) -->
-        <section class="pane" data-pane="academicos" hidden>
-          <div class="grid2">
-            <div>
-              <label>Nombre social</label>
-              <input type="text" name="nombre_social" placeholder="Si aplica" />
-            </div>
-            <div>
-              <label>Carrera</label>
-              <input type="text" name="carrera" placeholder="Carrera" />
-            </div>
-
-            <div>
-              <label>Año que cursa</label>
-              <input type="number" name="anio_cursa" min="1" max="10" placeholder="Ej. 2" />
-            </div>
-            <div>
-              <label>Estado (Curricular / Interno)</label>
-              <input type="text" name="estado" placeholder="Curricular / Interno" />
-            </div>
-
-            <div>
-              <label>Asignatura (correspondiente al nivel)</label>
-              <input type="text" name="asignatura" placeholder="Nombre de la asignatura" />
-            </div>
-            <div>
-              <label>Correo electrónico personal</label>
-              <input type="email" name="correo_personal" placeholder="tucorreo@email.com" />
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn ghost prev">Anterior</button>
-            <button type="button" class="btn next">Siguiente</button>
-          </div>
-        </section>
-
-        <!-- III. ANTECEDENTES MÓRBIDOS (con certificados junto a cada item, según Word) -->
-        <section class="pane" data-pane="morbidos" hidden>
-          <div class="grid2">
-            <div>
-              <label>Alergias</label>
-              <textarea name="alergias" placeholder="Describa alergias si aplica"></textarea>
-              <div class="uploader" data-key="alergias">
-                <div class="controls">
-                  <input type="file" id="alergias_input" name="alergias_certificados[]" accept=".pdf,image/*" multiple hidden>
-                  <button type="button" class="btn" data-action="pick" data-target="alergias_input">Agregar certificado(s)</button>
-                  <button type="button" class="btn ghost" data-action="clear" data-target="alergias_input">Quitar</button>
-                </div>
-                <div class="files" id="alergias_files"></div>
-              </div>
-            </div>
-            <div>
-              <label>Grupo sanguíneo</label>
-              <select name="grupo_sanguineo">
-                <option value="">Seleccione…</option>
-                <option>O+</option>
-                <option>O-</option>
-                <option>A+</option>
-                <option>A-</option>
-                <option>B+</option>
-                <option>B-</option>
-                <option>AB+</option>
-                <option>AB-</option>
-              </select>
-            </div>
-
-            <div>
-              <label>Enfermedades crónicas o que desee declarar</label>
-              <textarea name="enfermedades_cronicas" placeholder="Detalle"></textarea>
-              <div class="uploader" data-key="enfermedades_cronicas">
-                <div class="controls">
-                  <input type="file" id="enfermedades_cronicas_input" name="enfermedades_cronicas_certificados[]" accept=".pdf,image/*" multiple hidden>
-                  <button type="button" class="btn" data-action="pick" data-target="enfermedades_cronicas_input">Agregar certificado(s)</button>
-                  <button type="button" class="btn ghost" data-action="clear" data-target="enfermedades_cronicas_input">Quitar</button>
-                </div>
-                <div class="files" id="enfermedades_cronicas_files"></div>
-              </div>
-            </div>
-            <div>
-              <label>Medicamentos de uso diario</label>
-              <textarea name="medicamentos_diarios" placeholder="Detalle"></textarea>
-              <div class="uploader" data-key="medicamentos_diarios">
-                <div class="controls">
-                  <input type="file" id="medicamentos_diarios_input" name="medicamentos_diarios_certificados[]" accept=".pdf,image/*" multiple hidden>
-                  <button type="button" class="btn" data-action="pick" data-target="medicamentos_diarios_input">Agregar certificado(s)</button>
-                  <button type="button" class="btn ghost" data-action="clear" data-target="medicamentos_diarios_input">Quitar</button>
-                </div>
-                <div class="files" id="medicamentos_diarios_files"></div>
-              </div>
-            </div>
-
-            <div class="grid2" style="grid-column:1/-1">
-              <div>
-                <label>Otros antecedentes relevantes</label>
-                <textarea name="otros_antecedentes" placeholder="Detalle"></textarea>
-                <div class="uploader" data-key="otros_antecedentes">
-                  <div class="controls">
-                    <input type="file" id="otros_antecedentes_input" name="otros_antecedentes_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="otros_antecedentes_input">Agregar certificado(s)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="otros_antecedentes_input">Quitar</button>
-                  </div>
-                  <div class="files" id="otros_antecedentes_files"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn ghost prev">Anterior</button>
-            <button type="button" class="btn next">Siguiente</button>
-          </div>
-        </section>
-
-        <!-- IV. VACUNAS / SEROLOGÍA (solo fechas/serología; los certificados van en Documentación Adjunta según Word) -->
-        <section class="pane" data-pane="vacunas" hidden>
-          <div class="section-title">Vacunas / Serología</div>
-          <span class="hint">Ingrese fechas exactas. Máximo: hoy.</span>
-
-          <div class="grid2">
-            <div>
-              <label>COVID-19</label>
-              <table class="vax">
-                <thead>
-                  <tr><th style="width:160px">Dosis</th><th>Fecha</th></tr>
-                </thead>
-                <tbody id="covid_tbody">
-                  <tr>
-                    <td><input type="text" value="Dosis 1" disabled></td>
-                    <td><input type="date" name="covid_fechas[]" class="covid-date"></td>
-                  </tr>
-                  <tr>
-                    <td><input type="text" value="Dosis 2" disabled></td>
-                    <td><input type="date" name="covid_fechas[]" class="covid-date"></td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="addline">
-                <button type="button" class="btn" id="add_refuerzo">Agregar refuerzo</button>
-              </div>
-            </div>
-
-            <div>
-              <label>Hepatitis B (3 dosis – 0, 1 y 6 meses)</label>
-              <table class="vax">
-                <thead>
-                  <tr><th style="width:160px">Dosis</th><th>Fecha</th></tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><input type="text" value="Dosis 1" disabled></td>
-                    <td><input type="date" name="hepb_fechas[]" class="hepb-date"></td>
-                  </tr>
-                  <tr>
-                    <td><input type="text" value="Dosis 2" disabled></td>
-                    <td><input type="date" name="hepb_fechas[]" class="hepb-date"></td>
-                  </tr>
-                  <tr>
-                    <td><input type="text" value="Dosis 3" disabled></td>
-                    <td><input type="date" name="hepb_fechas[]" class="hepb-date"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div>
-              <label>Varicela</label>
-              <div class="rowbox">
-                <span>Serología</span>
-                <select id="varicela_sero" name="varicela_serologia_resultado">
-                  <option value="">Seleccione…</option>
-                  <option value="positiva">Positiva</option>
-                  <option value="negativa">Negativa</option>
-                  <option value="indeterminada">Indeterminada</option>
-                </select>
-              </div>
-              <div class="rowbox" style="margin-top:8px">
-                <span>Fecha serología</span>
-                <input type="date" name="varicela_serologia_fecha" id="varicela_serologia_fecha">
-              </div>
-
-              <div id="varicela_dosis_block" class="block" style="display:none">
-                <table class="vax">
-                  <thead>
-                    <tr><th style="width:160px">Dosis</th><th>Fecha</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><input type="text" value="Dosis 1" disabled></td>
-                      <td><input type="date" name="varicela_fechas[]" class="varicela-date"></td>
-                    </tr>
-                    <tr>
-                      <td><input type="text" value="Dosis 2" disabled></td>
-                      <td><input type="date" name="varicela_fechas[]" class="varicela-date"></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div>
-              <label>Influenza (año en curso)</label>
-              <input type="date" name="influenza_fecha" id="influenza_fecha">
-            </div>
-
-            <div>
-              <label>Observaciones vacunas/serología (opcional)</label>
-              <input type="text" name="vacunas_obs" placeholder="Notas adicionales" />
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn ghost prev">Anterior</button>
-            <button type="button" class="btn next">Siguiente</button>
-          </div>
-        </section>
-
-        <!-- V. DOCUMENTACIÓN ADJUNTA (según Word: CI, Aut. médica, vacunas y cursos) -->
-        <section class="pane" data-pane="adjunta" hidden>
-          <div class="section-title">Documentación Adjunta</div>
-
-          <div class="block">
-            <div class="section-title">Identificación</div>
-            <div class="grid2">
-              <div>
-                <label>Carnet de Identidad por ambos lados</label>
-                <div class="uploader" data-key="ci" data-max="2">
-                  <div class="controls">
-                    <input type="file" id="ci_input" name="ci_archivos[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="ci_input">Subir CI (máx. 2)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="ci_input">Quitar</button>
-                    <span class="note" id="ci_note"></span>
-                  </div>
-                  <div class="files" id="ci_files"></div>
-                </div>
-              </div>
-              <div>
-                <label>Autorización médica para práctica profesional (si corresponde)</label>
-                <div class="uploader" data-key="autorizacion_medica">
-                  <div class="controls">
-                    <input type="file" id="autorizacion_medica_input" name="autorizacion_medica_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="autorizacion_medica_input">Subir autorización</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="autorizacion_medica_input">Quitar</button>
-                  </div>
-                  <div class="files" id="autorizacion_medica_files"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="block">
-            <div class="section-title">Vacunas y Serologías (anexos)</div>
-            <div class="grid2">
-              <div>
-                <label>Certificado vacunación SARS-CoV-2 (MeVacuno)</label>
-                <div class="uploader" data-key="sarscov2_cert">
-                  <div class="controls">
-                    <input type="file" id="sarscov2_cert_input" name="sarscov2_cert[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="sarscov2_cert_input">Subir certificado</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="sarscov2_cert_input">Quitar</button>
-                  </div>
-                  <div class="files" id="sarscov2_cert_files"></div>
-                </div>
-              </div>
-              <div>
-                <label>Carnet/Certificado vacunación Hepatitis B</label>
-                <div class="uploader" data-key="hepb_cert">
-                  <div class="controls">
-                    <input type="file" id="hepb_cert_input" name="hepb_cert[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="hepb_cert_input">Subir certificado</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="hepb_cert_input">Quitar</button>
-                  </div>
-                  <div class="files" id="hepb_cert_files"></div>
-                </div>
-              </div>
-              <div>
-                <label>Examen Serología Varicela (IgG)</label>
-                <div class="uploader" data-key="varicela_igg">
-                  <div class="controls">
-                    <input type="file" id="varicela_igg_input" name="varicela_igg[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="varicela_igg_input">Subir examen</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="varicela_igg_input">Quitar</button>
-                  </div>
-                  <div class="files" id="varicela_igg_files"></div>
-                </div>
-              </div>
-              <div>
-                <label>Certificado Influenza (año en curso)</label>
-                <div class="uploader" data-key="influenza_cert">
-                  <div class="controls">
-                    <input type="file" id="influenza_cert_input" name="influenza_cert[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="influenza_cert_input">Subir certificado</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="influenza_cert_input">Quitar</button>
-                  </div>
-                  <div class="files" id="influenza_cert_files"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="block">
-            <div class="section-title">Cursos y Capacitaciones</div>
-            <div class="grid2">
-              <div>
-                <label>Introducción COVID (OMS)</label>
-                <div class="uploader" data-key="curso_intro_covid">
-                  <div class="controls">
-                    <input type="file" id="curso_intro_covid_input" name="curso_intro_covid_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="curso_intro_covid_input">Subir certificado(s)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="curso_intro_covid_input">Quitar</button>
-                  </div>
-                  <div class="files" id="curso_intro_covid_files"></div>
-                </div>
-              </div>
-              <div>
-                <label>EPP</label>
-                <div class="uploader" data-key="curso_epp">
-                  <div class="controls">
-                    <input type="file" id="curso_epp_input" name="curso_epp_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="curso_epp_input">Subir certificado(s)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="curso_epp_input">Quitar</button>
-                  </div>
-                  <div class="files" id="curso_epp_files"></div>
-                </div>
-              </div>
-
-              <div>
-                <label>IAAS (OMS)</label>
-                <span class="hint">Requisito desde 2° año 2° semestre (nota ≥ 5,0)</span>
-                <input type="text" name="curso_iaas_nota" placeholder="Nota obtenida" />
-                <div class="uploader" data-key="curso_iaas">
-                  <div class="controls">
-                    <input type="file" id="curso_iaas_input" name="curso_iaas_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="curso_iaas_input">Subir certificado(s)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="curso_iaas_input">Quitar</button>
-                  </div>
-                  <div class="files" id="curso_iaas_files"></div>
-                </div>
-              </div>
-              <div>
-                <label>RCP / BLS</label>
-                <div class="uploader" data-key="curso_rcp_bls">
-                  <div class="controls">
-                    <input type="file" id="curso_rcp_bls_input" name="curso_rcp_bls_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="curso_rcp_bls_input">Subir certificado(s)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="curso_rcp_bls_input">Quitar</button>
-                  </div>
-                  <div class="files" id="curso_rcp_bls_files"></div>
-                </div>
-              </div>
-
-              <div>
-                <label>Inducción Campo Clínico (SS Biobío) <span class="hint">Si aplica</span></label>
-                <div class="uploader" data-key="induccion_cc">
-                  <div class="controls">
-                    <input type="file" id="induccion_cc_input" name="induccion_cc_certificados[]" accept=".pdf,image/*" multiple hidden>
-                    <button type="button" class="btn" data-action="pick" data-target="induccion_cc_input">Subir certificado(s)</button>
-                    <button type="button" class="btn ghost" data-action="clear" data-target="induccion_cc_input">Quitar</button>
-                  </div>
-                  <div class="files" id="induccion_cc_files"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="button" class="btn ghost prev">Anterior</button>
-            <button type="button" class="btn next">Siguiente</button>
-          </div>
-        </section>
-
-        <!-- VI. DECLARACIÓN -->
-        <section class="pane" data-pane="declaracion" hidden>
-          <p class="section-title">Declaración</p>
-          <p>Declaro que la información entregada en esta ficha es verdadera, completa y exacta.</p>
-
-          <div class="grid2">
-            <div>
-              <label>Nombre del Estudiante</label>
-              <input type="text" name="decl_nombre" placeholder="Nombre completo" />
-            </div>
-            <div>
-              <label>RUT o ID</label>
-              <input type="text" name="decl_rut" placeholder="12.345.678-9 / Pasaporte" />
-            </div>
-            <div>
-              <label>Fecha</label>
-              <input type="date" name="decl_fecha" />
-            </div>
-            <div>
-              <label>Firma</label>
-              <input type="text" name="decl_firma" placeholder="(Si corresponde)" />
-            </div>
-          </div>
-
-          <!-- <div class="actions">
-            <button type="button" class="btn ghost prev">Anterior</button>
-            <button type="submit" class="btn">Guardar</button>
-            
-          </div> -->
-          <div class="actions">
-          <button type="button" class="btn ghost prev">Anterior</button>
-          <button type="submit" class="btn">Guardar</button>
-
-          {% if ficha and ficha_pdf_disponible %}
-            <a
-              class="btn"
-              href="{% url 'ficha_pdf' %}"
-              target="_blank"
-              rel="noopener"
-              style="text-decoration:none;display:inline-block"
-            >Descargar PDF</a>
-          {% else %}
-            <a
-              class="btn"
-              aria-disabled="true"
-              style="opacity:.5;pointer-events:none;text-decoration:none;display:inline-block"
-              title="Guarda primero para habilitar el PDF"
-            >Descargar PDF</a>
-          {% endif %}
-        </div>
-        <hr>
-
-        </section>
-        <input type="hidden" name="finalizar" value="1">
-</form>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="generales">Antecedentes Generales</button>
+      <button class="tab" data-tab="academicos">Antecedentes Académicos</button>
     </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- GENERALES -->
+      <div class="pane" data-pane="generales">
+        <div class="grid2">
+          <label>Nombre completo legal
+            {{ gform.nombre_legal }}
+          </label>
+
+          <label>Género
+            {{ gform.genero }}
+          </label>
+
+          <label>RUT / ID
+            {{ gform.rut }}
+          </label>
+
+          <label>Fecha de nacimiento
+            {{ gform.fecha_nacimiento }}  {# SelectDateWidget: día / mes / año #}
+          </label>
+
+          <label>Teléfono celular
+            {{ gform.telefono_celular }}
+          </label>
+
+          <label>Dirección residencial actual / Comuna
+            {{ gform.direccion_actual }}
+          </label>
+
+          <label>Dirección residencial de origen / Comuna
+            {{ gform.direccion_origen }}
+          </label>
+
+          <label>Correo institucional (si quieres mantenerlo aquí, usa el form académico)</label>
+
+          <label>Contacto de emergencia (nombre)
+            {{ gform.contacto_emergencia_nombre }}
+          </label>
+
+          <label>Teléfono contacto de emergencia
+            {{ gform.contacto_emergencia_telefono }}
+          </label>
+
+          <label>Parentesco contacto de emergencia
+            {{ gform.contacto_emergencia_parentesco }}
+          </label>
+
+          <label>Centro de Salud donde se atiende
+            {{ gform.centro_salud }}
+          </label>
+
+          <label>Previsión
+            {{ gform.seguro }}
+          </label>
+
+          <label>Detalle previsión (opcional)
+            {{ gform.seguro_detalle }}
+          </label>
+        </div>
+      </div>
+
+      <!-- ACADÉMICOS -->
+      <div class="pane" data-pane="academicos" hidden>
+        <div class="grid2">
+          <label>Nombre Social
+            {{ aform.nombre_social }}
+          </label>
+
+          <label>Carrera
+            {{ aform.carrera }}
+          </label>
+
+          <label>Año que cursa
+            {{ aform.anio_cursa }}
+          </label>
+
+          <label>Estado (Curricular / Interno)
+            {{ aform.estado }}
+          </label>
+
+          <label>Asignatura (correspondiente al nivel)
+            {{ aform.asignatura }}
+          </label>
+
+          <label>Correo electrónico institucional
+            {{ aform.correo_institucional }}
+          </label>
+
+          <label>Correo electrónico personal
+            {{ aform.correo_personal }}
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">Guardar</button>
+        <span style="align-self:center;color:#0ea35a">
+          {% if gform.errors or aform.errors %}Revisa los campos marcados.{% endif %}
+        </span>
+      </div>
+    </form>
   </div>
 
   <script>
-    var IS_REVISOR = {% if is_revisor %}true{% else %}false{% endif %};
-
+    // Tabs
     (function(){
-      const root=document.currentScript.closest('body');
-      const tabs=[...root.querySelectorAll('.tab')];
-      const panes=[...root.querySelectorAll('.pane')];
-      const nextBtns=root.querySelectorAll('.next');
-      const prevBtns=root.querySelectorAll('.prev');
-      const dots=[...root.querySelectorAll('.dot')];
-      const stepLabel=root.querySelector('#stepLabel');
-      const order=['generales','academicos','morbidos','vacunas','adjunta','declaracion'];
-      const stepCount=order.length;
-
-      function goto(id, updateUrl = true){
-        tabs.forEach(t=>{const a=t.dataset.tab===id;t.classList.toggle('active',a);t.setAttribute('aria-selected',a?'true':'false')});
-        panes.forEach(p=>p.hidden=(p.getAttribute('data-pane')!==id));
-        const idx=order.indexOf(id);
-        dots.forEach((d,i)=>d.classList.toggle('active',i<=idx));
-        if(stepLabel) stepLabel.textContent=`Paso ${idx+1} de ${stepCount}`;
-        
-        window.scrollTo({top:0,behavior:'smooth'});
-        
-        if (updateUrl) {
-          history.replaceState(null,'',`#${id}`);
-        }
-        
-        const inputTab = document.getElementById('input_active_name');
-        if(inputTab) {
-          inputTab.value = id;
-        }
-      }
-
-      // inicialización corregida
-      const currentHash = location.hash.slice(1);
-      const isFichaHash = order.includes(currentHash);
-      const initial = isFichaHash ? currentHash : order[0];
-      goto(initial, isFichaHash);
-
-      tabs.forEach(btn=>btn.addEventListener('click',()=>goto(btn.dataset.tab, true))); 
-      
-      nextBtns.forEach(btn=>btn.addEventListener('click',()=>{
-        const current=tabs.find(t=>t.classList.contains('active')).dataset.tab;
-        const idx=order.indexOf(current);
-        if(idx<order.length-1) goto(order[idx+1], true);
-      }));
-      
-      prevBtns.forEach(btn=>btn.addEventListener('click',()=>{
-        const current=tabs.find(t=>t.classList.contains('active')).dataset.tab;
-        const idx=order.indexOf(current);
-        if(idx>0) goto(order[idx-1], true);
-      }));
-      root.addEventListener('keydown',(e)=>{
-        if(e.key==='Enter'&&e.target.tagName==='INPUT'){
-          const current=tabs.find(t=>t.classList.contains('active')).dataset.tab;
-          const idx=order.indexOf(current);
-          if(idx<order.length-1){e.preventDefault();goto(order[idx+1])}
-        }
-      });
-    })();
-
-    const STATUS_STUDENT=[{v:'adjuntado',t:'Adjuntado'}];
-    const STATUS_REVISOR=[{v:'adjuntado',t:'Adjuntado'},{v:'revisado_no_ok',t:'Revisado no ok'},{v:'revisado_ok',t:'Revisado ok'}];
-    function statusOptions(){ return IS_REVISOR ? STATUS_REVISOR : STATUS_STUDENT; }
-
-    function shortName(n){
-      if(n.length<=60) return n;
-      const p=n.split('.');const ext=p.length>1?'.'+p.pop():'';
-      const base=p.join('.');
-      return base.slice(0,32)+'…'+base.slice(-10)+ext;
-    }
-
-    function clearInput(input){ input.value=''; }
-
-        function renderList(key, files){
-      const box = document.getElementById(key + '_files');
-      if (!box) return;
-      box.innerHTML = '';
-
-      (files || []).forEach((fileName)=>{
-        const row = document.createElement('div');
-        row.className = 'file-item';
-
-        // 🖼️ Si es la foto de la ficha, mostramos vista previa
-        if (key === 'foto_ficha') {
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(document.querySelector(`#${key}_input`).files[0]);
-          img.style.maxWidth = '120px';
-          img.style.borderRadius = '8px';
-          img.style.display = 'block';
-          img.style.marginTop = '6px';
-
-          const label = document.createElement('div');
-          label.textContent = shortName(fileName);
-          label.style.fontSize = '0.9rem';
-          label.style.marginTop = '4px';
-
-          box.appendChild(img);
-          box.appendChild(label);
-          return;
-        }
-
-        // 📄 para todos los otros (PDF, etc.)
-        const left = document.createElement('div');
-        left.className = 'file-name';
-        left.textContent = shortName(fileName);
-
-        const right = document.createElement('div');
-        right.className = 'file-actions';
-
-        const sel = document.createElement('select');
-        sel.className = 'status-select';
-        sel.name = `${key}_status[]`;
-        (IS_REVISOR ? STATUS_REVISOR : STATUS_STUDENT).forEach(o=>{
-          const opt = document.createElement('option');
-          opt.value = o.v;
-          opt.textContent = o.t;
-          if (o.v === 'adjuntado') opt.selected = true;
-          sel.appendChild(opt);
+      const section = document.currentScript.closest('body');
+      section.querySelectorAll('.tab').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          section.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+          btn.classList.add('active');
+          const id = btn.dataset.tab;
+          section.querySelectorAll('.pane').forEach(p=>p.hidden = (p.getAttribute('data-pane')!==id));
+          window.scrollTo({top:0,behavior:'smooth'});
         });
-
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = `${key}_name[]`;
-        hidden.value = fileName;
-
-        right.appendChild(sel);
-        row.appendChild(left);
-        row.appendChild(right);
-        row.appendChild(hidden);
-        box.appendChild(row);
       });
-    }
-
-
-    function handlePicker(btn){
-      const target=btn.getAttribute('data-target');
-      const input=document.getElementById(target);
-      const key=target.replace('_input','');
-      const max=(input.closest('.uploader').getAttribute('data-max')||'').trim();
-      input.click();
-      input.onchange=()=>{
-        const names=[...input.files].map(f=>f.name);
-        let use=names;
-        if(max){
-          const m=parseInt(max,10);
-          if(Number.isFinite(m) && names.length>m) use=names.slice(0,m);
-        }
-        if(key==='ci'){
-          const note=document.getElementById('ci_note');
-          note.textContent=`${use.length}/2 archivos`;
-        }
-        renderList(key,use);
-      };
-    }
-
-    function handleClear(btn){
-      const target=btn.getAttribute('data-target');
-      const input=document.getElementById(target);
-      const key=target.replace('_input','');
-      clearInput(input);
-      renderList(key,[]);
-      if(key==='ci'){
-        const note=document.getElementById('ci_note');
-        note.textContent=`0/2 archivos`;
-      }
-    }
-
-    document.querySelectorAll('button[data-action="pick"]').forEach(b=>{
-      b.addEventListener('click',()=>handlePicker(b));
-    });
-    document.querySelectorAll('button[data-action="clear"]').forEach(b=>{
-      b.addEventListener('click',()=>handleClear(b));
-    });
-    const ciNote=document.getElementById('ci_note'); if(ciNote) ciNote.textContent='0/2 archivos';
-
-    const today=new Date().toISOString().split('T')[0];
-    document.querySelectorAll('input[type="date"]').forEach(d=>d.max=today);
-
-    const covidBody=document.getElementById('covid_tbody');
-    let refCount=0;
-    const addRefBtn=document.getElementById('add_refuerzo');
-    if(addRefBtn){
-      addRefBtn.addEventListener('click',()=>{
-        refCount++;
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td><input type="text" value="Refuerzo ${refCount}" disabled></td>
-          <td>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input type="date" name="covid_fechas[]" class="covid-date" max="${today}">
-              <button type="button" class="btn ghost remove-ref">Quitar</button>
-            </div>
-          </td>`;
-        covidBody.appendChild(tr);
-        tr.querySelector('.remove-ref').addEventListener('click',()=>tr.remove());
-      });
-    }
-
-    const seroSel=document.getElementById('varicela_sero');
-    const dosisBlock=document.getElementById('varicela_dosis_block');
-    function updateVaricela(){
-      const v=seroSel.value;
-      dosisBlock.style.display=(v==='negativa'||v==='indeterminada')?'block':'none';
-    }
-    if(seroSel){
-      seroSel.addEventListener('change',updateVaricela);
-      updateVaricela();
-    }
-
-    (function(){
-      const sel = document.getElementById('prevision');
-      const wrap = document.getElementById('prevision_detalle_wrap');
-      const input = document.getElementById('prevision_detalle');
-      function toggleDetalle(){
-        const isOtro = (sel && sel.value === 'Otro');
-        if (!wrap || !input) return;
-        wrap.style.display = isOtro ? 'block' : 'none';
-        input.required = isOtro;
-        if (!isOtro) input.value = '';
-      }
-      if (sel) {
-        toggleDetalle();
-        sel.addEventListener('change', toggleDetalle);
-      }
     })();
   </script>
 </body>

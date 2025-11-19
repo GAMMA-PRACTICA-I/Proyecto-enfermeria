@@ -6,46 +6,47 @@
   <style>
     @page { size: A4; margin: 2cm; }
     body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; color: #111; position: relative; }
-    
-    /* Titulos  */
-    h1 { font-size: 18px; text-align: center; margin: 10px 0; color: #022a66; }
-    h2 { font-size: 14px; margin-top: 18px; border-bottom: 1px solid #ccc; padding-bottom: 4px; color: #0b3a7e; }
+    h1, h2 { margin: 0 0 8px; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; margin-top: 18px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
     .muted { color: #555; }
 
-    /* Línea Roja Institucional */
-    .header-line { 
-        color: #dc3545;            /* Color de la línea para algunos navegadores */
-        background-color: #dc3545; /* Color de fondo para generadores PDF */
-        height: 2px; 
-        border: none; 
-        margin: 10px 0 15px 0;
-    }
-
-    /* Tablas de Datos  */
     table { width: 100%; border-collapse: collapse; margin: 8px 0; }
     th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
     
-    /* Estilo de tablas .kv (Key-Value) - Sin bordes laterales */
-    .kv { border-top: 1px solid #ccc; margin-top: 4px; margin-bottom: 12px; }
-    .kv td { border: none; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+    /* Estilo de tablas .kv (Key-Value) */
+    .kv {
+        border-top: 1px solid #ccc; 
+        margin-top: 4px;
+        margin-bottom: 12px;
+    }
+    .kv td { 
+      border: none; 
+      padding: 5px 0; 
+      border-bottom: 1px solid #f0f0f0; 
+    }
 
-    /*  HEADER INSTITUCIONAL (Logo + Nombre)  */
-    .header-top-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; border: none; }
-    .header-top-table td { border: none; vertical-align: top; padding: 0; }
-    .left-text { text-align: left; font-size: 10pt; line-height: 1.3; color: #022a66; font-weight: bold; }
-    .right-image { text-align: right; }
-    .logo-unab { max-width: 120px; height: auto; }
-
-    /*  HEADER META ESTUDIANTE (ID + Foto Alumno)  */
-    .header-grid { width:100%; border-collapse:collapse; border:none; table-layout:fixed; margin-top: 0; }
+    /* ESTILOS DE CABECERA (CON TABLA) */
+    .header-grid { 
+        width:100%; 
+        border-collapse:collapse; 
+        border:none; 
+        table-layout:fixed; 
+        margin-top: 8px; 
+    }
     .header-grid td { border:none; vertical-align:top; padding:0; }
-    .header-meta p { margin:0 0 4px 0; line-height:1.2; color:#555; font-size:10pt; }
+    .header-meta p { 
+        margin:0 0 2px 0; 
+        line-height:1.2; 
+        color:#555; 
+        font-size:12pt; 
+    }
     
     .foto-wrap { 
-      text-align: right; 
+        text-align: right; 
     }
     .foto-ficha {
-      width: 100px;       
+      width: 120px;       
       height: auto;       
       display: inline-block;
       border: 1px solid #ddd;
@@ -53,6 +54,7 @@
       background: #fff;
     }
 
+    /* ESTILOS PARA ANEXOS (IMÁGENES MUY PEQUEÑAS) */
     .anexos-container {
       page-break-inside: avoid;
       margin-top: 10px;
@@ -61,45 +63,34 @@
       margin-right: 15px; 
     }
     .anexo-imagen {
+      /* === ESTILOS MODIFICADOS === */
+      /* Estilos copiados de .foto-ficha */
       width: 120px;       
       height: auto;       
       display: inline-block;
       border: 1px solid #ddd;
       padding: 3px;
       background: #fff;
+
+      /* Propiedad original para mantener espaciado vertical */
       margin-bottom: 5px; 
     }
   </style>
 </head>
 <body>
 
-<table class="header-top-table">
-    <tr>
-        <td class="left-text">
-          <img src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png" class="logo-unab" alt="Facultad Enfermería UNAB" style="width: 180px; height: auto;">
-        </td>
-        <td class="right-image">
-            <br/>
-            Campus Clinico<br/>
-            Sede Concepcion
-    </tr>
-  </table>
-  
-  <hr class="header-line">
-
-  <h1>FICHA ESTUDIANTE PREGRADO - CAMPOS CLÍNICOS</h1>
+  <h1 style="text-align: center; margin-bottom: 0;">FICHA ESTUDIANTE PREGRADO</h1>
+  <h3 style="text-align: center; color: #555; margin-top: 4px; margin-bottom: 15px; font-weight: normal;">CAMPOS CLÍNICOS</h3>
 
   <table class="header-grid">
     <tr>
       <td class="header-meta">
         <p><b>ID Ficha:</b> {{ ficha.id }}</p>
-        <p><b>Estudiante:</b> {{ data.generales.nombre_legal|default:data.user_email }}</p>
-        <p><b>RUT:</b> {{ data.generales.rut|default:"-" }}</p>
         <p><b>Email:</b> {{ data.user_email }}</p>
-        <p><b>Estado Global:</b> {{ ficha.get_estado_global_display }}</p>
+        <p><b>Estado:</b> {{ ficha.get_estado_global_display }}</p>
       </td>
       
-      <td style="width: 110px; text-align:right; vertical-align:top;">
+      <td style="width: 130px; text-align:right; vertical-align:top;">
         {% if data.generales %}
           {% if data.generales.foto_ficha_path %}
             <div class="foto-wrap">
@@ -181,7 +172,7 @@
   {% if data.serologies %}
   <h2>V. Serologías</h2>
   <table>
-    <thead><tr><th>Patógeno</th><th>Resultado</th><th>Fecha</th></tr></thead>
+    <thead><tr><th>Patrógeno</th><th>Resultado</th><th>Fecha</th></tr></thead>
     <tbody>
       {% for s in data.serologies %}
       <tr>
@@ -220,8 +211,9 @@
   {% endfor %}
   {% endif %}
 
-  <p class="muted" style="margin-top: 20px; border-top:1px solid #eee; padding-top:10px;">
-    Generado el {% now "d/m/Y H:i" %} — Facultad de Enfermería UNAB
+
+  <p class="muted" style="margin-top: 20px;">
+    — Fin de la ficha —
   </p>
 </body>
 </html>

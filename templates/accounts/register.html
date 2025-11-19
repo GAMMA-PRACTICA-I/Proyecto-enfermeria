@@ -1,134 +1,55 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8"/>
-  <title>Registrar Usuario – Admin UNAB</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+{% block content %}
 
-  <style>
-    :root{
-      --navy:#022a66; --blue:#0b60c5; --text:#0f172a; --muted:#64748b;
-      --card-bg:#ffffff; --radius:16px;
-    }
-
-    body {
-      margin: 0; font-family: 'Inter', sans-serif; color: var(--text);
-      background: linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.8)),
-                  url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
-      background-size: cover; background-attachment: fixed;
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-
-    .tool-card {
-      width: 100%; max-width: 500px; background: var(--card-bg);
-      border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      overflow: hidden; border: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .header {
-      background: linear-gradient(90deg, var(--navy), var(--blue));
-      padding: 20px; text-align: center; color: #fff;
-    }
-    .header h1 { margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
-
-    .body { padding: 30px; }
-    
-    .form-group { margin-bottom: 15px; }
-    .label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text); }
-    .input, .select {
-      width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px;
-      font-size: 0.95rem; transition: 0.2s; outline: none; background: #fff; font-family: inherit;
-    }
-    .input:focus, .select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(11, 96, 197, 0.15); }
-
-    /* Grid para dos columnas (Nombre/Apellido) */
-    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .actions { margin-top: 25px; display: flex; gap: 10px; }
-    .btn {
-      flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
-      font-weight: 600; font-size: 0.9rem; text-decoration: none; text-align: center;
-      display: flex; align-items: center; justify-content: center; transition: 0.2s;
-    }
-    .btn-primary { background: var(--navy); color: #fff; }
-    .btn-primary:hover { background: #0f172a; transform: translateY(-1px); }
-    
-    .btn-secondary { background: #fff; border: 1px solid #cbd5e1; color: var(--muted); }
-    .btn-secondary:hover { background: #f1f5f9; color: var(--text); }
-
-    /* Alertas de Django */
-    .messages { list-style: none; padding: 0; margin: 0 0 20px 0; }
-    .messages li { 
-        padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 10px; text-align: center;
-    }
-    .messages li.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .messages li.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-  </style>
-</head>
-<body>
-
-<div class="tool-card">
-  <div class="header">
-    <h1>👤 Registrar Nuevo Usuario</h1>
-  </div>
-  <div class="body">
-    
-    {% if messages %}
-      <ul class="messages">
-        {% for message in messages %}
-          <li class="{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+<div class="container mt-5" style="max-width:600px;">
+    <h2 class="mb-4">Registro de usuario</h2>
 
     <form method="POST">
-      {% csrf_token %}
-      
-      <div class="row-2">
-        <div class="form-group">
-          <label class="label">Nombre</label>
-          <input type="text" name="first_name" class="input" placeholder="Ej: Martin" required>
-        </div>
-        <div class="form-group">
-          <label class="label">Apellido</label>
-          <input type="text" name="last_name" class="input" placeholder="Ej: Montoya" required>
-        </div>
-      </div>
+        {% csrf_token %}
 
-      <div class="form-group">
-        <label class="label">Correo Institucional</label>
-        <input type="email" name="email" class="input" placeholder="nombre@uandresbello.edu" required>
-      </div>
-
-      <div class="form-group">
-        <label class="label">Rol de Usuario</label>
-        <select name="rol" class="select" required>
-            <option value="STUDENT" selected>Estudiante</option>
-            <option value="REVIEWER">Revisor (Docente)</option>
-            <option value="ADMIN">Administrador</option>
-        </select>
-      </div>
-
-      <div class="row-2">
-        <div class="form-group">
-          <label class="label">Contraseña</label>
-          <input type="password" name="password1" class="input" placeholder="••••••••" required>
+        <div class="mb-3">
+            <label for="email" class="form-label">Correo electrónico</label>
+            <input type="email" name="email" class="form-control" required>
         </div>
-        <div class="form-group">
-          <label class="label">Confirmar</label>
-          <input type="password" name="password2" class="input" placeholder="••••••••" required>
-        </div>
-      </div>
 
-      <div class="actions">
-        <a href="{% url 'dashboard_admin' %}" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-primary">Crear Cuenta</button>
-      </div>
+        <div class="mb-3">
+            <label class="form-label">Rol</label>
+            <select name="rol" class="form-select" required>
+                <option value="STUDENT">Estudiante</option>
+                <option value="REVIEWER">Revisor</option>
+                <option value="ADMIN">Administrador</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="first_name" class="form-label">Nombre de pila</label>
+            <input type="text" name="first_name" id="first_name" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="last_name" class="form-label">Apellido</label>
+            <input type="text" name="last_name" id="last_name" class="form-control" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="rut" class="form-label">RUT</label>
+            <input type="text" name="rut" id="rut" class="form-control" placeholder="Ej: 12.345.678-9" required>
+        </div>
+        <div class="mb-3">
+            <label for="password1" class="form-label">Contraseña</label>
+            <input type="password" name="password1" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="password2" class="form-label">Confirmar contraseña</label>
+            <input type="password" name="password2" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Crear cuenta</button>
     </form>
-  </div>
+
+    <p class="mt-3">¿Ya tienes una cuenta? <a href="{% url 'login' %}">Iniciar sesión</a></p>
 </div>
 
-</body>
-</html>
+{% endblock %}

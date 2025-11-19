@@ -1,156 +1,335 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <title>Corregir Datos – Admin UNAB</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
-
-  <style>
-    :root{
-      --navy:#022a66; --blue:#0b60c5; --text:#0f172a; --muted:#64748b;
-      --card-bg:#ffffff; --radius:16px;
-    }
-
-    body {
-      margin: 0; font-family: 'Inter', sans-serif; color: var(--text);
-      background: linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.8)),
-                  url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
-      background-size: cover; background-attachment: fixed;
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-
-    .tool-card {
-      width: 100%; max-width: 450px; background: var(--card-bg);
-      border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      overflow: hidden; border: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .header {
-      background: linear-gradient(90deg, var(--navy), var(--blue));
-      padding: 20px; text-align: center; color: #fff;
-    }
-    .header h1 { margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
-
-    .body { padding: 30px; }
-    .description { font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; text-align: center; line-height: 1.5; }
-
-    .form-group { margin-bottom: 15px; }
-    .label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text); }
-    .input {
-      width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px;
-      font-size: 0.95rem; transition: 0.2s; outline: none;
-    }
-    .input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(11, 96, 197, 0.15); }
-
-    .actions { margin-top: 25px; display: flex; gap: 10px; }
-    .btn {
-      flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
-      font-weight: 600; font-size: 0.9rem; text-decoration: none; text-align: center;
-      display: flex; align-items: center; justify-content: center; transition: 0.2s;
-    }
-    .btn-primary { background: var(--navy); color: #fff; }
-    .btn-primary:hover { background: #0f172a; transform: translateY(-1px); }
-    
-    .btn-secondary { background: #fff; border: 1px solid #cbd5e1; color: var(--muted); }
-    .btn-secondary:hover { background: #f1f5f9; color: var(--text); }
-
-    /* Mensajes */
-    .msg-box { margin-top: 20px; padding: 12px; border-radius: 8px; font-size: 0.85rem; display: none; text-align: center; }
-    .msg-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .msg-err { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-  </style>
+    <meta charset="utf-8"/>
+    <title>Herramienta – Administración de Usuario</title>
+    <style>
+        /* Estilos básicos para la herramienta */
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
+        .box { width: 400px; max-width: 95%; margin: 20px auto; background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { font-size: 22px; margin-top: 0; }
+        p.muted { color: #555; font-size: 14px; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
+        input[type="email"], input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 4px; }
+        input[readonly] { background-color: #eee; cursor: not-allowed; } /* Estilo para solo lectura */
+        .input-group { position: relative; }
+        .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid #e6eaf0; background: #fff; text-decoration: none; cursor: pointer; }
+        .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .btn.danger { background: #dc3545; border-color: #dc3545; color: #fff; }
+        .message-box { padding: 10px; margin-top: 15px; border-radius: 6px; }
+        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .readonly-value { display: block; padding: 10px; background-color: #eee; border: 1px solid #ccc; border-radius: 6px; margin-top: 4px; color: #555; }
+        .delete-ficha-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; }
+    </style>
 </head>
 <body>
 
-<div class="tool-card">
-  <div class="header">
-    <h1>✏️ Corregir Datos</h1>
-  </div>
-  <div class="body">
-    <p class="description">
-      Actualiza el nombre y apellido de un usuario utilizando su correo electrónico como identificador.
+<div class="box">
+    <h1>🛠️ Herramienta: Administración de Usuario</h1>
+    <p class="muted">
+        Ingresa el correo del usuario para cargar sus datos. Puedes actualizar su nombre, apellido y rol.
     </p>
 
-    <form id="frmNameUpdate">
-      {% csrf_token %}
-      
-      <div class="form-group">
-        <label class="label">Correo del usuario</label>
-        <input type="email" id="updEmail" class="input" placeholder="ejemplo@unab.cl" required>
-      </div>
+    <form id="frmUserUpdate">
+        {% csrf_token %}
+        <label for="updEmail">Correo del usuario (identificador)</label>
+        <input type="email" id="updEmail" name="email" placeholder="ejemplo@unab.cl" required>
 
-      <div class="form-group">
-        <label class="label">Nombre (First Name)</label>
-        <input type="text" id="updFirstName" class="input" placeholder="Ej: Juan">
-      </div>
+        <div id="userDetails" style="display: none;">
+            <label for="updRut">RUT</label>
+            <input type="text" id="updRut" name="rut" placeholder="Ingrese RUT si falta" required> 
+            <label for="updFirstName">Nombre de pila (first_name)</label>
+            <input type="text" id="updFirstName" name="first_name" placeholder="Juan">
 
-      <div class="form-group">
-        <label class="label">Apellido (Last Name)</label>
-        <input type="text" id="updLastName" class="input" placeholder="Ej: Pérez">
-      </div>
+            <label for="updLastName">Apellido (last_name)</label>
+            <input type="text" id="updLastName" name="last_name" placeholder="Pérez">
 
-      <div id="messageBox" class="msg-box"></div>
+            <label for="updRol">Rol</label>
+            <select id="updRol" name="rol" required>
+                <option value="STUDENT">Estudiante</option>
+                <option value="REVIEWER">Revisor</option>
+                <option value="ADMIN">Administrador</option>
+            </select>
+        </div>
+        
+        <div id="messageBox" class="message-box" style="display:none;"></div>
 
-      <div class="actions">
-        <a href="{% url 'dashboard_admin' %}" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-primary" id="btnUpdateName">Guardar Cambios</button>
-      </div>
+        <div class="actions">
+            <a class="btn" href="{% url 'dashboard_admin_soporte' %}">Volver al Panel</a> 
+            <button type="submit" class="btn primary" id="btnUpdateUser" disabled>Guardar Cambios</button>
+        </div>
     </form>
-  </div>
+    
+    <div id="deleteFichaSection" class="delete-ficha-section" style="display:none;">
+        <p class="muted">Este usuario tiene una ficha activa.</p>
+        <button type="button" class="btn danger" id="btnDeleteFicha">
+            Borrar Ficha de Estudiante
+        </button>
+    </div>
+
 </div>
 
 <script>
-    const URL_API = "{% url 'api_update_user_name' %}";
-    const btn = document.getElementById('btnUpdateName');
-    const msgBox = document.getElementById('messageBox');
+    // URLs de las APIs
+    const URL_UPDATE_USER_API = "{% url 'api_update_user_name' %}"; 
+    const URL_FETCH_USER_API = "{% url 'api_fetch_user_details' %}"; 
+    const URL_DELETE_FICHA_API = "{% url 'api_delete_student_ficha' %}"; 
 
-    function showMsg(type, text) {
-        msgBox.style.display = 'block';
-        msgBox.className = 'msg-box ' + (type === 'ok' ? 'msg-ok' : 'msg-err');
-        msgBox.textContent = text;
+    // Elementos DOM
+    const frmUserUpdate = document.getElementById('frmUserUpdate');
+    const updEmail = document.getElementById('updEmail');
+    const userDetails = document.getElementById('userDetails');
+    const updRut = document.getElementById('updRut'); // <-- CAMPO RUT
+    const updFirstName = document.getElementById('updFirstName');
+    const updLastName = document.getElementById('updLastName');
+    const updRol = document.getElementById('updRol');
+    const btnUpdateUser = document.getElementById('btnUpdateUser');
+    const messageBox = document.getElementById('messageBox');
+    const deleteFichaSection = document.getElementById('deleteFichaSection');
+    const btnDeleteFicha = document.getElementById('btnDeleteFicha');
+
+    let currentEmail = ''; 
+    let userHasFicha = false; 
+
+    // Helper para mostrar mensajes
+    function showMessage(type, content) {
+        messageBox.style.display = 'block';
+        messageBox.className = 'message-box ' + type;
+        messageBox.textContent = content;
     }
 
+    // Helper para obtener el CSRF token
     function getCookie(name) {
         const v = ("; " + document.cookie).split("; " + name + "=");
         if (v.length === 2) return v.pop().split(";").shift();
     }
+    
+    // Función para retrasar la ejecución (debounce)
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
 
-    document.getElementById('frmNameUpdate').onsubmit = async function(e) {
-        e.preventDefault();
-        msgBox.style.display = 'none';
+    // Helper para realizar la petición POST
+    async function post(url, data) {
+        const form = new URLSearchParams();
+        for (const k in data) { form.append(k, data[k]); }
+        const r = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: form
+        });
         
-        const email = document.getElementById('updEmail').value.trim();
-        const first = document.getElementById('updFirstName').value.trim();
-        const last = document.getElementById('updLastName').value.trim();
+        let json_data;
+        try {
+            json_data = await r.json();
+        } catch (e) {
+            return { ok: false, error: "Error de servidor (respuesta no JSON)." };
+        }
+        
+        return json_data;
+    }
 
-        if (!email) { showMsg('err', "Falta el correo."); return; }
+    // === Lógica de Carga de Usuario ===
+    updEmail.addEventListener('input', debounce(async function(e) {
+        const email = (updEmail.value || '').trim();
+        
+        if (!email) {
+            hideUserDetails();
+            return;
+        }
+        if (email === currentEmail) return;
 
-        btn.disabled = true; btn.textContent = 'Procesando...';
+        currentEmail = email;
+        btnUpdateUser.disabled = true;
+        showMessage('muted', `Buscando usuario ${email}...`);
 
         try {
-            const r = await fetch(URL_API, {
-                method: "POST",
-                headers: { "X-CSRFToken": getCookie("csrftoken"), "X-Requested-With": "XMLHttpRequest" },
-                body: new URLSearchParams({email, first_name: first, last_name: last})
-            });
-            const data = await r.json();
+            const res = await fetch(`${URL_FETCH_USER_API}?email=${encodeURIComponent(email)}`);
+            const json_data = await res.json();
 
-            if (data.ok) {
-                showMsg('ok', `✅ Actualizado: ${data.new_name}`);
-                document.getElementById('updEmail').value = '';
-                document.getElementById('updFirstName').value = '';
-                document.getElementById('updLastName').value = '';
+            messageBox.style.display = 'none'; 
+
+            if (json_data.ok) {
+                populateUserDetails(json_data);
             } else {
-                showMsg('err', data.error || 'Error desconocido');
+                hideUserDetails();
+                showMessage('error', `❌ ${json_data.error}`);
             }
-        } catch (e) {
-            showMsg('err', 'Error de conexión');
+        } catch (err) {
+            hideUserDetails();
+            showMessage('error', "⚠️ Error de conexión/servidor al buscar usuario.");
+            console.error(err);
+        }
+    }, 500));
+    
+    function populateUserDetails(data) {
+        // --- LÓGICA DE EDICIÓN DEL RUT ---
+        const rutExists = (data.rut && data.rut !== 'N/A' && data.rut !== '');
+        
+        updRut.value = data.rut || '';
+        updRut.readOnly = rutExists; // true si ya existe
+        updRut.required = !rutExists; // Solo es requerido si está vacío (para obligar a ingresar)
+
+        if (rutExists) {
+            updRut.removeAttribute('required'); // Asegurarse de que no sea requerido si ya existe
+        } else {
+            updRut.setAttribute('required', 'required'); // Si está vacío, obligar a llenarlo
+        }
+        // ---------------------------------
+
+        updFirstName.value = data.first_name || '';
+        updLastName.value = data.last_name || '';
+        updRol.value = data.rol || 'STUDENT'; 
+        
+        userDetails.style.display = 'block';
+        btnUpdateUser.disabled = false;
+        
+        userHasFicha = data.has_active_ficha;
+        if (data.rol === 'STUDENT' && data.has_active_ficha) {
+            deleteFichaSection.style.display = 'block';
+        } else {
+            deleteFichaSection.style.display = 'none';
+        }
+        showMessage('success', `Datos de usuario ${data.rut} cargados correctamente.`);
+    }
+    
+    function hideUserDetails() {
+        userDetails.style.display = 'none';
+        deleteFichaSection.style.display = 'none';
+        
+        updRut.value = '';
+        updRut.readOnly = false; // Resetear
+        updRut.setAttribute('required', 'required'); // Dejar requerido por defecto
+        
+        updFirstName.value = '';
+        updLastName.value = '';
+        updRol.value = 'STUDENT';
+        btnUpdateUser.disabled = true;
+        currentEmail = '';
+        userHasFicha = false;
+        messageBox.style.display = 'none';
+    }
+
+
+    // === Lógica de Guardar Cambios (Update) ===
+    frmUserUpdate.onsubmit = async function(e) {
+        e.preventDefault();
+        messageBox.style.display = 'none'; 
+
+        const email = (updEmail.value || '').trim();
+        const firstName = (updFirstName.value || '').trim();
+        const lastName = (updLastName.value || '').trim();
+        const rol = (updRol.value || '').trim();
+        
+        // El RUT solo se envía si no es de solo lectura (es decir, si es nuevo)
+        // o si fue editado aunque ya existiera (lo que no debería pasar si es readonly=true).
+        // Si el campo no es de solo lectura, se permite enviar el valor.
+        const rut = updRut.readOnly ? '' : (updRut.value || '').trim(); 
+        
+        // Si el campo RUT es requerido por el formulario (i.e., está vacío)
+        if (updRut.hasAttribute('required') && !updRut.value.trim()) {
+            showMessage('error', "Debe ingresar el RUT para este usuario.");
+            return;
+        }
+
+        if (!email || (!firstName && !lastName && !rol && !rut)) {
+            showMessage('error', "Falta el email y/o campos para actualizar.");
+            return;
+        }
+        
+        const dataToSend = {
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            rol: rol, 
+            rut: (updRut.readOnly ? '' : updRut.value) // Enviamos RUT solo si se permitió editar
+        };
+        
+        // Si el campo RUT ya existía, debe estar en la respuesta de FETCH y lo enviamos
+        // Aunque la API UpdateUserNameAPI no maneja el RUT, la api fetch si lo usa.
+        // Si la API UpdateUserNameAPI se modifica para manejar el RUT, este campo debería incluirse aquí.
+        
+        // Ya que la API UpdateUserNameAPI NO MANEJA EL RUT (solo nombre, apellido, rol):
+        // Requerimos que la API que actualiza datos se llame UpdateUserDetailsAPI y maneje el RUT.
+        // Asumiendo que has modificado la API UpdateUserNameAPI para manejar el campo 'rut' para ser enviada.
+        
+        // Si el campo RUT no era readonly, lo incluimos en la data
+        if (!updRut.readOnly) {
+            dataToSend['rut'] = updRut.value;
+        }
+
+        btnUpdateUser.disabled = true;
+        btnUpdateUser.textContent = 'Guardando...';
+
+        try {
+            const res = await post(URL_UPDATE_USER_API, dataToSend);
+
+            if (res.ok) {
+                showMessage('success', `✅ Éxito: ${res.message} Nombre: ${res.new_name}, Rol: ${res.new_rol}`);
+                
+                // Vuelve a cargar los datos para reflejar el RUT recién guardado
+                // Esto hará que el campo RUT se vuelva de solo lectura inmediatamente.
+                updEmail.value = email; 
+                updEmail.dispatchEvent(new Event('input')); // Forzar la recarga
+                
+            } else {
+                showMessage('error', `❌ Fallo: ${res.error || 'Error desconocido al actualizar.'}`);
+            }
+        } catch (err) {
+            showMessage('error', "⚠️ Error de conexión/servidor. Revisa la consola.");
+            console.error(err);
         } finally {
-            btn.disabled = false; btn.textContent = 'Guardar Cambios';
+            btnUpdateUser.disabled = false;
+            btnUpdateUser.textContent = 'Guardar Cambios';
         }
     };
+    
+    // === Lógica de Borrar Ficha ===
+    btnDeleteFicha.onclick = async function() {
+        if (!userHasFicha) {
+            showMessage('error', 'No se puede borrar la ficha, el usuario no tiene una activa.');
+            return;
+        }
+        
+        const email = (updEmail.value || '').trim();
+
+        if (!confirm(`⚠️ ¿Estás SEGURO de querer ELIMINAR TODA la ficha activa del estudiante ${email}? ESTA ACCIÓN ES IRREVERSIBLE.`)) {
+            return;
+        }
+
+        btnDeleteFicha.disabled = true;
+        btnDeleteFicha.textContent = 'Borrando Ficha...';
+
+        try {
+            const res = await post(URL_DELETE_FICHA_API, { email: email });
+
+            if (res.ok) {
+                showMessage('success', `✅ Éxito: ${res.message}. El estudiante ya no tiene ficha activa.`);
+                deleteFichaSection.style.display = 'none';
+                userHasFicha = false;
+            } else {
+                showMessage('error', `❌ Fallo al borrar ficha: ${res.error || 'Error desconocido al borrar.'}`);
+            }
+        } catch (err) {
+            showMessage('error', "⚠️ Error de conexión/servidor al borrar la ficha.");
+            console.error(err);
+        } finally {
+            btnDeleteFicha.disabled = false;
+            btnDeleteFicha.textContent = 'Borrar Ficha de Estudiante';
+        }
+    };
+
+    // Inicializar: Ocultar detalles hasta que se busque un email
+    document.addEventListener('DOMContentLoaded', hideUserDetails);
 </script>
 </body>
 </html>

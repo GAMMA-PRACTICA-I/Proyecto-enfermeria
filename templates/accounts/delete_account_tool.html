@@ -1,148 +1,203 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <title>Eliminar Cuenta – Admin UNAB</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
-
-  <style>
-    :root{
-      --danger:#dc2626; --danger-bg:#fef2f2; --text:#0f172a; --muted:#64748b;
-      --card-bg:#ffffff; --radius:16px;
-    }
-
-    body {
-      margin: 0; font-family: 'Inter', sans-serif; color: var(--text);
-      background: linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.8)),
-                  url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
-      background-size: cover; background-attachment: fixed;
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-
-    .tool-card {
-      width: 100%; max-width: 450px; background: var(--card-bg);
-      border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      overflow: hidden; border: 2px solid #fecaca; /* Borde rojo suave */
-    }
-
-    .header {
-      background: var(--danger-bg); padding: 20px; text-align: center; 
-      border-bottom: 1px solid #fecaca;
-    }
-    .header h1 { margin: 0; font-size: 1.2rem; color: var(--danger); text-transform: uppercase; letter-spacing: 1px; }
-    .icon-warn { font-size: 2rem; margin-bottom: 5px; display: block; }
-
-    .body { padding: 30px; }
-    .warning-text { 
-        background: #fff1f2; color: #991b1b; padding: 12px; 
-        border-radius: 8px; font-size: 0.85rem; text-align: center;
-        margin-bottom: 20px; border: 1px solid #fecdd3;
-    }
-
-    .form-group { margin-bottom: 15px; }
-    .label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text); }
-    .input {
-      width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px;
-      font-size: 0.95rem; transition: 0.2s; outline: none;
-    }
-    .input:focus { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
-
-    .actions { margin-top: 25px; display: flex; gap: 10px; }
-    .btn {
-      flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
-      font-weight: 600; font-size: 0.9rem; text-decoration: none; text-align: center;
-      display: flex; align-items: center; justify-content: center; transition: 0.2s;
-    }
-    .btn-danger { background: var(--danger); color: #fff; }
-    .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(220,38,38,0.2); }
-    
-    .btn-secondary { background: #fff; border: 1px solid #cbd5e1; color: var(--muted); }
-    .btn-secondary:hover { background: #f1f5f9; color: var(--text); }
-
-    .msg-box { margin-top: 20px; padding: 12px; border-radius: 8px; font-size: 0.85rem; display: none; text-align: center; }
-    .msg-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .msg-err { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-  </style>
+    <meta charset="utf-8"/>
+    <title>Herramienta – Eliminar Cuenta</title>
+    <style>
+        /* Estilos base */
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
+        .box { width: 400px; max-width: 95%; margin: 20px auto; background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { font-size: 22px; margin-top: 0; color: #dc3545; }
+        p.muted { color: #555; font-size: 14px; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; }
+        input[type="email"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 4px; border-color: #dc3545; }
+        .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid #e6eaf0; background: #fff; text-decoration: none; cursor: pointer; }
+        .btn.danger { background: #dc3545; border-color: #dc3545; color: #fff; }
+        .message-box { padding: 10px; margin-top: 15px; border-radius: 6px; }
+        .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        /* Estilos de visualización de detalles de usuario */
+        .user-details { border: 1px solid #f5c2c7; padding: 10px; margin-top: 10px; border-radius: 6px; background-color: #f8d7da; }
+        .user-details p { margin: 5px 0; font-size: 14px; }
+        .user-details strong { color: #842029; }
+    </style>
 </head>
 <body>
 
-<div class="tool-card">
-  <div class="header">
-    <span class="icon-warn">🗑️</span>
-    <h1>Eliminar Cuenta</h1>
-  </div>
-  <div class="body">
-    <div class="warning-text">
-      <strong>¡Atención!</strong> Esta acción borrará permanentemente al usuario, sus fichas y todos sus documentos. No se puede deshacer.
-    </div>
+<div class="box">
+    <h1>🗑️ Eliminar Cuenta de Usuario</h1>
+    <p class="muted" style="color: #dc3545;">
+        ⚠️ **ADVERTENCIA:** Esta acción es irreversible y eliminará el usuario y todos los datos asociados (fichas, documentos, comentarios).
+    </p>
 
-    <form id="frmDelete">
-      {% csrf_token %}
-      
-      <div class="form-group">
-        <label class="label">Correo del usuario a eliminar</label>
-        <input type="email" id="delEmail" class="input" placeholder="usuario@unab.cl" required>
-      </div>
+    <form id="frmDeleteUser">
+        {% csrf_token %}
+        <label for="delEmail">Correo del usuario a eliminar</label>
+        <input type="email" id="delEmail" name="email" placeholder="ejemplo@unab.cl" required 
+               data-logged-email="{{ request.user.email|default:'' }}">
 
-      <div id="messageBox" class="msg-box"></div>
+        <div id="userDetails" class="user-details" style="display:none;">
+            <p>Datos de la cuenta a **ELIMINAR**:</p>
+            <p>Nombre: <strong id="userNameDisplay"></strong></p>
+            <p>Rol: <strong id="userRolDisplay"></strong></p>
+        </div>
+        
+        <div id="messageBox" class="message-box" style="display:none;"></div>
 
-      <div class="actions">
-        <a href="{% url 'dashboard_admin' %}" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-danger" id="btnDelete">ELIMINAR PARA SIEMPRE</button>
-      </div>
+        <div class="actions">
+            <a class="btn" href="{% url 'dashboard_admin_soporte' %}">Volver al Panel</a>
+            <button type="submit" class="btn danger" id="btnDeleteUser" disabled>ELIMINAR PERMANENTEMENTE</button>
+        </div>
     </form>
-  </div>
 </div>
 
 <script>
-    const URL_API = "{% url 'api_delete_user' %}";
-    const btn = document.getElementById('btnDelete');
-    const msgBox = document.getElementById('messageBox');
+    // URLs de las APIs
+    const URL_DELETE_API = "{% url 'api_delete_user' %}";
+    const URL_FETCH_USER_API = "{% url 'api_fetch_user_details' %}"; // Usaremos esta para pre-validar
+    
+    // Elementos DOM
+    const frmDeleteUser = document.getElementById('frmDeleteUser');
+    const delEmail = document.getElementById('delEmail');
+    const btnDeleteUser = document.getElementById('btnDeleteUser');
+    const messageBox = document.getElementById('messageBox');
+    const userDetails = document.getElementById('userDetails');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const userRolDisplay = document.getElementById('userRolDisplay');
+    
+    // Obtener el email del usuario logueado (pasado a través del atributo data)
+    const loggedInUserEmail = delEmail.getAttribute('data-logged-email').toLowerCase();
 
-    function showMsg(type, text) {
-        msgBox.style.display = 'block';
-        msgBox.className = 'msg-box ' + (type === 'ok' ? 'msg-ok' : 'msg-err');
-        msgBox.textContent = text;
+
+    // --- Helpers de Mensajes y Cookies ---
+    function showMessage(type, content) {
+        messageBox.style.display = 'block';
+        messageBox.className = 'message-box ' + type;
+        messageBox.textContent = content;
+    }
+
+    function hideDetails() {
+        userDetails.style.display = 'none';
+        btnDeleteUser.disabled = true;
     }
 
     function getCookie(name) {
         const v = ("; " + document.cookie).split("; " + name + "=");
         if (v.length === 2) return v.pop().split(";").shift();
     }
+    
+    // Función para retrasar la ejecución (debounce)
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
 
-    document.getElementById('frmDelete').onsubmit = async function(e) {
-        e.preventDefault();
-        msgBox.style.display = 'none';
+    // --- Fetcher Genérico ---
+    async function post(url, data) {
+        const form = new URLSearchParams();
+        for (const k in data) { form.append(k, data[k]); }
+        const r = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: form
+        });
         
-        const email = document.getElementById('delEmail').value.trim();
-        if (!email) return;
+        let json_data;
+        try {
+            json_data = await r.json();
+        } catch (e) {
+            return { ok: false, error: "Error de servidor (respuesta no JSON)." };
+        }
+        
+        return json_data;
+    }
 
-        if (!confirm(`⚠️ ¿Estás seguro de ELIMINAR a ${email}?\n\nSe perderá todo. No hay vuelta atrás.`)) return;
+    // --- Lógica de Carga de Usuario (Pre-validación) ---
+    delEmail.addEventListener('input', debounce(async function() {
+        messageBox.style.display = 'none';
+        const email = (delEmail.value || '').trim().toLowerCase();
+        hideDetails();
 
-        btn.disabled = true; btn.textContent = 'Borrando...';
+        if (email.length < 5 || email.indexOf('@') === -1) {
+            return;
+        }
+
+        // Validación 1: Evitar auto-eliminación (Frontend)
+        if (email === loggedInUserEmail) {
+            showMessage('error', "❌ No puedes eliminar tu propia cuenta desde esta herramienta.");
+            return;
+        }
+
+        showMessage('muted', `Buscando usuario ${email}...`);
 
         try {
-            const r = await fetch(URL_API, {
-                method: "POST",
-                headers: { "X-CSRFToken": getCookie("csrftoken"), "X-Requested-With": "XMLHttpRequest" },
-                body: new URLSearchParams({email})
-            });
-            const data = await r.json();
+            const res = await fetch(`${URL_FETCH_USER_API}?email=${encodeURIComponent(email)}`);
+            const json_data = await res.json();
 
-            if (data.ok) {
-                showMsg('ok', `✅ Cuenta eliminada con éxito.`);
-                document.getElementById('delEmail').value = '';
+            messageBox.style.display = 'none'; // Limpiar mensaje de búsqueda
+
+            if (json_data.ok) {
+                // Validación exitosa: Mostrar datos y habilitar
+                const fullName = (json_data.first_name || '') + ' ' + (json_data.last_name || '');
+                
+                userNameDisplay.textContent = fullName.trim() || json_data.rut || json_data.email;
+                userRolDisplay.textContent = json_data.rol;
+                
+                userDetails.style.display = 'block';
+                btnDeleteUser.disabled = false;
+                showMessage('error', `ATENCIÓN: Cuenta de ${json_data.rol} cargada. Confirma que deseas ELIMINARla.`)
             } else {
-                showMsg('err', data.error || 'Error desconocido');
+                // Usuario no encontrado o error
+                showMessage('error', `❌ Fallo: ${json_data.error}`);
             }
-        } catch (e) {
-            showMsg('err', 'Error de conexión');
+        } catch (err) {
+            showMessage('error', "⚠️ Error de conexión/servidor al buscar usuario. Revisa la consola.");
+            console.error(err);
+        }
+    }, 500));
+
+    // --- Lógica de Eliminación (Submit) ---
+    frmDeleteUser.onsubmit = async function(e) {
+        e.preventDefault();
+        messageBox.style.display = 'none';
+
+        const email = (delEmail.value || '').trim();
+
+        if (btnDeleteUser.disabled) {
+            showMessage('error', 'Busca y confirma la cuenta antes de eliminar.');
+            return;
+        }
+        
+        if (!confirm(`¿Estás seguro de que deseas ELIMINAR permanentemente la cuenta de usuario con el email: ${email}? ESTA ACCIÓN NO SE PUEDE DESHACER.`)) {
+            return;
+        }
+
+        btnDeleteUser.disabled = true;
+        btnDeleteUser.textContent = 'Eliminando...';
+
+        try {
+            const res = await post(URL_DELETE_API, { email: email });
+
+            if (res.ok) {
+                showMessage('success', `✅ Éxito: ${res.message}`);
+                delEmail.value = ''; // Limpiar campo tras éxito
+                hideDetails(); // Ocultar datos
+            } else {
+                showMessage('error', `❌ Fallo: ${res.error || 'Error desconocido.'}`);
+            }
+        } catch (err) {
+            showMessage('error', "⚠️ Error de conexión/servidor. Revisa la consola.");
+            console.error(err);
         } finally {
-            btn.disabled = false; btn.textContent = 'ELIMINAR PARA SIEMPRE';
+            btnDeleteUser.disabled = false;
+            btnDeleteUser.textContent = 'ELIMINAR PERMANENTEMENTE';
         }
     };
 </script>
-</body>
-</html>
