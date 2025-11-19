@@ -1,25 +1,37 @@
-# models.py
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
-from django.core.validators import FileExtensionValidator
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+
+# =========================
+#  Helpers rutas archivos
+# =========================
+
+def general_png_upload_path(instance, filename):
+    # Evita fallar si aún no hay ficha asociada
+    ficha_id = getattr(instance, "ficha_id", None) or "unknown"
+    return f"student_docs/ficha_{ficha_id}/foto_ficha.png"
+
+
+# Ruta para el campo ImageField usada por la migración antigua
+def _foto_ficha_path(instance, filename):
+    ficha_id = getattr(instance, "ficha_id", None) or "unknown"
+    return f"student_docs/ficha_{ficha_id}/foto_ficha.png"
+
+
+def student_upload_path(instance, filename):
+    return f"student_docs/ficha_{instance.ficha_id}/{filename}"
+
+
 # =========================
 #  Usuarios / Roles
 # =========================
-def general_png_upload_path(instance, filename):
-        # Evita fallar si aún no hay ficha asociada
-        ficha_id = getattr(instance, "ficha_id", None) or "unknown"
-        return f"student_docs/ficha_{ficha_id}/foto_ficha.png"
-# Ruta para el campo ImageField usada por la migración 0002
-def _foto_ficha_path(instance, filename):
-    # Si aún no hay ficha asociada, evita fallar
-    ficha_id = getattr(instance, "ficha_id", None) or "unknown"
-    return f"student_docs/ficha_{ficha_id}/foto_ficha.png"
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -52,7 +64,12 @@ class User(AbstractUser):
 
     username = None
     email = models.EmailField(unique=True, db_index=True)
-    rol = models.CharField(max_length=10, choices=Rol.choices, db_index=True, default=Rol.STUDENT)
+    rol = models.CharField(
+        max_length=10,
+        choices=Rol.choices,
+        db_index=True,
+        default=Rol.STUDENT,
+    )
     rut = models.CharField(max_length=20, blank=True, null=True)
 
     USERNAME_FIELD = "email"
@@ -70,69 +87,105 @@ class User(AbstractUser):
 
 class StudentFicha(models.Model):
     class Estado(models.TextChoices):
+        # Se mantiene OK por compatibilidad, aunque no lo uses directo en las vistas
+        OK = "OK", "OK"
         DRAFT = "DRAFT", "Borrador"
         ENVIADA = "ENVIADA", "Enviada por estudiante"
         EN_REVISION = "EN_REVISION", "En revisión"
         OBSERVADA = "OBSERVADA", "Observada"
         APROBADA = "APROBADA", "Aprobada"
         RECHAZADA = "RECHAZADA", "Rechazada"
-    
+
     is_activa = models.BooleanField(default=True, db_index=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="fichas")
-    estado_global = models.CharField(max_length=20, choices=Estado.choices, default=Estado.DRAFT, db_index=True)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="fichas",
+    )
+
+    estado_global = models.CharField(
+        max_length=20,
+        choices=Estado.choices,
+        default=Estado.DRAFT,
+        db_index=True,
+    )
     observaciones_globales = models.TextField(blank=True, null=True)
     revisado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="fichas_revisadas"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="fichas_revisadas",
     )
     revisado_en = models.DateTimeField(null=True, blank=True)
     pdf_resultado_path = models.CharField(max_length=500, blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = "student_ficha"
         indexes = [
-            models.Index(fields=["user", "estado_global"], name="idx_ficha_user_estado"),
-            models.Index(fields=["user", "is_activa"], name="idx_ficha_user_activa"),
+            models.Index(
+                fields=["user", "estado_global"],
+                name="idx_ficha_user_estado",
+            ),
+            models.Index(
+                fields=["user", "is_activa"],
+                name="idx_ficha_user_activa",
+            ),
         ]
         constraints = [
             models.UniqueConstraint(
                 fields=["user"],
                 condition=Q(is_activa=True),
                 name="uniq_ficha_activa_por_usuario",
-            )]
-    
+            )
+        ]
+
     def save(self, *args, **kwargs):
         """Si esta ficha queda activa, desactiva cualquier otra activa del mismo usuario."""
         becoming_active = self.is_activa
         super().save(*args, **kwargs)
         if becoming_active:
             StudentFicha.objects.filter(
-                user_id=self.user_id, is_activa=True
+                user_id=self.user_id,
+                is_activa=True,
             ).exclude(pk=self.pk).update(is_activa=False)
-            
+
     def __str__(self):
         return f"Ficha #{self.id} de {self.user.email} ({self.get_estado_global_display()})"
 
 
+# =========================
+#  Revisión de campos
+# =========================
 
-
-
-#revision
 class StudentFieldReview(models.Model):
     class Status(models.TextChoices):
         OK = "REVISADO_OK", "Revisado OK"
         NO_OK = "REVISADO_NO_OK", "Revisado NO OK"
 
-    ficha = models.ForeignKey("StudentFicha", on_delete=models.CASCADE, related_name="field_reviews")
-    section = models.CharField(max_length=80, db_index=True)     # p.ej. "Antecedentes Generales"
-    field_key = models.CharField(max_length=120, db_index=True)  # p.ej. "nombre_legal"
-    status = models.CharField(max_length=20, choices=Status.choices, db_index=True)
+    ficha = models.ForeignKey(
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="field_reviews",
+    )
+    section = models.CharField(max_length=80, db_index=True)
+    field_key = models.CharField(max_length=120, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        db_index=True,
+    )
     notes = models.TextField(blank=True, null=True)
     reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="field_reviews_done"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="field_reviews_done",
     )
     reviewed_at = models.DateTimeField(auto_now=True)
 
@@ -140,12 +193,19 @@ class StudentFieldReview(models.Model):
         db_table = "student_field_review"
         unique_together = [("ficha", "field_key")]
         indexes = [
-            models.Index(fields=["ficha", "field_key"], name="idx_field_ficha_key"),
-            models.Index(fields=["ficha", "status"], name="idx_field_ficha_status"),
+            models.Index(
+                fields=["ficha", "field_key"],
+                name="idx_field_ficha_key",
+            ),
+            models.Index(
+                fields=["ficha", "status"],
+                name="idx_field_ficha_status",
+            ),
         ]
 
     def __str__(self):
         return f"{self.ficha_id} • {self.section} • {self.field_key} → {self.status}"
+
 
 # =========================
 #  Comentarios
@@ -154,14 +214,13 @@ class StudentFieldReview(models.Model):
 class ComentarioDocumento(models.Model):
     order = models.IntegerField(default=0, db_index=True)
     documento = models.ForeignKey(
-        'StudentDocuments',
+        "StudentDocuments",
         on_delete=models.CASCADE,
-        related_name="comentarios"
-    
+        related_name="comentarios",
     )
     autor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
     mensaje = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
@@ -169,19 +228,24 @@ class ComentarioDocumento(models.Model):
     def __str__(self):
         return f"Comentario de {self.autor} en {self.documento}"
 
-# =========================
-#  Comentario general por ficha
-# =========================
+
 class ComentarioFicha(models.Model):
-    ficha = models.ForeignKey(StudentFicha, on_delete=models.CASCADE, related_name="comentarios_ficha")
-    autor = models.ForeignKey(User, on_delete=models.CASCADE)
+    ficha = models.ForeignKey(
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="comentarios_ficha",
+    )
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
     mensaje = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Comentario de {self.autor.email} en {self.ficha.id}"
+        return f"Comentario de {self.autor.email} en ficha {self.ficha.id}"
 
-    
+
 # =========================
 #  I. Antecedentes Generales
 # =========================
@@ -196,9 +260,12 @@ class StudentGeneral(models.Model):
         FUERZAS_ARMADAS = "FUERZAS_ARMADAS", "Fuerzas Armadas"
         OTRO = "OTRO", "Otro"
 
-    # NULLABLE para primera migración
     ficha = models.OneToOneField(
-        StudentFicha, on_delete=models.CASCADE, related_name="generales", null=True, blank=True
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="generales",
+        null=True,
+        blank=True,
     )
 
     nombre_legal = models.CharField(max_length=120, null=True, blank=True)
@@ -216,31 +283,37 @@ class StudentGeneral(models.Model):
 
     centro_salud = models.CharField(max_length=120, null=True, blank=True)
 
-    seguro = models.CharField(max_length=20, choices=Seguro.choices, null=True, blank=True)
+    seguro = models.CharField(
+        max_length=20,
+        choices=Seguro.choices,
+        null=True,
+        blank=True,
+    )
     seguro_detalle = models.CharField(max_length=120, null=True, blank=True)
-    def _foto_ficha_path(instance, filename):
-        return f"student_docs/ficha_{instance.ficha_id}/foto_ficha.png"
+
     foto_ficha = models.ImageField(
         upload_to=general_png_upload_path,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         validators=[FileExtensionValidator(allowed_extensions=["png"])],
-        help_text="Solo PNG"
-        )
+        help_text="Solo PNG",
+    )
+
     class Meta:
         db_table = "student_general"
 
     def __str__(self):
         return f"Generales - Ficha {self.ficha_id}"
-    
+
 
 class StudentGeneralPhotoBlob(models.Model):
     general = models.OneToOneField(
-    StudentGeneral,
-    on_delete=models.CASCADE,
-    related_name="photo_blob",
+        StudentGeneral,
+        on_delete=models.CASCADE,
+        related_name="photo_blob",
     )
     mime = models.CharField(max_length=100, default="image/png")
-    data = models.BinaryField()  # bytes reales
+    data = models.BinaryField()
     size_bytes = models.BigIntegerField(default=0)
     sha256 = models.CharField(max_length=64, db_index=True)
     created_at = models.DateTimeField(default=timezone.now, editable=False)
@@ -248,7 +321,7 @@ class StudentGeneralPhotoBlob(models.Model):
     class Meta:
         db_table = "student_general_photo_blob"
         indexes = [
-           models.Index(fields=["sha256"], name="idx_genphotoblob_sha256"),
+            models.Index(fields=["sha256"], name="idx_genphotoblob_sha256"),
         ]
 
     def __str__(self):
@@ -260,9 +333,12 @@ class StudentGeneralPhotoBlob(models.Model):
 # =========================
 
 class StudentAcademic(models.Model):
-    # NULLABLE para primera migración
     ficha = models.OneToOneField(
-        StudentFicha, on_delete=models.CASCADE, related_name="academicos", null=True, blank=True
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="academicos",
+        null=True,
+        blank=True,
     )
 
     nombre_social = models.CharField(max_length=120, null=True, blank=True)
@@ -296,13 +372,21 @@ class StudentMedicalBackground(models.Model):
         O_POS = "O+", "O+"
         O_NEG = "O-", "O-"
 
-    # NULLABLE para primera migración
     ficha = models.OneToOneField(
-        StudentFicha, on_delete=models.CASCADE, related_name="medicos", null=True, blank=True
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="medicos",
+        null=True,
+        blank=True,
     )
 
     alergias_detalle = models.TextField(null=True, blank=True)
-    grupo_sanguineo = models.CharField(max_length=3, choices=GrupoSang.choices, null=True, blank=True)
+    grupo_sanguineo = models.CharField(
+        max_length=3,
+        choices=GrupoSang.choices,
+        null=True,
+        blank=True,
+    )
     cronicas_detalle = models.TextField(null=True, blank=True)
     medicamentos_detalle = models.TextField(null=True, blank=True)
     otros_antecedentes = models.TextField(null=True, blank=True)
@@ -315,7 +399,7 @@ class StudentMedicalBackground(models.Model):
 
 
 # =========================
-#  IV. Vacunas / Serología (flexible)
+#  IV. Vacunas / Serología
 # =========================
 
 class VaccineType(models.TextChoices):
@@ -332,15 +416,26 @@ class SerologyResultType(models.TextChoices):
 
 
 class VaccineDose(models.Model):
-    ficha = models.ForeignKey(StudentFicha, on_delete=models.CASCADE, related_name="vaccine_doses")
-    vaccine_type = models.CharField(max_length=20, choices=VaccineType.choices, db_index=True)
+    ficha = models.ForeignKey(
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="vaccine_doses",
+    )
+    vaccine_type = models.CharField(
+        max_length=20,
+        choices=VaccineType.choices,
+        db_index=True,
+    )
     dose_label = models.CharField(max_length=30)
     date = models.DateField()
 
     class Meta:
         db_table = "student_vaccine_dose"
         indexes = [
-            models.Index(fields=["ficha", "vaccine_type"], name="idx_vax_ficha_type"),
+            models.Index(
+                fields=["ficha", "vaccine_type"],
+                name="idx_vax_ficha_type",
+            ),
         ]
 
     def __str__(self):
@@ -348,15 +443,29 @@ class VaccineDose(models.Model):
 
 
 class SerologyResult(models.Model):
-    ficha = models.ForeignKey(StudentFicha, on_delete=models.CASCADE, related_name="serologies")
-    pathogen = models.CharField(max_length=20, choices=VaccineType.choices, db_index=True)
-    result = models.CharField(max_length=15, choices=SerologyResultType.choices)
+    ficha = models.ForeignKey(
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="serologies",
+    )
+    pathogen = models.CharField(
+        max_length=20,
+        choices=VaccineType.choices,
+        db_index=True,
+    )
+    result = models.CharField(
+        max_length=15,
+        choices=SerologyResultType.choices,
+    )
     date = models.DateField()
 
     class Meta:
         db_table = "student_serology_result"
         indexes = [
-            models.Index(fields=["ficha", "pathogen"], name="idx_sero_ficha_pathogen"),
+            models.Index(
+                fields=["ficha", "pathogen"],
+                name="idx_sero_ficha_pathogen",
+            ),
         ]
 
     def __str__(self):
@@ -380,9 +489,10 @@ class DocumentItem(models.TextChoices):
     CI_FRENTE = "CI_FRENTE", "CI (frente)"
     CI_REVERSO = "CI_REVERSO", "CI (reverso)"
     AUTORIZACION_MEDICA = "AUTORIZACION_MEDICA", "Autorización médica práctica"
-    #certificado alumno regular
+    # Certificado alumno regular
     CERT_ALUMNO_REGULAR = "CERT_ALUMNO_REGULAR", "Certificado de Alumno Regular"
-    # Vacunas/Serologías (adjuntos)
+
+    # Vacunas/Serologías
     HEPB_CERT = "HEPB_CERT", "Cert. Hepatitis B"
     VARICELA_IGG = "VARICELA_IGG", "Serología Varicela (IgG)"
     INFLUENZA_CERT = "INFLUENZA_CERT", "Cert. Influenza"
@@ -408,37 +518,55 @@ class DocumentReviewStatus(models.TextChoices):
     REVISADO_OK = "REVISADO_OK", "Revisado ok"
 
 
-def student_upload_path(instance, filename):
-    return f"student_docs/ficha_{instance.ficha_id}/{filename}"
-
-
 class StudentDocuments(models.Model):
-    # NULLABLE para primera migración
     ficha = models.ForeignKey(
-        StudentFicha, on_delete=models.CASCADE, related_name="documents", null=True, blank=True
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        null=True,
+        blank=True,
     )
-    # ← CAMBIO: permitir nulos en la inicial; luego endurecer en migración 2
     section = models.CharField(
-        max_length=15, choices=DocumentSection.choices, db_index=True, null=True, blank=True
+        max_length=15,
+        choices=DocumentSection.choices,
+        db_index=True,
+        null=True,
+        blank=True,
     )
     item = models.CharField(
-        max_length=30, choices=DocumentItem.choices, db_index=True, null=True, blank=True
+        max_length=30,
+        choices=DocumentItem.choices,
+        db_index=True,
+        null=True,
+        blank=True,
     )
 
-    file = models.FileField(upload_to=student_upload_path, max_length=500, blank=True, null=True)
+    file = models.FileField(
+        upload_to=student_upload_path,
+        max_length=500,
+        blank=True,
+        null=True,
+    )
 
     file_name = models.CharField(max_length=255)
     file_mime = models.CharField(max_length=100, blank=True, null=True)
     descripcion = models.TextField(null=True, blank=True)
-    
+
     order = models.IntegerField(default=0, db_index=True)
 
     review_status = models.CharField(
-        max_length=20, choices=DocumentReviewStatus.choices, default=DocumentReviewStatus.ADJUNTADO, db_index=True
+        max_length=20,
+        choices=DocumentReviewStatus.choices,
+        default=DocumentReviewStatus.ADJUNTADO,
+        db_index=True,
     )
     review_notes = models.TextField(blank=True, null=True)
     reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="docs_revisados"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="docs_revisados",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
@@ -447,9 +575,16 @@ class StudentDocuments(models.Model):
     class Meta:
         db_table = "student_documents"
         indexes = [
-            models.Index(fields=["ficha", "section", "item"], name="idx_doc_ficha_section_item"),
-            models.Index(fields=["review_status"], name="idx_doc_review_status"),
+            models.Index(
+                fields=["ficha", "section", "item"],
+                name="idx_doc_ficha_section_item",
+            ),
+            models.Index(
+                fields=["review_status"],
+                name="idx_doc_review_status",
+            ),
         ]
+
     def save(self, *args, **kwargs):
         """
         Reemplaza automáticamente documentos previos del mismo (ficha, item).
@@ -459,39 +594,62 @@ class StudentDocuments(models.Model):
         if is_creating and self.ficha_id and self.item:
             siblings = type(self).objects.filter(
                 ficha_id=self.ficha_id,
-                item=self.item,)
+                item=self.item,
+            )
             for d in siblings:
                 d.delete()
 
         super().save(*args, **kwargs)
 
-
     def clean(self):
         if self.item in (DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO):
             qs = StudentDocuments.objects.filter(
-                ficha=self.ficha, item__in=(DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO)
+                ficha=self.ficha,
+                item__in=(DocumentItem.CI_FRENTE, DocumentItem.CI_REVERSO),
             )
             if self.pk:
                 qs = qs.exclude(pk=self.pk)
             if qs.count() >= 2:
-                raise ValidationError("Ya existen 2 adjuntos de CI (frente/reverso) para esta ficha.")
+                raise ValidationError(
+                    "Ya existen 2 adjuntos de CI (frente/reverso) para esta ficha."
+                )
 
     def __str__(self):
         return f"Doc {self.get_item_display()} (Ficha {self.ficha_id})"
 
 
 class DocumentReviewLog(models.Model):
-    document = models.ForeignKey(StudentDocuments, on_delete=models.CASCADE, related_name="review_logs")
-    old_status = models.CharField(max_length=20, choices=DocumentReviewStatus.choices, null=True, blank=True)
-    new_status = models.CharField(max_length=20, choices=DocumentReviewStatus.choices)
+    document = models.ForeignKey(
+        StudentDocuments,
+        on_delete=models.CASCADE,
+        related_name="review_logs",
+    )
+    old_status = models.CharField(
+        max_length=20,
+        choices=DocumentReviewStatus.choices,
+        null=True,
+        blank=True,
+    )
+    new_status = models.CharField(
+        max_length=20,
+        choices=DocumentReviewStatus.choices,
+    )
     notes = models.TextField(blank=True, null=True)
-    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     reviewed_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "student_document_review_log"
         indexes = [
-            models.Index(fields=["document", "reviewed_at"], name="idx_doclog_doc_time"),
+            models.Index(
+                fields=["document", "reviewed_at"],
+                name="idx_doclog_doc_time",
+            ),
         ]
 
     def __str__(self):
@@ -499,7 +657,7 @@ class DocumentReviewLog(models.Model):
 
 
 # =========================
-#  Almacenamiento binario crudo en BD (opción DB)
+#  Almacenamiento binario crudo en BD
 # =========================
 
 class StudentDocumentBlob(models.Model):
@@ -508,10 +666,15 @@ class StudentDocumentBlob(models.Model):
         DB = "DB", "Database blob"
 
     document = models.OneToOneField(
-        StudentDocuments, on_delete=models.CASCADE, related_name="blob"
+        StudentDocuments,
+        on_delete=models.CASCADE,
+        related_name="blob",
     )
     storage_backend = models.CharField(
-        max_length=8, choices=Backend.choices, default=Backend.DB, db_index=True
+        max_length=8,
+        choices=Backend.choices,
+        default=Backend.DB,
+        db_index=True,
     )
     data = models.BinaryField(null=True, blank=True)
     size_bytes = models.BigIntegerField(default=0)
@@ -534,9 +697,12 @@ class StudentDocumentBlob(models.Model):
 # =========================
 
 class StudentDeclaration(models.Model):
-    # NULLABLE para primera migración
     ficha = models.OneToOneField(
-        StudentFicha, on_delete=models.CASCADE, related_name="declaracion", null=True, blank=True
+        StudentFicha,
+        on_delete=models.CASCADE,
+        related_name="declaracion",
+        null=True,
+        blank=True,
     )
 
     nombre_estudiante = models.CharField(max_length=120)
@@ -550,25 +716,33 @@ class StudentDeclaration(models.Model):
     def __str__(self):
         return f"Declaración Ficha {self.ficha_id} - {self.nombre_estudiante}"
 
+
+# =========================
+#  Signals documentos -> blobs
+# =========================
+
 @receiver(post_save, sender=StudentDocuments)
 def _replace_old_blobs_same_item(sender, instance: StudentDocuments, created: bool, **kwargs):
     """
     Cada vez que se crea un nuevo StudentDocuments para el mismo (ficha, item),
     borra los documentos anteriores; por on_delete=CASCADE esto elimina también
-    sus StudentDocumentBlob asociados. No toca storage de archivos porque no se usan.
+    sus StudentDocumentBlob asociados.
     """
     if not created:
         return
 
-    # Permite CI_FRENTE y CI_REVERSO coexistir; cada item es independiente
     siblings_qs = sender.objects.filter(
         ficha=instance.ficha,
         item=instance.item,
     ).exclude(pk=instance.pk).select_related("blob")
 
-    # delete() en StudentDocuments elimina también el OneToOne blob (CASCADE)
     for old_doc in siblings_qs:
         old_doc.delete()
+
+
+# =========================
+#  Tickets de soporte (Mesa de Ayuda)
+# =========================
 
 class SupportTicket(models.Model):
     TIPO_CONSULTA_CHOICES = [
@@ -592,9 +766,12 @@ class SupportTicket(models.Model):
     asunto = models.CharField(max_length=200)
     detalle = models.TextField()
 
-    # NUEVOS CAMPOS
     respuesta_admin = models.TextField(blank=True)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="NUEVA")
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default="NUEVA",
+    )
     responded_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
