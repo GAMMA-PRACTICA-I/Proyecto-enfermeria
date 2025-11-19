@@ -1,4 +1,4 @@
-{% load static %}
+{{% load static %}
 <!doctype html>
 <html lang="es">
 <head>
@@ -6,111 +6,246 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Login – Campo Clínico UNAB</title>
 
-  <!-- Preload del mismo fondo usado en CSS -->
   <link rel="preload" as="image" href="https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=">
 
   <style>
-  /* ===========================
-     Variables y reset
-     =========================== */
   :root{
-    --navy:#0d6bb3; --blue:#6fd1ff;
-    --ink:#0f172a; --muted:#334155;
-    --card-bg:#fff; --card-brd:rgba(15,23,42,.12);
-    --shadow:0 30px 60px rgba(2,6,23,.25);
+    --navy:#022a66;
+    --blue:#0b60c5;
+    --ink:#0f172a;
+    --muted:#334155;
+    --card-bg:#ffffff;
+    --card-brd:rgba(15,23,42,.12);
+    --shadow:0 24px 50px rgba(15,23,42,.25);
     --radius:18px;
   }
+
   *{box-sizing:border-box}
   html,body{height:100%}
+
   body{
-    margin:0; color:var(--ink);
+    margin:0;
+    color:var(--ink);
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Arial,sans-serif;
     background:
-      linear-gradient(180deg,rgba(255,255,255,.84),rgba(255,255,255,.70)),
+      linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.72)),
       url("https://media.istockphoto.com/id/1224027462/es/vector/medicina-abstracta-de-forma-m%C3%A9dica-cruzada-y-concepto-cient%C3%ADfico-de-fondo-de-medicina.jpg?s=612x612&w=0&k=20&c=YX46QyY0Da_2NpwGVlNbD5szW7D8hMsS1BCyolGsfA4=");
-    background-size:cover; background-position:center;
-    background-repeat:no-repeat; background-attachment:fixed;
-    display:grid; place-items:center;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
   }
 
-  /* Layout */
   .wrap{
-    width:min(1088px,88vw);
-    padding:0 clamp(56px,8vw,160px) 0 clamp(48px,8vw,160px);
-    display:grid; grid-template-columns:1fr min(528px,92vw);
-    align-items:center; column-gap:56px;
+    width:100%;
+    max-width:1100px;
+    padding:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:40px;
   }
 
   /* Lado logo */
-  .side{display:flex;align-items:center;justify-content:flex-end;min-height:320px}
-  .logo{width:min(720px,95%);height:auto;display:block}
+  .side{
+    flex:1;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .logo{
+    width:100%;
+    max-width:400px;
+    height:auto;
+    object-fit:contain;
+  }
 
   /* Panel login */
   .panel{
-    margin-left:auto; width:100%;
-    background:var(--card-bg); border:1px solid var(--card-brd);
-    border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    position:relative;
+    width:100%;
+    max-width:430px;
+    background:var(--card-bg);
+    border:1px solid var(--card-brd);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
   }
-  .bar{background:linear-gradient(90deg,var(--navy),var(--blue));color:#fff;padding:14px 18px;font-weight:800;letter-spacing:.08em}
-  .content{padding:24px 24px 24px 32px}
 
-  /* Form */
-  .field{margin:12px 0}
-  .label{display:block;font-weight:700;font-size:.95rem;margin-bottom:6px}
-  .input{
-    width:100%;height:54px;padding:0 14px;border:1px solid var(--card-brd);
-    border-radius:12px;background:#fff;color:var(--ink);outline:none;
-    box-shadow:0 2px 0 rgba(2,6,23,.06) inset;
-    transition:border-color .15s,transform .15s,box-shadow .15s;
+  .bar{
+    background:linear-gradient(90deg,var(--navy),var(--blue));
+    color:#fff;
+    padding:14px 18px;
+    font-weight:800;
+    letter-spacing:.08em;
+    font-size:.9rem;
   }
+
+  .content{
+    /* suficiente espacio para que NO se corte abajo */
+    padding:18px 24px 22px 28px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  /* Formulario */
+  .field{margin:8px 0}
+  .label{
+    display:block;
+    font-weight:700;
+    font-size:.95rem;
+    margin-bottom:6px;
+    color:var(--ink);
+  }
+
+  .input{
+    width:100%;
+    height:54px;
+    padding:0 14px;
+    border:1px solid var(--card-brd);
+    border-radius:12px;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+    box-shadow:0 2px 0 rgba(2,6,23,.06) inset;
+    transition:border-color .15s,transform .15s,box-shadow .15s,background .15s;
+    font-size:.95rem;
+  }
+  .input::placeholder{color:#94a3b8;}
+
   .input:focus{
     border-color:#cbd5e1;
-    box-shadow:0 0 0 3px rgba(79,163,227,.25), 0 2px 0 rgba(2,6,23,.06) inset;
+    background:#ffffff;
+    box-shadow:
+      0 0 0 3px rgba(37,99,235,.20),
+      0 2px 0 rgba(15,23,42,.06) inset;
     transform:translateY(-1px);
   }
-  .actions{margin-top:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
-  .link{font-size:.92rem;color:var(--muted);text-decoration:none}
-  .link:hover{text-decoration:underline}
+
+  /* Fila de abajo (texto + botones) */
+  .footer-row{
+    margin-top:10px;
+    margin-bottom:6px;
+    display:flex;
+    flex-direction:column; /* <-- CAMBIO: Apilado vertical */
+    align-items:flex-start; /* <-- CAMBIO: Alinear a la izquierda */
+    gap:12px; /* <-- CAMBIO: Más espacio vertical */
+  }
+
+  .link{
+    font-size:.9rem;
+    color:var(--muted);
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .link:hover{text-decoration:underline;}
+
+  .actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    width:100%; /* <-- CAMBIO: Ocupar todo el ancho */
+    justify-content:space-between; /* <-- CAMBIO: Distribuir botones */
+  }
+
   .btn{
-    flex:1;height:54px;padding:0 16px;border:0;border-radius:12px;cursor:pointer;
-    font-weight:800;text-transform:uppercase;letter-spacing:.02em;
-    background:linear-gradient(90deg,var(--navy),var(--blue));color:#fff;
-    box-shadow:0 10px 24px rgba(2,6,23,.18);
+    /* min-width:150px; */ /* <-- CAMBIO: Eliminado */
+    flex:1; /* <-- CAMBIO: Añadido para que crezcan */
+    height:52px;
+    padding:0 18px;
+    border:0;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    background:linear-gradient(90deg,var(--navy),var(--blue));
+    color:#fff;
+    box-shadow:0 10px 24px rgba(15,23,42,.25);
     transition:transform .15s,box-shadow .15s,opacity .15s;
+    font-size:.9rem;
+    text-align:center;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
   }
-  .btn:hover{transform:translateY(-1px)}
-  .btn:active{transform:translateY(0);opacity:.95}
 
-  /* Errores */
+  .btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 14px 32px rgba(15,23,42,.35);
+  }
+  .btn:active{
+    transform:translateY(0);
+    opacity:.96;
+    box-shadow:0 8px 18px rgba(15,23,42,.25);
+  }
+
   .alert{
-    background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;
-    padding:10px 12px;border-radius:12px;margin:10px 0 16px 0;
+    background:#fee2e2;
+    border:1px solid #fecaca;
+    color:#7f1d1d;
+    padding:10px 12px;
+    border-radius:12px;
+    margin:8px 0 6px 0;
+    font-size:.9rem;
   }
 
-  /* Responsive */
   @media (max-width:900px){
-    .wrap{grid-template-columns:1fr;row-gap:20px;padding:20px;width:96vw}
-    .panel{margin-left:0}
-    .side{justify-content:center}
-    .logo{width:min(420px,90%)}
+    body{
+      height:auto;
+      padding:20px 0;
+    }
+
+    .wrap{
+      flex-direction:column;
+      gap:24px;
+      padding:15px;
+      width:100%;
+    }
+
+    .side{
+      justify-content:center;
+      width:100%;
+    }
+
+    .logo{
+      max-width:260px;
+    }
+
+    .panel{
+      width:100%;
+      margin:0;
+    }
+
+    .content{
+      padding:16px 20px 20px 20px;
+    }
+
+    /* Ya no necesitamos anular .footer-row, .actions o .btn aquí
+       porque los estilos principales ya son los correctos */
   }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <!-- Logo -->
     <aside class="side" aria-label="Identidad institucional">
-      <img class="logo" alt="Universidad Andrés Bello"
+      <img class="logo"
+           alt="Universidad Andrés Bello – Facultad de Enfermería"
            src="https://vinculacion.unab.cl/wp-content/uploads/2020/10/Fe-01.png">
     </aside>
 
-    <!-- Panel -->
     <section class="panel" aria-label="Ingreso a la plataforma">
       <div class="bar">CAMPO CLÍNICO</div>
       <div class="content">
 
         {% if form.errors %}
-          <div class="alert" role="alert">Usuario o contraseña inválidos.</div>
+          <div class="alert" role="alert">
+            Usuario o contraseña inválidos.
+          </div>
         {% endif %}
 
         <form method="post" action="{% url 'login' %}" autocomplete="on" novalidate>
@@ -119,27 +254,30 @@
           <div class="field">
             <label class="label" for="id_username">Usuario</label>
             <input class="input" id="id_username" name="username" type="text"
-                   placeholder="tu_correo@uandresbello.edu" required
-                   autocomplete="username" inputmode="email">
+                   placeholder="tu_correo@uandresbello.edu"
+                   required autocomplete="username" inputmode="email">
           </div>
 
           <div class="field">
             <label class="label" for="id_password">Clave</label>
             <input class="input" id="id_password" name="password" type="password"
-                   placeholder="••••••••" required autocomplete="current-password">
+                   placeholder="••••••••"
+                   required autocomplete="current-password">
           </div>
 
           {% if next %}
             <input type="hidden" name="next" value="{{ next }}">
           {% endif %}
 
-          <div class="actions">
-            <a class="link" href="{% url 'password_reset' %}">¿Olvidaste tu clave?</a>
-            <button class="btn" type="submit">Ingresar</button>
+          <div class="footer-row">
+            <a class="link" href="{% url 'password_reset' %}">
+              ¿Olvidaste tu clave?
+            </a>
+
+            <div class="actions">
+              <button class="btn" type="submit">
+                Ingresar
+              </button>
+            </div>
           </div>
         </form>
-      </div>
-    </section>
-  </main>
-</body>
-</html>
