@@ -217,48 +217,53 @@
   </section>
 
   <!-- COLUMNA DERECHA: FORMULARIO -->
-  <section class="support-form-card">
-    <h3>Enviar solicitud de soporte</h3>
-    <p>
-      Este formulario permite registrar consultas relacionadas con tu documentación.
-      En el proyecto real se asociaría a tu usuario y se notificaría al equipo correspondiente.
-    </p>
+<section class="support-form-card">
+  <h3>Enviar solicitud de soporte</h3>
+  <p>
+    Este formulario permite registrar consultas relacionadas con tu documentación.
+    En el proyecto real se asociaría a tu usuario y se notificaría al equipo correspondiente.
+  </p>
 
-    <form>
-      <div class="support-form-group">
-        <label for="tipo-consulta">Tipo de consulta</label>
-        <select id="tipo-consulta" class="support-select">
-          <option>Duda sobre ficha</option>
-          <option>Problema al subir certificado</option>
-          <option>Actualización de datos</option>
-          <option>Otra consulta</option>
-        </select>
-      </div>
+  <form method="post" action="{% url 'soporte_estudiante' %}">
+    {% csrf_token %}
 
-      <div class="support-form-group">
-        <label for="asunto">Asunto</label>
-        <input
-          id="asunto"
-          class="support-input"
-          type="text"
-          placeholder="Ej: Error al subir certificado de vacunas">
-      </div>
+    <div class="support-form-group">
+      <label for="tipo-consulta">Tipo de consulta</label>
+      <select id="tipo-consulta" name="tipo_consulta" class="support-select" required>
+        <option value="Duda sobre ficha">Duda sobre ficha</option>
+        <option value="Problema al subir certificado">Problema al subir certificado</option>
+        <option value="Actualización de datos">Actualización de datos</option>
+        <option value="Otra consulta">Otra consulta</option>
+      </select>
+    </div>
 
-      <div class="support-form-group">
-        <label for="detalle">Detalle de la consulta</label>
-        <textarea
-          id="detalle"
-          class="support-textarea"
-          placeholder="Describe brevemente lo que sucede, indicando asignatura, campus y cualquier dato relevante."></textarea>
-      </div>
+    <div class="support-form-group">
+      <label for="asunto">Asunto</label>
+      <input
+        id="asunto"
+        name="asunto"
+        class="support-input"
+        type="text"
+        required
+        placeholder="Ej: Error al subir certificado de vacunas">
+    </div>
 
-      <div class="support-form-actions">
-        <button type="reset" class="btn-support btn-support-secondary">Limpiar</button>
-        <button type="button" class="btn-support btn-support-primary">Enviar solicitud</button>
-      </div>
-    </form>
-  </section>
+    <div class="support-form-group">
+      <label for="detalle">Detalle de la consulta</label>
+      <textarea
+        id="detalle"
+        name="detalle"
+        class="support-textarea"
+        required
+        placeholder="Describe brevemente lo que sucede, indicando asignatura, campus y cualquier dato relevante."></textarea>
+    </div>
 
+    <div class="support-form-actions">
+      <button type="reset" class="btn-support btn-support-secondary">Limpiar</button>
+      <button type="submit" class="btn-support btn-support-primary">Enviar solicitud</button>
+    </div>
+  </form>
+</section>
 </div>
 
 <!-- FAQ ABAJO -->
