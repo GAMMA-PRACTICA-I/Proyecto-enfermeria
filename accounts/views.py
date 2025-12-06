@@ -274,6 +274,10 @@ class FichaView(View):
         ficha = _get_or_create_active_ficha(request.user)
         is_revisor = request.user.rol == "REVIEWER"
         dto = FichaDTO.from_model(ficha).to_dict()
+        rechazos = []
+        if ficha.estado_global in [StudentFicha.Estado.OBSERVADA, StudentFicha.Estado.RECHAZADA]:
+            rechazos = ficha.field_reviews.filter(status="REVISADO_NO_OK")
+        
         return render(
             request,
             self.template_name,
@@ -283,6 +287,7 @@ class FichaView(View):
                 "is_revisor": is_revisor,
                 "comentarios_ficha": ficha.comentarios_ficha.all().order_by("-fecha"),
                 "form_comentario": ComentarioFichaForm(),
+                "rechazos": rechazos,
             },
         )
 
@@ -1200,27 +1205,42 @@ class FieldReviewAPI(View):
         )
         return JsonResponse({"ok": True, "status": obj.status})
 
-
 @method_decorator(login_required, name="dispatch")
 class FinalizeReviewAPI(View):
     def post(self, request: HttpRequest, ficha_id: int) -> HttpResponse:
         if request.user.rol != "REVIEWER":
             return HttpResponseForbidden("No autorizado.")
+        
         ficha = get_object_or_404(StudentFicha, pk=ficha_id)
 
-        exists_no_ok = ficha.field_reviews.filter(status="REVISADO_NO_OK").exists()
+        # === CORRECCIÓN DE FANTASMAS ===
+        # Borramos explícitamente los registros viejos que causan conflicto.
+        # El sistema actual usa claves como 'medicamentos_detalle', pero la BD tiene 'Medicamentos diarios'.
+        # Al borrar los viejos, el sistema solo evaluará lo que ves en pantalla.
+        fantasmas = [
+            "Medicamentos diarios", 
+            "Otros antecedentes", 
+            "Enfermedades crónicas", 
+            "Alergias", 
+            "Alergias (detalle)",
+            "Crónicas (detalle)"
+        ]
+        ficha.field_reviews.filter(field_key__in=fantasmas).delete()
+        # ================================
+
+        # Ahora sí, buscamos si queda algo rojo real
+        qs_rejected = ficha.field_reviews.filter(status="REVISADO_NO_OK")
+        exists_no_ok = qs_rejected.exists()
 
         global_notes = (request.POST.get("global_notes") or "").strip()
-
         rechazados: List[dict] = []
-
         combined_notes = None
+
         if exists_no_ok:
-            rechazados = list(
-                ficha.field_reviews.filter(status="REVISADO_NO_OK").values(
-                    "section", "field_key", "notes"
-                )
-            )
+            # RECHAZADA
+            ficha.estado_global = StudentFicha.Estado.RECHAZADA
+            rechazados = list(qs_rejected.values("section", "field_key", "notes"))
+            
             detalles: List[str] = []
             for r in rechazados:
                 linea = f"- {r['section']} • {r['field_key']}"
@@ -1230,37 +1250,46 @@ class FinalizeReviewAPI(View):
 
             if global_notes:
                 detalles.append("")
-                detalles.append(f"Comentario general del revisor: {global_notes}")
+                detalles.append(f"Comentario general: {global_notes}")
 
             combined_notes = "\n".join(detalles)
+            
+        else:
+            # APROBADA
+            ficha.estado_global = StudentFicha.Estado.APROBADA
+            combined_notes = global_notes if global_notes else None
 
-        ficha.estado_global = (
-            StudentFicha.Estado.RECHAZADA if exists_no_ok else StudentFicha.Estado.APROBADA
-        )
+        # Guardar cambios
         ficha.observaciones_globales = combined_notes
         ficha.revisado_por = request.user
         ficha.revisado_en = timezone.now()
-        ficha.save(
-            update_fields=[
-                "estado_global",
-                "observaciones_globales",
-                "revisado_por",
-                "revisado_en",
-                "updated_at",
-            ]
-        )
+        
+        ficha.save(update_fields=[
+            "estado_global", 
+            "observaciones_globales", 
+            "revisado_por", 
+            "revisado_en", 
+            "updated_at"
+        ])
 
+        # Enviar correo
         base_url = request.build_absolute_uri(reverse("dashboard_estudiante"))
+        try:
+            send_revision_result_email(
+                ficha=ficha,
+                rechazados=rechazados,
+                global_notes=global_notes,
+                aprobado=not exists_no_ok,
+                base_url=base_url,
+            )
+        except Exception as e:
+            logger.error(f"Error email ficha {ficha.id}: {e}")
 
-        send_revision_result_email(
-            ficha=ficha,
-            rechazados=rechazados,
-            global_notes=global_notes,
-            aprobado=not exists_no_ok,
-            base_url=base_url,
-        )
-
-        return JsonResponse({"ok": True, "estado": ficha.estado_global})
+        return JsonResponse({
+            "ok": True, 
+            "estado": ficha.estado_global,
+            "culpables": [f"{r['section']} -> {r['field_key']}" for r in rechazados]
+        })
 
 @login_required
 def supportticket_detail_api(request: HttpRequest, pk: int) -> HttpResponse:

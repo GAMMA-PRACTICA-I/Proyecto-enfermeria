@@ -180,17 +180,6 @@
     .hero-text h1 { margin: 0 0 8px 0; font-size: 1.6rem; }
     .hero-text p { margin: 0; opacity: 0.9; max-width: 500px; line-height: 1.4; }
 
-    .progress-box {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      padding: 10px 20px;
-      text-align: center;
-      min-width: 140px;
-    }
-    .progress-box span { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
-    .progress-box strong { font-size: 1.8rem; color: #fbbf24; display: block; line-height: 1.1; }
-
     /* CARDS DE INICIO */
     .dashboard-grid {
       display: grid;
@@ -224,12 +213,6 @@
     .section.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    @media(max-width: 768px){
-      .app-shell { flex-direction: column; height: auto; }
-      .sidebar { width: 100%; }
-      .hero-banner { flex-direction: column; align-items: flex-start; gap: 20px; }
-      .progress-box { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; }
-    }
   </style>
 </head>
 
@@ -287,39 +270,93 @@
 
     <section id="home" class="section active">
       
-      <div class="hero-banner">
-        <div class="hero-text">
-          <h1>¡Hola, {{ user.first_name|default:"Martin" }}!</h1>
-          <p>Recuerda mantener tu ficha actualizada. Los campos clínicos revisan periódicamente la vigencia de tus vacunas y certificados.</p>
-        </div>
-        <div class="progress-box">
-          <span>Progreso de Ficha</span>
-          <strong>0%</strong>
-        </div>
-      </div>
+<div class="hero-banner">
+  <div class="hero-text">
+    <h1>¡Hola, {{ user.first_name|default:"Martin" }}!</h1>
+    <p>Recuerda mantener tu ficha actualizada. Los campos clínicos revisan periódicamente la vigencia de tus vacunas y certificados.</p>
+  </div>
+</div>
 
       <div class="dashboard-grid">
+        
         <div class="dash-card">
           <div class="dash-head">
             <h3>Estado Actual</h3>
             <div class="icon-corner">🩺</div>
           </div>
           <div style="margin-top: 10px;">
-            <div class="status-text">● En Revisión</div>
-            <div class="sub-text">Tu documentación está siendo validada por coordinación.</div>
-          </div>
-        </div>
+            
+            {% if not ficha or ficha.estado_global == 'DRAFT' %}
+              <div class="status-text" style="color: #64748b;">● Pendiente de Envío</div>
+              <div class="sub-text">Debes completar y enviar tu ficha para revisión.</div>
+
+            {% elif ficha.estado_global == 'ENVIADA' or ficha.estado_global == 'EN_REVISION' %}
+              <div class="status-text" style="color: #eab308;">● En Revisión</div>
+              <div class="sub-text">Tu documentación está siendo validada por coordinación.</div>
+
+            {% elif ficha.estado_global == 'APROBADA' %}
+              <div class="status-text" style="color: #16a34a;">● Aprobada</div>
+              <div class="sub-text">¡Felicitaciones! Cumples con todos los requisitos clínicos.</div>
+
+            {% elif ficha.estado_global == 'OBSERVADA' or ficha.estado_global == 'RECHAZADA' %}
+              <div class="status-text" style="color: #dc2626;">● {{ ficha.get_estado_global_display }}</div>
+              <div class="sub-text">
+                Se encontraron problemas. Revisa tu ficha y corrige lo solicitado.
+              </div>
+
+            {% else %}
+              <div class="status-text">● {{ ficha.get_estado_global_display }}</div>
+              <div class="sub-text">Estado actual de tu ficha.</div>
+            {% endif %}
+
+          </div> 
+        </div>   
 
         <div class="dash-card">
           <div class="dash-head">
             <h3>Acciones Pendientes</h3>
             <div class="icon-corner">⚡</div>
           </div>
-          <ul class="action-list">
-            <li>Subir certificado de alumno regular.</li>
-            <li>Actualizar dosis de Hepatitis B.</li>
-          </ul>
+          <div style="margin-top: 10px;">
+             <ul class="action-list">
+               {% if ficha.estado_global == 'DRAFT' or not ficha %}
+                 <li>Completa tus antecedentes.</li>
+                 <li>Sube la documentación requerida.</li>
+                 <li>Envía la ficha a revisión.</li>
+               
+               {% elif ficha.estado_global == 'OBSERVADA' or ficha.estado_global == 'RECHAZADA' %}
+                  
+                  {% if rechazos %}
+                    {% for r in rechazos %}
+                      <li style="color:#b91c1c; margin-bottom:8px; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                        <strong>{{ r.section }} / {{ r.field_key }}</strong>
+                        <div style="font-size:0.85rem; color:#64748b; margin-top:2px;">
+                           Motivo: {{ r.notes }}
+                        </div>
+                      </li>
+                    {% endfor %}
+                  {% endif %}
+                  
+                  {% if ficha.observaciones_globales %}
+                    <li style="margin-top:10px; padding-top:4px; border-top:1px solid #eee;">
+                        <strong>Comentario Global:</strong><br>
+                        <span style="font-size:0.9rem; color:#475569;">{{ ficha.observaciones_globales|linebreaksbr }}</span>
+                    </li>
+                  {% endif %}
+
+               {% elif ficha.estado_global == 'ENVIADA' or ficha.estado_global == 'EN_REVISION' %}
+                 <li style="color:#64748b;">Esperando respuesta del revisor...</li>
+
+               {% elif ficha.estado_global == 'APROBADA' %}
+                 <li style="color:#16a34a;">¡Todo listo! No tienes pendientes.</li>
+
+               {% else %}
+                 <li>-</li>
+               {% endif %}
+             </ul>
+          </div>
         </div>
+
       </div>
     </section>
 

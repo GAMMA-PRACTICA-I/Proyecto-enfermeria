@@ -636,22 +636,27 @@
 
   // Finalizar revisión (igual que tu versión original)
   async function finalizeReview(){
-      const g = prompt("Comentario global (opcional) para el estudiante:");
-      if(g === null) return; // Cancelado
+      const g = prompt("Comentario global opcional (para el estudiante):");
+      if(g === null) return; 
+
+      const res = await fetch(`/accounts/api/review/finalize/{{ ficha.id }}/`, {
+          method: 'POST',
+          headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
+          body: new URLSearchParams({ global_notes: g })
+      });
       
-      try {
-          const res = await fetch(`/accounts/api/review/finalize/{{ ficha.id }}/`, {
-              method: 'POST',
-              headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
-              body: new URLSearchParams({ global_notes: g })
-          });
-          if(res.ok){
-            window.location.href = "{% url 'revisiones_pendientes' %}";
+      const data = await res.json();
+      
+      if(data.ok){
+          if(data.estado === 'RECHAZADA') {
+             // Esta alerta te dirá exactamente qué campo sigue marcado como malo en la BD
+             alert("LA FICHA SE GUARDÓ COMO RECHAZADA.\n\nEl sistema detectó estos campos marcados como 'Observados':\n\n" + data.culpables.join("\n"));
           } else {
-            alert("Error al finalizar.");
+             alert("¡Ficha APROBADA con éxito!");
           }
-      } catch(e){ 
-          alert("Error de conexión"); 
+          window.location.href = "{% url 'revisiones_pendientes' %}";
+      } else {
+          alert("Error al finalizar: " + (data.error || "Desconocido"));
       }
   }
 </script>
